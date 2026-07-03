@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Loppz Loby</title>
+<style>
+  :root {
+    --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
+    --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
+    --line: rgba(239, 231, 210, 0.14);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--felt); color: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+  }
+  .shell { display: flex; flex-direction: column; height: 100vh; }
+
+  .topbar {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--felt-2);
+    flex-shrink: 0;
+  }
+  .topbar h1 {
+    margin: 0; font-size: 19px; font-weight: 800; letter-spacing: 0.02em; color: var(--gold);
+  }
+  .topbar p {
+    margin: 3px 0 0; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+
+  .tabs {
+    display: flex; gap: 6px; padding: 10px 14px;
+    background: var(--felt-2); border-bottom: 1px solid var(--line);
+    overflow-x: auto; flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex-shrink: 0;
+    background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px; cursor: pointer;
+    white-space: nowrap;
+  }
+  .tab-btn.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .tab-btn.add { color: var(--muted); border-style: dashed; }
+
+  .content { flex: 1; position: relative; overflow: hidden; }
+  .content iframe {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; background: var(--felt);
+  }
+  .add-panel {
+    display: none; position: absolute; inset: 0; padding: 30px 24px;
+    text-align: center; align-items: center; justify-content: center; flex-direction: column;
+  }
+  .add-panel.show { display: flex; }
+  .add-panel h2 { color: var(--gold); font-size: 17px; margin: 0 0 10px; }
+  .add-panel p { color: var(--muted); font-size: 13px; max-width: 340px; line-height: 1.6; margin: 0; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="topbar">
+    <h1>Loppz Loby</h1>
+    <p>estudo de poker · offline</p>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="content">
+    <iframe id="frame" title="conteúdo"></iframe>
+    <div class="add-panel" id="addPanel">
+      <h2>+ Nova aba</h2>
+      <p>Quer adicionar uma nova ferramenta aqui (ex: tracker de sessões, notas de mesa, calculadora de ICM)? É só pedir no chat que eu crio o arquivo e devolvo a pasta inteira já com a aba nova pronta pra usar.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Lista de abas do site. Para adicionar uma nova ferramenta,
+  // é só pedir no chat — não é preciso editar nada aqui manualmente.
+  var TABS = [
+    { id: 'glossario', label: 'Glossário', file: 'glossario.html' },
+    { id: 'potodds',   label: 'Pot Odds',  file: 'potodds.html' },
+    { id: 'outs',      label: 'Outs & Odds', file: 'outs.html' },
+    { id: 'ranges',    label: 'Ranges Pré-Flop', file: 'ranges.html' },
+    { id: 'equity',    label: 'Equity vs Range', file: 'equity.html' },
+    { id: 'icm',       label: 'ICM', file: 'icm.html' }
+  ];
+
+  var tabsEl = document.getElementById('tabs');
+  var frame = document.getElementById('frame');
+  var addPanel = document.getElementById('addPanel');
+
+  TABS.forEach(function(tab, idx) {
+    var btn = document.createElement('button');
+    btn.className = 'tab-btn' + (idx === 0 ? ' active' : '');
+    btn.textContent = tab.label;
+    btn.dataset.id = tab.id;
+    btn.addEventListener('click', function() { selectTab(tab.id); });
+    tabsEl.appendChild(btn);
+  });
+
+  var addBtn = document.createElement('button');
+  addBtn.className = 'tab-btn add';
+  addBtn.textContent = '+';
+  addBtn.addEventListener('click', function() { selectTab('__add__'); });
+  tabsEl.appendChild(addBtn);
+
+  function selectTab(id) {
+    Array.prototype.forEach.call(tabsEl.children, function(btn) {
+      btn.classList.toggle('active', btn.dataset.id === id || (id === '__add__' && btn === addBtn));
+    });
+    if (id === '__add__') {
+      frame.style.display = 'none';
+      addPanel.classList.add('show');
+      return;
+    }
+    addPanel.classList.remove('show');
+    frame.style.display = 'block';
+    var tab = TABS.filter(function(t) { return t.id === id; })[0];
+    if (tab) frame.src = tab.file;
+  }
+
+  selectTab(TABS[0].id);
+</script>
+</body>
+</html>

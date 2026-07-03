@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Pot Odds</title>
+<style>
+  :root {
+    --felt: #0E2E24;
+    --felt-2: #123A2C;
+    --panel: #163F30;
+    --panel-2: #1B4939;
+    --gold: #C9A227;
+    --gold-dim: #8F7620;
+    --cream: #EFE7D2;
+    --muted: #85A597;
+    --danger: #D2564A;
+    --danger-bg: #3A211D;
+    --success: #5FAE7C;
+    --success-bg: #163A28;
+    --line: rgba(239, 231, 210, 0.12);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--felt);
+    color: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin: 0;
+    color: var(--gold);
+  }
+  header span {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .field {
+    margin-bottom: 20px;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  .field input[type="number"] {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--cream);
+    font-size: 22px;
+    font-weight: 600;
+    padding: 14px 16px;
+    outline: none;
+  }
+  .field input[type="number"]:focus {
+    border-color: var(--gold-dim);
+  }
+  .row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--panel-2);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+    border: none;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--gold);
+    cursor: pointer;
+    border: none;
+  }
+  .outs-val {
+    min-width: 32px;
+    text-align: right;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .chip {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--cream);
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .chip.active {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #1A1508;
+    font-weight: 700;
+  }
+  .toggle {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .toggle button {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--cream);
+    font-size: 13px;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .toggle button.active {
+    background: var(--panel-2);
+    border-color: var(--gold);
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .meter {
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--panel);
+    display: flex;
+    margin: 24px 0 8px;
+    border: 1px solid var(--line);
+  }
+  .meter-pot { background: var(--gold-dim); }
+  .meter-call { background: var(--gold); }
+  .meter-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+  .results {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .card p.label {
+    margin: 0 0 6px;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .card p.value {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+  }
+  .decision {
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 6px;
+    border: 1px solid transparent;
+  }
+  .decision.ok {
+    background: var(--success-bg);
+    color: var(--success);
+    border-color: rgba(95, 174, 124, 0.3);
+  }
+  .decision.no {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-color: rgba(210, 86, 74, 0.3);
+  }
+  .decision.neutral {
+    background: var(--panel);
+    color: var(--muted);
+  }
+  footer {
+    margin-top: 28px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .source-note {
+    background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: var(--muted); line-height: 1.55;
+  }
+  .source-note b { color: var(--gold); }
+  .info-toggle {
+    background: var(--panel); border: 1px solid var(--gold-dim); color: var(--gold);
+    font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    margin-bottom: 14px; display: inline-block;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Pot Odds</h1>
+    <span>colorbydoug</span>
+  </header>
+
+  <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
+  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> fórmula matemática padrão de pot odds (call ÷ pote total) e equity de outs (probabilidade exata a partir das cartas restantes no baralho). Não é aproximação — é cálculo direto, mesma lógica usada em qualquer material técnico de poker.</div>
+
+  <div class="row2">
+    <div class="field">
+      <label for="pot">Pote atual</label>
+      <input type="number" id="pot" inputmode="decimal" value="100" min="0" step="1">
+    </div>
+    <div class="field">
+      <label for="call">Valor do call</label>
+      <input type="number" id="call" inputmode="decimal" value="25" min="0" step="1">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="outs">Seus outs</label>
+    <div class="slider-row">
+      <input type="range" id="outs" min="0" max="21" value="9" step="1">
+      <span class="outs-val" id="outsVal">9</span>
+    </div>
+    <div class="chips">
+      <button type="button" class="chip" data-outs="4">Gutshot · 4</button>
+      <button type="button" class="chip" data-outs="8">Seq. aberta · 8</button>
+      <button type="button" class="chip active" data-outs="9">Flush draw · 9</button>
+      <button type="button" class="chip" data-outs="12">Flush+gut · 12</button>
+      <button type="button" class="chip" data-outs="15">Flush+seq. · 15</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Cartas por vir</label>
+    <div class="toggle">
+      <button type="button" id="street2" class="active">Turn + river</button>
+      <button type="button" id="street1">Só o river</button>
+    </div>
+  </div>
+
+  <div class="meter" id="meter">
+    <div class="meter-pot" id="meterPot" style="width: 80%"></div>
+    <div class="meter-call" id="meterCall" style="width: 20%"></div>
+  </div>
+  <div class="meter-labels">
+    <span>Pote</span>
+    <span>Call</span>
+  </div>
+
+  <div class="results">
+    <div class="card">
+      <p class="label">Pot odds</p>
+      <p class="value mono" id="ratioOut">4 : 1</p>
+    </div>
+    <div class="card">
+      <p class="label">Equity necessária</p>
+      <p class="value mono" id="neededOut">20%</p>
+    </div>
+  </div>
+  <div class="results">
+    <div class="card">
+      <p class="label">Sua equity</p>
+      <p class="value mono" id="equityOut">35%</p>
+    </div>
+    <div class="card">
+      <p class="label">Diferença</p>
+      <p class="value mono" id="diffOut">+15%</p>
+    </div>
+  </div>
+
+  <div class="decision ok" id="decision">Pagar compensa.</div>
+
+  <footer>
+    Equity calculada de forma exata a partir dos outs e das cartas restantes no baralho (não é a regra do 2 e do 4). Funciona offline — salve este arquivo no celular ou notebook.
+  </footer>
+
+</div>
+
+<script>
+(function() {
+  document.getElementById('infoToggle').addEventListener('click', function() {
+    var n = document.getElementById('sourceNote');
+    n.style.display = (n.style.display === 'none') ? 'block' : 'none';
+  });
+  var potEl = document.getElementById('pot');
+  var callEl = document.getElementById('call');
+  var outsEl = document.getElementById('outs');
+  var outsVal = document.getElementById('outsVal');
+  var ratioOut = document.getElementById('ratioOut');
+  var neededOut = document.getElementById('neededOut');
+  var equityOut = document.getElementById('equityOut');
+  var diffOut = document.getElementById('diffOut');
+  var decision = document.getElementById('decision');
+  var meterPot = document.getElementById('meterPot');
+  var meterCall = document.getElementById('meterCall');
+  var chips = document.querySelectorAll('.chip');
+  var street1Btn = document.getElementById('street1');
+  var street2Btn = document.getElementById('street2');
+  var street = 2;
+
+  function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+
+  function calc() {
+    var pot = Math.max(0, parseFloat(potEl.value) || 0);
+    var call = Math.max(0, parseFloat(callEl.value) || 0);
+    var outs = Math.min(21, Math.max(0, parseInt(outsEl.value) || 0));
+    outsVal.textContent = outs;
+
+    var total = pot + call;
+
+    if (total > 0) {
+      var potPct = (pot / total) * 100;
+      var callPct = 100 - potPct;
+      meterPot.style.width = potPct + '%';
+      meterCall.style.width = callPct + '%';
+    }
+
+    var needed = 0;
+    if (call <= 0) {
+      ratioOut.textContent = '—';
+      neededOut.textContent = '0%';
+    } else {
+      var g = gcd(Math.round(total), Math.round(call)) || 1;
+      var potPart = Math.round(total / g);
+      var callPart = Math.round(call / g);
+      if (callPart > 0 && potPart / callPart > 20) {
+        ratioOut.textContent = (potPart / callPart).toFixed(1) + ' : 1';
+      } else {
+        ratioOut.textContent = potPart + ' : ' + callPart;
+      }
+      needed = (call / total) * 100;
+      neededOut.textContent = needed.toFixed(1) + '%';
+    }
+
+    var equity;
+    if (street === 1) {
+      equity = (outs / 46) * 100;
+    } else {
+      var missOnce = (46 - outs) / 46;
+      var missTwice = missOnce * ((45 - outs) / 45);
+      equity = (1 - missTwice) * 100;
+    }
+    equityOut.textContent = equity.toFixed(1) + '%';
+
+    var diff = equity - needed;
+    diffOut.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+
+    if (call <= 0) {
+      decision.className = 'decision neutral';
+      decision.textContent = 'Informe o valor do call para ver a decisão.';
+    } else if (equity >= needed) {
+      decision.className = 'decision ok';
+      decision.textContent = 'Pagar compensa: sua equity (' + equity.toFixed(1) + '%) supera a equity necessária (' + needed.toFixed(1) + '%).';
+    } else {
+      decision.className = 'decision no';
+      decision.textContent = 'Pagar não compensa: sua equity (' + equity.toFixed(1) + '%) fica abaixo da equity necessária (' + needed.toFixed(1) + '%).';
+    }
+  }
+
+  potEl.addEventListener('input', calc);
+  callEl.addEventListener('input', calc);
+  outsEl.addEventListener('input', calc);
+
+  chips.forEach(function(chip) {
+    chip.addEventListener('click', function() {
+      chips.forEach(function(c) { c.classList.remove('active'); });
+      chip.classList.add('active');
+      outsEl.value = chip.getAttribute('data-outs');
+      calc();
+    });
+  });
+
+  street1Btn.addEventListener('click', function() {
+    street = 1;
+    street1Btn.classList.add('active');
+    street2Btn.classList.remove('active');
+    calc();
+  });
+  street2Btn.addEventListener('click', function() {
+    street = 2;
+    street2Btn.classList.add('active');
+    street1Btn.classList.remove('active');
+    calc();
+  });
+
+  calc();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Outs & Odds</title>
+<style>
+  :root {
+    --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
+    --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
+    --danger: #D2564A; --success: #5FAE7C; --allin: #C9622A; --fold-cell: #17352A;
+    --line: rgba(239, 231, 210, 0.12);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--felt); color: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; }
+  .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 26px 18px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 18px; font-weight: 700; margin: 0; color: var(--gold); }
+  header span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .info-toggle {
+    background: var(--panel); border: 1px solid var(--gold-dim); color: var(--gold);
+    font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    margin-bottom: 10px; margin-right: 8px; display: inline-block;
+  }
+  .source-note {
+    background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: var(--muted); line-height: 1.55;
+  }
+  .source-note b { color: var(--gold); }
+
+  .explain {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px;
+  }
+  .explain h3 { font-size: 13px; color: var(--gold); margin: 0 0 8px; }
+  .explain p { font-size: 13px; color: var(--cream); line-height: 1.6; margin: 0 0 10px; }
+  .explain p:last-child { margin-bottom: 0; }
+  .explain ol, .explain ul { margin: 0 0 10px; padding-left: 18px; }
+  .explain li { font-size: 13px; color: var(--cream); line-height: 1.6; margin-bottom: 5px; }
+  .explain .example {
+    background: var(--felt-2); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 12px;
+    color: var(--muted); line-height: 1.6;
+  }
+  .explain .example b { color: var(--gold); }
+
+  h2.section { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 20px 0 10px; }
+
+  input#search {
+    width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--cream); font-size: 15px; padding: 11px 14px; outline: none; margin-bottom: 16px;
+  }
+  input#search:focus { border-color: var(--gold-dim); }
+
+  .legend-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; font-size: 11px; color: var(--muted); }
+  .legend-row .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+
+  .draw-card {
+    background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--muted);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .draw-card.fraco { border-left-color: var(--muted); }
+  .draw-card.medio { border-left-color: var(--gold); }
+  .draw-card.forte { border-left-color: var(--success); }
+  .draw-card.monstro { border-left-color: var(--allin); }
+
+  .draw-card .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .draw-card .name { font-size: 14px; font-weight: 700; color: var(--cream); }
+  .draw-card .badge {
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 3px 8px; border-radius: 999px; flex-shrink: 0; color: #1A1508;
+  }
+  .draw-card.fraco .badge { background: var(--muted); }
+  .draw-card.medio .badge { background: var(--gold); }
+  .draw-card.forte .badge { background: var(--success); }
+  .draw-card.monstro .badge { background: var(--allin); }
+
+  .draw-card .desc { font-size: 12px; color: var(--muted); margin: 6px 0 10px; line-height: 1.5; }
+
+  .draw-card .stats { display: flex; gap: 18px; margin-bottom: 8px; }
+  .draw-card .stat { flex: 1; }
+  .draw-card .stat .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+  .draw-card .stat .val { font-size: 18px; font-weight: 800; color: var(--cream); font-family: ui-monospace, monospace; }
+  .draw-card .stat .val .outs-tag { font-size: 11px; color: var(--muted); font-weight: 600; margin-left: 4px; }
+
+  .bar-track { height: 8px; border-radius: 4px; background: var(--fold-cell); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .draw-card.fraco .bar-fill { background: var(--muted); }
+  .draw-card.medio .bar-fill { background: var(--gold); }
+  .draw-card.forte .bar-fill { background: var(--success); }
+  .draw-card.monstro .bar-fill { background: var(--allin); }
+
+  .example-cards { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+  .example-cards .grp { display: flex; align-items: center; gap: 6px; }
+  .example-cards .grp-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+  .mini-card {
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 28px; height: 38px; border-radius: 5px; background: var(--cream); color: #1A1508;
+    font-size: 13px; font-weight: 800; box-shadow: 0 1px 0 rgba(0,0,0,0.25); line-height: 1.05;
+  }
+  .mini-card.red { color: #E2564C; }
+  .mini-card .s { font-size: 12px; }
+
+  footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Outs & Odds</h1>
+    <span>colorbydoug</span>
+  </header>
+
+  <div>
+    <button class="info-toggle" id="explainToggle">📖 Como usar essa tabela</button>
+    <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
+  </div>
+
+  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> combinatória padrão de poker (contagem exata de outs por tipo de draw) e a "regra do 4 e do 2" — mnemônica clássica ensinada universalmente para estimar equity de cabeça, sem calculadora. É uma aproximação rápida por natureza (o valor real fica levemente abaixo do estimado quando os outs são muitos); pra número exato, use a aba Pot Odds.</div>
+
+  <div class="explain" id="explainBox" style="display:none;">
+    <h3>O que é um "out"</h3>
+    <p>Out é qualquer carta que ainda não saiu e que, se sair, transforma sua mão na melhor mão da rodada. Se você tem um draw de flush (4 cartas do mesmo naipe), existem 9 cartas daquele naipe que ainda não apareceram — logo, você tem <b>9 outs</b>.</p>
+
+    <h3>Como usar essa página</h3>
+    <ol>
+      <li>Olhe sua mão + o board e identifique qual tipo de draw você tem (flush draw, sequência aberta, gutshot, etc.).</li>
+      <li>Encontre esse draw na lista abaixo — ela já mostra quantos outs ele tem e a chance aproximada de completar.</li>
+      <li><b>Coluna "1 carta"</b>: chance de completar só na próxima carta (por exemplo, você já está no turn esperando o river).</li>
+      <li><b>Coluna "2 cartas"</b>: chance de completar contando as duas cartas que ainda faltam (você está no flop, esperando turn e river).</li>
+      <li>Compare essa % com a que você precisa pra pagar uma aposta — é exatamente o que a aba <b>Pot Odds</b> calcula. Se sua equity (aqui) for maior que a equity necessária (lá), pagar compensa.</li>
+    </ol>
+
+    <div class="example">
+      <b>Exemplo prático:</b> você tem um flush draw no flop (9 outs). Essa tabela mostra ~36% de chance de completar até o river. Seu oponente aposta metade do pote — na aba Pot Odds, isso pede uma equity mínima de 25%. Como 36% &gt; 25%, pagar é uma jogada lucrativa matematicamente.
+    </div>
+  </div>
+
+  <input type="text" id="search" placeholder="Buscar draw (ex: flush, gutshot...)">
+
+  <div class="legend-row">
+    <span><span class="dot" style="background: var(--muted);"></span>Fraco (2-4 outs)</span>
+    <span><span class="dot" style="background: var(--gold);"></span>Médio (5-8 outs)</span>
+    <span><span class="dot" style="background: var(--success);"></span>Forte (9-10 outs)</span>
+    <span><span class="dot" style="background: var(--allin);"></span>Monstro (12+ outs)</span>
+  </div>
+
+  <div id="list"></div>
+
+  <footer>
+    Regra do 4 e do 2: com duas cartas por vir (no flop), multiplique os outs por ~4 pra estimar a chance de completar até o river. Com uma carta por vir (no turn), multiplique por ~2. É rápido de fazer de cabeça na mesa, mas perde um pouco de precisão com muitos outs.
+  </footer>
+
+</div>
+
+<script>
+(function() {
+  document.getElementById('infoToggle').addEventListener('click', function() {
+    var n = document.getElementById('sourceNote');
+    n.style.display = (n.style.display === 'none') ? 'block' : 'none';
+  });
+  document.getElementById('explainToggle').addEventListener('click', function() {
+    var n = document.getElementById('explainBox');
+    n.style.display = (n.style.display === 'none') ? 'block' : 'none';
+  });
+
+  var DRAWS = [
+    { name: 'Par → trinca (set)', outs: 2, desc: 'Você tem um par e quer pareá-lo pra virar trinca.', hand: ['5h','5c'], board: ['Ad','Kc','2s'] },
+    { name: 'Overcard única', outs: 3, desc: 'Uma carta na mão maior que tudo no board, ainda sem par.', hand: ['Ah','7c'], board: ['Jd','9h','2s'] },
+    { name: 'Dois pares → full house/quadra', outs: 4, desc: 'Você tem dois pares feitos e quer virar full house ou quadra.', hand: ['Kh','9c'], board: ['Kd','9s','2h'] },
+    { name: 'Gutshot (sequência interna)', outs: 4, desc: 'Falta uma carta específica no meio da sequência, ex: você tem 9-8-6-5 e precisa do 7.', hand: ['9h','8c'], board: ['6d','5s','2c'] },
+    { name: 'Par → dois pares ou trinca', outs: 5, desc: 'Você já tem um par feito e quer melhorar pra dois pares ou trinca.', hand: ['Ah','Tc'], board: ['As','9h','2d'] },
+    { name: 'Duas overcards', outs: 6, desc: 'Duas cartas na mão maiores que tudo no board, tipo AK contra um board baixo.', hand: ['Ah','Kc'], board: ['9d','7h','2s'] },
+    { name: 'Sequência aberta (open-ended)', outs: 8, desc: 'Falta uma carta em qualquer ponta pra completar, ex: 8-7-6-5 completa com 9 ou 4.', hand: ['8h','7c'], board: ['6d','5s','2h'] },
+    { name: 'Flush draw', outs: 9, desc: 'Quatro cartas do mesmo naipe, falta uma pra completar o flush.', hand: ['Ah','5h'], board: ['Kh','9h','2c'] },
+    { name: 'Trinca (set) → full house/quadra', outs: 7, desc: 'Você tem um set e quer melhorar pra full house ou quadra.', hand: ['7h','7c'], board: ['7d','Kc','2s'] },
+    { name: 'Gutshot + flush draw', outs: 12, desc: 'Combo draw: sequência interna e flush draw ao mesmo tempo.', hand: ['9h','8h'], board: ['6h','5h','2c'] },
+    { name: 'Sequência aberta + flush draw', outs: 15, desc: 'O combo draw mais forte antes do all-in: sequência aberta e flush draw juntos.', hand: ['8h','7h'], board: ['6h','5h','2c'] }
+  ];
+  DRAWS.sort(function(a, b) { return a.outs - b.outs; });
+
+  function pct1(outs) { return Math.min(100, outs * 2); }
+  function pct2(outs) { return Math.min(100, outs * 4); }
+  function category(outs) {
+    if (outs <= 4) return 'fraco';
+    if (outs <= 8) return 'medio';
+    if (outs <= 10) return 'forte';
+    return 'monstro';
+  }
+  function categoryLabel(cat) {
+    return { fraco: 'Fraco', medio: 'Médio', forte: 'Forte', monstro: 'Monstro' }[cat];
+  }
+
+  var SUIT_SYMBOL = { h: '♥', d: '♦', c: '♣', s: '♠' };
+  var RED_SUITS = { h: true, d: true };
+
+  function renderCards(codes) {
+    return codes.map(function(code) {
+      var rank = code[0], suit = code[1];
+      var cls = RED_SUITS[suit] ? 'mini-card red' : 'mini-card';
+      return '<span class="' + cls + '">' + rank + '<span class="s">' + SUIT_SYMBOL[suit] + '</span></span>';
+    }).join('');
+  }
+
+  var listEl = document.getElementById('list');
+  var searchEl = document.getElementById('search');
+
+  function render(filter) {
+    filter = (filter || '').toLowerCase().trim();
+    listEl.innerHTML = '';
+    DRAWS.forEach(function(d) {
+      if (filter && d.name.toLowerCase().indexOf(filter) === -1 && d.desc.toLowerCase().indexOf(filter) === -1) return;
+      var cat = category(d.outs);
+      var p2 = pct2(d.outs);
+      var card = document.createElement('div');
+      card.className = 'draw-card ' + cat;
+      card.innerHTML =
+        '<div class="top"><span class="name">' + d.name + '</span><span class="badge">' + categoryLabel(cat) + '</span></div>' +
+        '<div class="desc">' + d.desc + '</div>' +
+        '<div class="example-cards">' +
+          '<div class="grp"><span class="grp-label">Mão</span>' + renderCards(d.hand) + '</div>' +
+          '<div class="grp"><span class="grp-label">Board</span>' + renderCards(d.board) + '</div>' +
+        '</div>' +
+        '<div class="stats">' +
+          '<div class="stat"><div class="lbl">1 carta</div><div class="val">' + pct1(d.outs) + '%</div></div>' +
+          '<div class="stat"><div class="lbl">2 cartas</div><div class="val">' + p2 + '%</div></div>' +
+          '<div class="stat"><div class="lbl">Outs</div><div class="val">' + d.outs + '</div></div>' +
+        '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + p2 + '%;"></div></div>';
+      listEl.appendChild(card);
+    });
+  }
+
+  searchEl.addEventListener('input', function() { render(this.value); });
+  render('');
+})();
+</script>
+</body>
+</html>

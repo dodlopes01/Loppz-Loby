@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Equity vs Range</title>
+<style>
+  :root {
+    --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
+    --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
+    --danger: #D2564A; --danger-bg: #3A211D; --success: #5FAE7C; --success-bg: #163A28;
+    --allin: #C9622A; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.12);
+    --red-suit: #E2564C;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--felt); color: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; }
+  .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 26px 18px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 18px; font-weight: 700; margin: 0; color: var(--gold); }
+  header span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  h2.section { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 18px 0 10px; }
+
+  .seg { display: flex; gap: 6px; margin-bottom: 14px; }
+  .seg button { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 13px; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 700; }
+  .seg button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+
+  .mini-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .mini-row.hidden { display: none; }
+  .mini-row button { flex: 1; min-width: 44px; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 8px 4px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .mini-row button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); }
+
+  /* playing-card visuals */
+  .card-face {
+    width: 46px; height: 62px; border-radius: 7px; background: var(--cream);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 16px; line-height: 1.1; box-shadow: 0 2px 0 rgba(0,0,0,0.25);
+    cursor: pointer; user-select: none; flex-shrink: 0;
+  }
+  .card-face .suit { font-size: 15px; margin-top: 1px; }
+  .card-face.red { color: var(--red-suit); }
+  .card-face.black { color: #1A1508; }
+  .card-face.empty {
+    background: var(--panel); border: 1.5px dashed var(--line); color: var(--muted);
+    font-size: 22px; font-weight: 400;
+  }
+  .card-face.empty:hover { border-color: var(--gold-dim); color: var(--gold-dim); }
+  .card-face.disabled { opacity: 0.25; cursor: default; }
+
+  .cards-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .toolbar button { flex: 1; min-width: 90px; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 11px; padding: 9px 6px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .toolbar button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+
+  .grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-bottom: 8px;
+    border: 1px solid var(--line); padding: 3px; border-radius: 10px; background: var(--felt-2); }
+  .cell { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 9px;
+    border-radius: 3px; cursor: pointer; background: var(--fold-cell); color: var(--muted); font-weight: 600; user-select: none; position: relative; }
+  .cell.in { background: var(--success); color: #0E2416; }
+  .cell.edited::after { content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px;
+    border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
+
+  .range-summary { font-size: 11px; color: var(--muted); margin-bottom: 22px; text-align: center; }
+  .range-summary b { color: var(--cream); }
+
+  .board-box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 18px; }
+  .board-box .hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+  .iters { display: flex; gap: 6px; margin-bottom: 16px; }
+  .iters button { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 10px 4px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+  .iters button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); }
+
+  .calc-btn { width: 100%; background: var(--gold); border: none; color: #1A1508; font-size: 15px; font-weight: 800;
+    padding: 14px; border-radius: 12px; cursor: pointer; margin-bottom: 18px; }
+  .calc-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .error { background: var(--danger-bg); color: var(--danger); border-radius: 10px; padding: 12px 14px;
+    font-size: 13px; margin-bottom: 16px; display: none; }
+  .error.show { display: block; }
+
+  .results { display: none; margin-bottom: 20px; }
+  .results.show { display: block; }
+  .eq-row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .eq-card { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; text-align: center; }
+  .eq-card p.who { margin: 0 0 4px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .eq-card p.pct { margin: 0; font-size: 30px; font-weight: 800; color: var(--gold); }
+  .bar { height: 14px; border-radius: 7px; overflow: hidden; display: flex; background: var(--fold-cell); margin-bottom: 8px; }
+  .bar div { height: 100%; }
+  .bar .h { background: var(--success); }
+  .bar .t { background: var(--muted); }
+  .bar .v { background: var(--allin); }
+  .legend2 { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .meta { font-size: 11px; color: var(--muted); text-align: center; }
+
+  footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
+
+  .summary-box {
+    background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 18px;
+  }
+  .summary-box .row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+  .summary-box .row:last-child { margin-bottom: 0; }
+  .summary-box .tag {
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #1A1508; background: var(--gold); border-radius: 5px; padding: 3px 7px; flex-shrink: 0; margin-top: 1px;
+  }
+  .summary-box .tag.muted-tag { background: var(--panel-2); color: var(--muted); }
+  .summary-box .txt { font-size: 13px; color: var(--cream); line-height: 1.4; }
+  .summary-box .txt .mini-cards { display: inline-flex; gap: 3px; vertical-align: middle; margin-left: 4px; }
+  .summary-box .mini-card {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 28px; border-radius: 4px; background: var(--cream); color: #1A1508;
+    font-size: 11px; font-weight: 800;
+  }
+  .summary-box .mini-card.red { color: var(--red-suit); }
+
+  /* card picker overlay */
+  .overlay {
+    display: none; position: fixed; inset: 0; background: rgba(6, 20, 15, 0.82);
+    z-index: 50; align-items: flex-end; justify-content: center;
+  }
+  .overlay.show { display: flex; }
+  .picker {
+    background: var(--felt-2); border-radius: 16px 16px 0 0; padding: 18px 16px 24px;
+    width: 100%; max-width: 560px; max-height: 78vh; overflow-y: auto;
+  }
+  .picker-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .picker-head h3 { font-size: 14px; margin: 0; color: var(--gold); }
+  .picker-head button { background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 13px; padding: 6px 12px; border-radius: 8px; cursor: pointer; }
+  .picker-suit-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+  .picker-suit-row .suit-label { width: 20px; font-size: 17px; text-align: center; flex-shrink: 0; }
+  .picker-suit-row .suit-label.red { color: var(--red-suit); }
+  .picker-suit-row .suit-label.black { color: var(--cream); }
+  .picker-cards { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; flex: 1; }
+  .picker-cell {
+    aspect-ratio: 2/2.7; border-radius: 4px; background: var(--cream); display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800; cursor: pointer; color: #1A1508;
+  }
+  .picker-cell.red { color: var(--red-suit); }
+  .picker-cell.disabled { background: var(--panel); color: var(--muted); opacity: 0.35; cursor: default; }
+
+  .source-note {
+    background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: var(--muted); line-height: 1.55;
+  }
+  .source-note b { color: var(--gold); }
+  .info-toggle {
+    background: var(--panel); border: 1px solid var(--gold-dim); color: var(--gold);
+    font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    margin-bottom: 14px; display: inline-block;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Equity vs Range</h1>
+    <span>colorbydoug</span>
+  </header>
+
+  <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
+  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> a equidade em si é calculada por simulação Monte Carlo (matemática exata, converge pro valor real conforme aumenta o número de simulações). Já os ranges por posição (quando você usa o modo "Range" em vez de mão específica) vêm da mesma aproximação heurística de Chen usada na aba Ranges — não de um solver real. Mãos específicas vs mãos específicas, ou ranges editados manualmente, não têm essa limitação.</div>
+
+  <h2 class="section">Editando</h2>
+  <div class="seg" id="panelSeg">
+    <button data-panel="hero" class="active">Minha mão</button>
+    <button data-panel="villain">Vilão</button>
+  </div>
+
+  <div class="seg" id="modeSeg">
+    <button data-mode="hand" class="active">Mão específica</button>
+    <button data-mode="range">Range</button>
+  </div>
+
+  <div id="handModeBox">
+    <div class="cards-row" id="handSlots"></div>
+    <div class="hint" style="font-size:11px; color:var(--muted);">Toque num espaço vazio pra escolher a carta.</div>
+  </div>
+
+  <div id="rangeModeBox" style="display:none;">
+    <div class="mini-row" id="posRow">
+      <button data-pos="UTG">UTG</button>
+      <button data-pos="MP">MP</button>
+      <button data-pos="CO">CO</button>
+      <button data-pos="BTN" class="active">BTN</button>
+      <button data-pos="SB">SB</button>
+      <button data-pos="BB">BB</button>
+    </div>
+    <div class="mini-row" id="stackRow">
+      <button data-bb="100" class="active">100bb</button>
+      <button data-bb="70">70bb</button>
+      <button data-bb="40">40bb</button>
+      <button data-bb="25">25bb</button>
+      <button data-bb="15">15bb</button>
+      <button data-bb="10">10bb</button>
+    </div>
+    <div class="mini-row hidden" id="openerRow">
+      <button data-opener="UTG">UTG</button>
+      <button data-opener="MP">MP</button>
+      <button data-opener="CO">CO</button>
+      <button data-opener="BTN" class="active">BTN</button>
+      <button data-opener="SB">SB</button>
+    </div>
+    <div class="toolbar">
+      <button id="editBtn">✎ Editar</button>
+      <button id="clearBtn">Limpar tudo</button>
+      <button id="resetBtn">Restaurar padrão</button>
+    </div>
+    <div id="grid" class="grid"></div>
+    <p class="range-summary" id="rangeSummary"></p>
+  </div>
+
+  <h2 class="section">Board (opcional)</h2>
+  <div class="board-box">
+    <div class="cards-row" id="boardSlots"></div>
+    <div class="hint">Toque num espaço vazio pra montar o flop, turn ou river. Deixe tudo vazio pra pré-flop.</div>
+  </div>
+
+  <h2 class="section">Precisão da simulação</h2>
+  <div class="iters" id="iters">
+    <button data-n="8000" class="active">Rápido</button>
+    <button data-n="20000">Padrão</button>
+    <button data-n="50000">Preciso</button>
+  </div>
+
+  <div class="summary-box" id="summaryBox">
+    <div class="row"><span class="tag">Você</span><span class="txt" id="summaryHero">—</span></div>
+    <div class="row"><span class="tag">Vilão</span><span class="txt" id="summaryVillain">—</span></div>
+    <div class="row"><span class="tag muted-tag">Board</span><span class="txt" id="summaryBoard">Pré-flop (sem cartas no board)</span></div>
+  </div>
+
+  <div class="error" id="errorBox"></div>
+
+  <button class="calc-btn" id="calcBtn">Calcular equity</button>
+
+  <div class="results" id="results">
+    <div class="eq-row">
+      <div class="eq-card"><p class="who">Você</p><p class="pct mono" id="heroPct">—</p></div>
+      <div class="eq-card"><p class="who">Vilão</p><p class="pct mono" id="villainPct">—</p></div>
+    </div>
+    <div class="legend2"><span>Você</span><span>Empate</span><span>Vilão</span></div>
+    <div class="bar"><div class="h" id="barH"></div><div class="t" id="barT"></div><div class="v" id="barV"></div></div>
+    <p class="meta" id="meta"></p>
+  </div>
+
+  <footer>
+    Simulação Monte Carlo — cada cálculo amostra combinações aleatórias dentro dos ranges escolhidos, então o resultado varia um pouco a cada rodada (mais amostras = mais estável). Ranges por posição usam a mesma heurística de Chen das outras abas, não um solver exato.
+  </footer>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="picker">
+    <div class="picker-head">
+      <h3 id="pickerTitle">Escolha a carta</h3>
+      <button id="pickerClose">Fechar</button>
+    </div>
+    <div id="pickerBody"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  document.getElementById('infoToggle').addEventListener('click', function() {
+    var n = document.getElementById('sourceNote');
+    n.style.display = (n.style.display === 'none') ? 'block' : 'none';
+  });
+  var RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+  var RANK_VAL = { A:14, K:13, Q:12, J:11, T:10, '9':9, '8':8, '7':7, '6':6, '5':5, '4':4, '3':3, '2':2 };
+  var CHEN_PTS = { A:10, K:8, Q:7, J:6, T:5, '9':4.5, '8':4, '7':3.5, '6':3, '5':2.5, '4':2, '3':1.5, '2':1 };
+  var SUITS = ['s','h','d','c'];
+  var SUIT_INFO = {
+    s: { symbol: '♠', color: 'black' },
+    h: { symbol: '♥', color: 'red' },
+    d: { symbol: '♦', color: 'red' },
+    c: { symbol: '♣', color: 'black' }
+  };
+
+  var positionPercents = {
+    100: { UTG:14, MP:18, CO:26, BTN:44, SB:38 },
+    70:  { UTG:15, MP:19, CO:28, BTN:46, SB:39 },
+    40:  { UTG:16, MP:20, CO:29, BTN:47, SB:40 },
+    25:  { UTG:12, MP:16, CO:24, BTN:40, SB:34 },
+    15:  { UTG:10, MP:14, CO:20, BTN:32, SB:45 },
+    10:  { UTG:16, MP:20, CO:28, BTN:42, SB:55 }
+  };
+  var bbDefenseDeep = {
+    UTG:{threeBet:7,call:27}, MP:{threeBet:8,call:30}, CO:{threeBet:10,call:34}, BTN:{threeBet:12,call:40}, SB:{threeBet:14,call:44}
+  };
+  var bbDefenseShort = {
+    15: { UTG:{call:12}, MP:{call:16}, CO:{call:22}, BTN:{call:34}, SB:{call:40} },
+    10: { UTG:{call:16}, MP:{call:20}, CO:{call:26}, BTN:{call:38}, SB:{call:46} }
+  };
+
+  // ---------- hand grid (169 types) ----------
+  var hands = [];
+  var handIndex = {};
+  for (var i = 0; i < 13; i++) {
+    for (var j = 0; j < 13; j++) {
+      var label, type, combos;
+      if (i === j) { label = RANKS[i] + RANKS[i]; type = 'pair'; combos = 6; }
+      else if (i < j) { label = RANKS[i] + RANKS[j] + 's'; type = 'suited'; combos = 4; }
+      else { label = RANKS[j] + RANKS[i] + 'o'; type = 'offsuit'; combos = 12; }
+      var score = chenScore(label, type);
+      var h = { label: label, type: type, combos: combos, score: score, i: i, j: j };
+      hands.push(h); handIndex[label] = h;
+    }
+  }
+  function chenScore(label, type) {
+    var r1, r2;
+    if (type === 'pair') { r1 = r2 = label[0]; } else { r1 = label[0]; r2 = label[1]; }
+    var v1 = RANK_VAL[r1], v2 = RANK_VAL[r2];
+    var hi = v1 >= v2 ? r1 : r2, lo = v1 >= v2 ? r2 : r1;
+    var hiVal = RANK_VAL[hi], loVal = RANK_VAL[lo];
+    var score;
+    if (type === 'pair') { score = Math.max(CHEN_PTS[r1]*2, 5); }
+    else {
+      score = CHEN_PTS[hi];
+      if (type === 'suited') score += 2;
+      var gap = hiVal - loVal - 1;
+      if (gap===0) score+=0; else if (gap===1) score-=1; else if (gap===2) score-=2; else if (gap===3) score-=4; else score-=5;
+      if (gap<=1 && hiVal<=12) score+=1;
+    }
+    return score;
+  }
+  var sortedHands = hands.slice().sort(function(a,b){ return b.score-a.score; });
+  function topNCombos(pct) {
+    var target=(pct/100)*1326, acc=0, set={};
+    for (var k=0;k<sortedHands.length;k++) { if (acc>=target) break; set[sortedHands[k].label]=true; acc+=sortedHands[k].combos; }
+    return set;
+  }
+  function getTiers(pct1, pct2) {
+    var t1=(pct1/100)*1326, t2=((pct1+pct2)/100)*1326, acc=0, tier1={}, tier2={};
+    for (var k=0;k<sortedHands.length;k++) {
+      var h=sortedHands[k];
+      if (acc<t1) { tier1[h.label]=true; acc+=h.combos; continue; }
+      if (acc<t2) { tier2[h.label]=true; acc+=h.combos; continue; }
+      break;
+    }
+    return { tier1:tier1, tier2:tier2 };
+  }
+  function computeBaseSet(pos, bb, opener) {
+    var set = {};
+    if (pos === 'BB') {
+      if (bb <= 20) {
+        var cfg = bbDefenseShort[bb][opener];
+        set = topNCombos(cfg.call);
+      } else {
+        var cfg2 = bbDefenseDeep[opener];
+        var tiers = getTiers(cfg2.threeBet, cfg2.call);
+        Object.keys(tiers.tier1).forEach(function(l){ set[l]=true; });
+        Object.keys(tiers.tier2).forEach(function(l){ set[l]=true; });
+      }
+    } else {
+      set = topNCombos(positionPercents[bb][pos]);
+    }
+    return set;
+  }
+
+  // ---------- card helpers ----------
+  function expandHandToCombos(label) {
+    var out = [];
+    if (label.length === 2) {
+      var v = RANK_VAL[label[0]];
+      for (var a=0;a<4;a++) for (var b=a+1;b<4;b++) out.push([{rank:v,suit:SUITS[a]},{rank:v,suit:SUITS[b]}]);
+    } else {
+      var v1 = RANK_VAL[label[0]], v2 = RANK_VAL[label[1]], suited = label[2]==='s';
+      if (suited) {
+        for (var s=0;s<4;s++) out.push([{rank:v1,suit:SUITS[s]},{rank:v2,suit:SUITS[s]}]);
+      } else {
+        for (var s1=0;s1<4;s1++) for (var s2=0;s2<4;s2++) if (s1!==s2) out.push([{rank:v1,suit:SUITS[s1]},{rank:v2,suit:SUITS[s2]}]);
+      }
+    }
+    return out;
+  }
+  function cardKey(c) { return c.rank + c.suit; }
+  function rankChar(v) { for (var k in RANK_VAL) if (RANK_VAL[k]===v) return k; return '?'; }
+
+  // ---------- hand evaluator ----------
+  function evaluate5(cards) {
+    var ranks = cards.map(function(c){return c.rank;}).sort(function(a,b){return b-a;});
+    var suits = cards.map(function(c){return c.suit;});
+    var isFlush = suits.every(function(s){ return s===suits[0]; });
+    var uniq = [];
+    ranks.forEach(function(r){ if (uniq.indexOf(r)===-1) uniq.push(r); });
+    var isStraight = false, straightHigh = 0;
+    if (uniq.length === 5) {
+      if (uniq[0]-uniq[4]===4) { isStraight=true; straightHigh=uniq[0]; }
+      else if (uniq.join(',')==='14,5,4,3,2') { isStraight=true; straightHigh=5; }
+    }
+    var freq = {};
+    ranks.forEach(function(r){ freq[r]=(freq[r]||0)+1; });
+    var groups = Object.keys(freq).map(function(r){ return {rank:+r, count:freq[r]}; })
+      .sort(function(a,b){ return b.count-a.count || b.rank-a.rank; });
+    var category, tiebreak;
+    if (isStraight && isFlush) { category=8; tiebreak=[straightHigh]; }
+    else if (groups[0].count===4) { category=7; tiebreak=[groups[0].rank, groups[1].rank]; }
+    else if (groups[0].count===3 && groups[1] && groups[1].count===2) { category=6; tiebreak=[groups[0].rank, groups[1].rank]; }
+    else if (isFlush) { category=5; tiebreak=ranks; }
+    else if (isStraight) { category=4; tiebreak=[straightHigh]; }
+    else if (groups[0].count===3) { category=3; tiebreak=[groups[0].rank].concat(groups.slice(1).map(function(g){return g.rank;})); }
+    else if (groups[0].count===2 && groups[1] && groups[1].count===2) { category=2; tiebreak=[groups[0].rank, groups[1].rank, groups[2].rank]; }
+    else if (groups[0].count===2) { category=1; tiebreak=[groups[0].rank].concat(groups.slice(1).map(function(g){return g.rank;})); }
+    else { category=0; tiebreak=ranks; }
+    var score = category;
+    var tb = tiebreak.slice(0,5);
+    tb.forEach(function(v){ score = score*15+v; });
+    for (var p=tb.length; p<5; p++) score = score*15;
+    return score;
+  }
+  var COMBOS7C5 = (function() {
+    var out = [];
+    function rec(start, chosen) {
+      if (chosen.length===5) { out.push(chosen.slice()); return; }
+      for (var i=start;i<7;i++) { chosen.push(i); rec(i+1, chosen); chosen.pop(); }
+    }
+    rec(0, []);
+    return out;
+  })();
+  function evaluate7(cards7) {
+    var best = -1;
+    for (var k=0;k<COMBOS7C5.length;k++) {
+      var idxs = COMBOS7C5[k];
+      var five = [cards7[idxs[0]],cards7[idxs[1]],cards7[idxs[2]],cards7[idxs[3]],cards7[idxs[4]]];
+      var s = evaluate5(five);
+      if (s>best) best=s;
+    }
+    return best;
+  }
+
+  // ---------- state ----------
+  var panels = {
+    hero:    { mode:'hand', handCards:[], pos:'BTN', bb:100, opener:'BTN', overrides:{} },
+    villain: { mode:'range', handCards:[], pos:'BTN', bb:100, opener:'BTN', overrides:{} }
+  };
+  var boardCards = [];
+  var activePanel = 'hero';
+  var editMode = false;
+
+  function ctxKey(p) { return p.pos + '_' + p.bb + (p.pos==='BB' ? '_'+p.opener : ''); }
+  function effectiveSet(p) {
+    var base = computeBaseSet(p.pos, p.bb, p.opener);
+    var ov = p.overrides[ctxKey(p)] || {};
+    var final = {};
+    Object.keys(base).forEach(function(l){ final[l]=true; });
+    Object.keys(ov).forEach(function(l){ if (ov[l]) final[l]=true; else delete final[l]; });
+    return final;
+  }
+
+  // ---------- 169-hand grid ----------
+  var gridEl = document.getElementById('grid');
+  var cellsByLabel = {};
+  hands.forEach(function(h) {
+    var cell = document.createElement('div');
+    cell.className = 'cell'; cell.textContent = h.label; cell.style.order = h.i*13+h.j;
+    gridEl.appendChild(cell); cellsByLabel[h.label]=cell;
+    cell.addEventListener('click', function(){
+      var p = panels[activePanel];
+      if (!editMode) return;
+      var final = effectiveSet(p);
+      var key = ctxKey(p);
+      if (!p.overrides[key]) p.overrides[key] = {};
+      p.overrides[key][h.label] = !final[h.label];
+      renderPanel();
+    });
+  });
+  gridEl.style.display = 'grid';
+
+  // ---------- card picker overlay ----------
+  var overlay = document.getElementById('overlay');
+  var pickerBody = document.getElementById('pickerBody');
+  var pickerTitle = document.getElementById('pickerTitle');
+  var pickerTarget = null; // 'heroHand' | 'villainHand' | 'board'
+
+  function usedCardKeys() {
+    var used = {};
+    boardCards.forEach(function(c){ used[cardKey(c)] = true; });
+    panels.hero.handCards.forEach(function(c){ used[cardKey(c)] = true; });
+    panels.villain.handCards.forEach(function(c){ used[cardKey(c)] = true; });
+    return used;
+  }
+
+  function openPicker(target, title) {
+    pickerTarget = target;
+    pickerTitle.textContent = title;
+    var used = usedCardKeys();
+    pickerBody.innerHTML = '';
+    SUITS.forEach(function(suitCode) {
+      var row = document.createElement('div');
+      row.className = 'picker-suit-row';
+      var label = document.createElement('div');
+      label.className = 'suit-label ' + SUIT_INFO[suitCode].color;
+      label.textContent = SUIT_INFO[suitCode].symbol;
+      row.appendChild(label);
+      var cardsWrap = document.createElement('div');
+      cardsWrap.className = 'picker-cards';
+      RANKS.forEach(function(r) {
+        var v = RANK_VAL[r];
+        var key = v + suitCode;
+        var cell = document.createElement('div');
+        cell.className = 'picker-cell' + (SUIT_INFO[suitCode].color==='red' ? ' red' : '');
+        cell.textContent = r;
+        if (used[key]) {
+          cell.classList.add('disabled');
+        } else {
+          cell.addEventListener('click', function() {
+            addCard(pickerTarget, { rank: v, suit: suitCode });
+            closePicker();
+          });
+        }
+        cardsWrap.appendChild(cell);
+      });
+      row.appendChild(cardsWrap);
+      pickerBody.appendChild(row);
+    });
+    overlay.classList.add('show');
+  }
+  function closePicker() { overlay.classList.remove('show'); pickerTarget = null; }
+  document.getElementById('pickerClose').addEventListener('click', closePicker);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) closePicker(); });
+
+  function addCard(target, card) {
+    if (target === 'heroHand' && panels.hero.handCards.length < 2) panels.hero.handCards.push(card);
+    else if (target === 'villainHand' && panels.villain.handCards.length < 2) panels.villain.handCards.push(card);
+    else if (target === 'board' && boardCards.length < 5) boardCards.push(card);
+    renderPanel();
+    renderBoard();
+  }
+  function removeCard(target, index) {
+    if (target === 'heroHand') panels.hero.handCards.splice(index, 1);
+    else if (target === 'villainHand') panels.villain.handCards.splice(index, 1);
+    else if (target === 'board') boardCards.splice(index, 1);
+    renderPanel();
+    renderBoard();
+  }
+
+  function makeCardFace(card, onClick) {
+    var el = document.createElement('div');
+    if (!card) {
+      el.className = 'card-face empty';
+      el.textContent = '+';
+      el.addEventListener('click', onClick);
+      return el;
+    }
+    var info = SUIT_INFO[card.suit];
+    el.className = 'card-face ' + info.color;
+    el.innerHTML = rankChar(card.rank) + '<span class="suit">' + info.symbol + '</span>';
+    el.addEventListener('click', onClick);
+    return el;
+  }
+
+  function renderHandSlots() {
+    var box = document.getElementById('handSlots');
+    box.innerHTML = '';
+    var target = activePanel === 'hero' ? 'heroHand' : 'villainHand';
+    var cards = panels[activePanel].handCards;
+    var title = activePanel === 'hero' ? 'Escolha uma carta da sua mão' : 'Escolha uma carta do vilão';
+    for (var i = 0; i < 2; i++) {
+      (function(idx) {
+        var card = cards[idx];
+        box.appendChild(makeCardFace(card, function() {
+          if (card) removeCard(target, idx);
+          else openPicker(target, title);
+        }));
+      })(i);
+    }
+  }
+
+  function renderBoard() {
+    var box = document.getElementById('boardSlots');
+    box.innerHTML = '';
+    for (var i = 0; i < 5; i++) {
+      (function(idx) {
+        var card = boardCards[idx];
+        box.appendChild(makeCardFace(card, function() {
+          if (card) removeCard('board', idx);
+          else if (idx === boardCards.length) openPicker('board', 'Escolha uma carta do board');
+        }));
+      })(i);
+    }
+    renderSummary();
+  }
+
+  var posNamesFull = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'botão', SB:'small blind', BB:'big blind' };
+  var openerNamesFull = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'botão', SB:'small blind' };
+
+  function cardsToHTML(cards) {
+    return '<span class="mini-cards">' + cards.map(function(c) {
+      var info = SUIT_INFO[c.suit];
+      return '<span class="mini-card ' + info.color + '">' + rankChar(c.rank) + info.symbol + '</span>';
+    }).join('') + '</span>';
+  }
+
+  function panelSummaryHTML(p) {
+    if (p.mode === 'hand') {
+      if (p.handCards.length === 2) return 'Mão específica: ' + cardsToHTML(p.handCards);
+      if (p.handCards.length === 1) return 'Mão específica (falta 1 carta): ' + cardsToHTML(p.handCards);
+      return 'Mão específica — nenhuma carta escolhida ainda.';
+    }
+    var set = effectiveSet(p);
+    var combos = 0;
+    Object.keys(set).forEach(function(l) { combos += handIndex[l].combos; });
+    var pct = (combos / 1326 * 100).toFixed(1);
+    var posTxt = p.pos === 'BB'
+      ? 'Range: BB defendendo vs ' + openerNamesFull[p.opener] + ' · ' + p.bb + 'bb'
+      : 'Range: ' + posNamesFull[p.pos] + ' · ' + p.bb + 'bb';
+    return posTxt + ' — <b>' + combos + '</b> combos (' + pct + '%)';
+  }
+
+  function renderSummary() {
+    document.getElementById('summaryHero').innerHTML = panelSummaryHTML(panels.hero);
+    document.getElementById('summaryVillain').innerHTML = panelSummaryHTML(panels.villain);
+    var boardEl = document.getElementById('summaryBoard');
+    if (boardCards.length === 0) {
+      boardEl.textContent = 'Pré-flop (sem cartas no board)';
+    } else {
+      boardEl.innerHTML = cardsToHTML(boardCards);
+    }
+  }
+
+  function renderPanel() {
+    var p = panels[activePanel];
+    document.getElementById('modeSeg').querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('active', b.dataset.mode === p.mode);
+    });
+    document.getElementById('handModeBox').style.display = p.mode==='hand' ? 'block' : 'none';
+    document.getElementById('rangeModeBox').style.display = p.mode==='range' ? 'block' : 'none';
+    renderHandSlots();
+
+    document.getElementById('posRow').querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('active', b.dataset.pos === p.pos);
+    });
+    document.getElementById('stackRow').querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('active', parseInt(b.dataset.bb) === p.bb);
+    });
+    document.getElementById('openerRow').classList.toggle('hidden', p.pos !== 'BB');
+    document.getElementById('openerRow').querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('active', b.dataset.opener === p.opener);
+    });
+
+    var final = effectiveSet(p);
+    var ov = p.overrides[ctxKey(p)] || {};
+    var combos = 0;
+    hands.forEach(function(h) {
+      var cell = cellsByLabel[h.label];
+      cell.classList.remove('in','edited');
+      if (final[h.label]) { cell.classList.add('in'); combos += h.combos; }
+      if (ov.hasOwnProperty(h.label)) cell.classList.add('edited');
+    });
+    var pct = (combos/1326*100).toFixed(1);
+    document.getElementById('rangeSummary').innerHTML = '<b>' + combos + '</b> combos selecionados (<b>' + pct + '%</b> de todas as mãos)';
+
+    document.getElementById('editBtn').classList.toggle('active', editMode);
+    renderSummary();
+  }
+
+  document.getElementById('panelSeg').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.getElementById('panelSeg').querySelectorAll('button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      activePanel = b.dataset.panel;
+      renderPanel();
+    });
+  });
+  document.getElementById('modeSeg').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      panels[activePanel].mode = b.dataset.mode;
+      renderPanel();
+    });
+  });
+  document.getElementById('posRow').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){ panels[activePanel].pos = b.dataset.pos; renderPanel(); });
+  });
+  document.getElementById('stackRow').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){ panels[activePanel].bb = parseInt(b.dataset.bb); renderPanel(); });
+  });
+  document.getElementById('openerRow').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){ panels[activePanel].opener = b.dataset.opener; renderPanel(); });
+  });
+  document.getElementById('editBtn').addEventListener('click', function(){
+    editMode = !editMode; renderPanel();
+  });
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    var p = panels[activePanel];
+    var final = effectiveSet(p);
+    var key = ctxKey(p);
+    if (!p.overrides[key]) p.overrides[key] = {};
+    Object.keys(final).forEach(function(l){ p.overrides[key][l] = false; });
+    renderPanel();
+  });
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    var p = panels[activePanel];
+    delete p.overrides[ctxKey(p)];
+    renderPanel();
+  });
+
+  var iterN = 8000;
+  document.getElementById('iters').querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.getElementById('iters').querySelectorAll('button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      iterN = parseInt(b.dataset.n);
+    });
+  });
+
+  function getPanelPool(p, excludeKeys) {
+    if (p.mode === 'hand') {
+      if (p.handCards.length !== 2) return { error: (p===panels.hero?'Escolha as 2 cartas da sua mão.':'Escolha as 2 cartas do vilão.') };
+      return { fixed: p.handCards };
+    } else {
+      var set = effectiveSet(p);
+      var labels = Object.keys(set);
+      if (labels.length === 0) return { error: (p===panels.hero?'Seu range':'Range do vilão') + ' está vazio.' };
+      var pool = [];
+      labels.forEach(function(l) {
+        expandHandToCombos(l).forEach(function(combo) {
+          if (!excludeKeys[cardKey(combo[0])] && !excludeKeys[cardKey(combo[1])]) pool.push(combo);
+        });
+      });
+      if (pool.length === 0) return { error: (p===panels.hero?'Seu range':'Range do vilão') + ' não tem combos livres (conflita com o board).' };
+      return { pool: pool };
+    }
+  }
+
+  var FULL_DECK = (function(){
+    var d = [];
+    for (var r=2;r<=14;r++) for (var s=0;s<4;s++) d.push({rank:r, suit:SUITS[s]});
+    return d;
+  })();
+
+  function runSimulation() {
+    var errorBox = document.getElementById('errorBox');
+    errorBox.classList.remove('show'); errorBox.textContent = '';
+
+    var board = boardCards.slice();
+    if ([0,3,4,5].indexOf(board.length) === -1) { showError('O board precisa ter 0, 3, 4 ou 5 cartas.'); return; }
+
+    var excludeKeys = {};
+    board.forEach(function(c){ excludeKeys[cardKey(c)] = true; });
+
+    var heroInfo = getPanelPool(panels.hero, excludeKeys);
+    if (heroInfo.error) { showError(heroInfo.error); return; }
+    if (heroInfo.fixed) { excludeKeys[cardKey(heroInfo.fixed[0])] = true; excludeKeys[cardKey(heroInfo.fixed[1])] = true; }
+
+    var villainInfo = getPanelPool(panels.villain, excludeKeys);
+    if (villainInfo.error) { showError(villainInfo.error); return; }
+
+    var heroWins = 0, villainWins = 0, ties = 0, valid = 0;
+    var maxAttempts = iterN * 3;
+    var attempts = 0;
+
+    while (valid < iterN && attempts < maxAttempts) {
+      attempts++;
+      var used = {};
+      board.forEach(function(c){ used[cardKey(c)] = true; });
+
+      var heroCards;
+      if (heroInfo.fixed) { heroCards = heroInfo.fixed; }
+      else {
+        var hc = heroInfo.pool[(Math.random()*heroInfo.pool.length)|0];
+        if (used[cardKey(hc[0])] || used[cardKey(hc[1])]) continue;
+        heroCards = hc;
+      }
+      used[cardKey(heroCards[0])] = true; used[cardKey(heroCards[1])] = true;
+
+      var villainCards;
+      if (villainInfo.fixed) {
+        if (used[cardKey(villainInfo.fixed[0])] || used[cardKey(villainInfo.fixed[1])]) continue;
+        villainCards = villainInfo.fixed;
+      } else {
+        var filtered = [];
+        for (var vi=0; vi<villainInfo.pool.length; vi++) {
+          var vc = villainInfo.pool[vi];
+          if (!used[cardKey(vc[0])] && !used[cardKey(vc[1])]) filtered.push(vc);
+        }
+        if (filtered.length === 0) continue;
+        villainCards = filtered[(Math.random()*filtered.length)|0];
+      }
+      used[cardKey(villainCards[0])] = true; used[cardKey(villainCards[1])] = true;
+
+      var remainingSlots = 5 - board.length;
+      var dealt = [];
+      if (remainingSlots > 0) {
+        var candidates = [];
+        for (var di=0; di<FULL_DECK.length; di++) {
+          var dc = FULL_DECK[di];
+          if (!used[cardKey(dc)]) candidates.push(dc);
+        }
+        for (var s=0; s<remainingSlots; s++) {
+          var pick = (Math.random()*candidates.length)|0;
+          dealt.push(candidates[pick]);
+          candidates.splice(pick,1);
+        }
+      }
+      var fullBoard = board.concat(dealt);
+
+      var heroScore = evaluate7(heroCards.concat(fullBoard));
+      var villainScore = evaluate7(villainCards.concat(fullBoard));
+      if (heroScore > villainScore) heroWins++;
+      else if (villainScore > heroScore) villainWins++;
+      else ties++;
+      valid++;
+    }
+
+    if (valid === 0) { showError('Não foi possível simular — confira se as cartas escolhidas não se sobrepõem.'); return; }
+
+    var heroEq = (heroWins + ties*0.5) / valid * 100;
+    var villainEq = (villainWins + ties*0.5) / valid * 100;
+    var tiePct = ties / valid * 100;
+
+    document.getElementById('heroPct').textContent = heroEq.toFixed(1) + '%';
+    document.getElementById('villainPct').textContent = villainEq.toFixed(1) + '%';
+    document.getElementById('barH').style.width = (heroWins/valid*100) + '%';
+    document.getElementById('barT').style.width = tiePct + '%';
+    document.getElementById('barV').style.width = (villainWins/valid*100) + '%';
+    document.getElementById('meta').textContent = valid.toLocaleString('pt-BR') + ' simulações válidas · empates ' + tiePct.toFixed(1) + '%';
+    document.getElementById('results').classList.add('show');
+  }
+
+  function showError(msg) {
+    var errorBox = document.getElementById('errorBox');
+    errorBox.textContent = msg;
+    errorBox.classList.add('show');
+    document.getElementById('results').classList.remove('show');
+  }
+
+  document.getElementById('calcBtn').addEventListener('click', function() {
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Calculando...';
+    setTimeout(function() {
+      try { runSimulation(); }
+      finally { btn.disabled = false; btn.textContent = 'Calcular equity'; }
+    }, 30);
+  });
+
+  renderPanel();
+  renderBoard();
+})();
+</script>
+</body>
+</html>

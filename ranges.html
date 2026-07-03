@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Range Pré-Flop</title>
+<style>
+  :root {
+    --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
+    --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
+    --danger: #D2564A; --danger-bg: #3A211D; --success: #5FAE7C; --success-bg: #163A28;
+    --allin: #C9622A; --allin-bg: #3A2313; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.12);
+    --added: #FF9142;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: var(--felt); color: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 22px 18px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; margin: 0; color: var(--gold); }
+  header span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  h2.section { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
+
+  .info-toggle {
+    background: var(--panel); border: 1px solid var(--gold-dim); color: var(--gold);
+    font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 8px; cursor: pointer;
+    margin-bottom: 12px; display: inline-block;
+  }
+  .source-note {
+    background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: var(--muted); line-height: 1.55;
+  }
+  .source-note b { color: var(--gold); }
+
+  .table-oval {
+    position: relative; width: 100%; max-width: 340px; height: 160px; margin: 0 auto 14px;
+    background: radial-gradient(ellipse at center, var(--panel-2) 0%, var(--panel) 70%, var(--felt-2) 100%);
+    border: 5px solid #0A251C; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .seat {
+    position: absolute; width: 50px; height: 50px; margin-left: -25px; margin-top: -25px;
+    border-radius: 50%; background: var(--felt-2); border: 1.5px solid var(--line);
+    display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+    cursor: pointer; color: var(--cream); text-align: center; line-height: 1.1;
+  }
+  .seat.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .seat small { display: block; font-size: 7px; font-weight: 500; opacity: 0.8; }
+
+  .row-header { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 8px; }
+  .row-header h2.section { margin: 0; }
+  .switch {
+    display: inline-flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 999px; padding: 4px 4px 4px 10px; cursor: pointer; font-size: 11px; color: var(--muted); font-weight: 600;
+  }
+  .switch .knob { width: 30px; height: 18px; border-radius: 999px; background: var(--fold-cell); position: relative; transition: background .15s; }
+  .switch .knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+  .switch.on { color: var(--gold); }
+  .switch.on .knob { background: var(--gold-dim); }
+  .switch.on .knob::after { background: var(--gold); transform: translateX(12px); }
+
+  .stacks { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .stacks.hidden { display: none; }
+  .stacks button {
+    flex: 1; min-width: 64px; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 9px 6px; border-radius: 10px; cursor: pointer; font-weight: 600;
+  }
+  .stacks button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); }
+
+  .opener-row { display: none; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .opener-row.show { display: flex; }
+  .opener-row .label-inline { width: 100%; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .opener-row button {
+    flex: 1; min-width: 54px; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 9px 6px; border-radius: 10px; cursor: pointer; font-weight: 600;
+  }
+  .opener-row button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); }
+
+  .stat { font-size: 12px; color: var(--muted); margin-bottom: 10px; text-align: center; }
+  .stat b { color: var(--cream); }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .toolbar button {
+    flex: 1 1 calc(50% - 4px); background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 9px; border-radius: 10px; cursor: pointer; font-weight: 600;
+  }
+  .toolbar button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+
+  .palette { display: none; gap: 8px; margin-bottom: 10px; background: var(--panel); border: 1px dashed var(--gold-dim);
+    border-radius: 10px; padding: 10px; flex-wrap: wrap; align-items: center; }
+  .palette.show { display: flex; }
+  .palette .lbl { font-size: 11px; color: var(--gold); font-weight: 600; width: 100%; margin-bottom: 2px; }
+  .palette button {
+    display: flex; align-items: center; gap: 6px; background: var(--felt-2); border: 2px solid transparent;
+    color: var(--cream); font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer;
+  }
+  .palette button .sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .palette button.selected { border-color: var(--gold); }
+  .palette-mode { display: flex; gap: 6px; width: 100%; margin-bottom: 6px; }
+  .palette-mode button {
+    flex: 1; justify-content: center; background: var(--felt-2); border: 1px solid var(--line);
+    padding: 7px; font-size: 11px;
+  }
+  .palette-mode button.active { background: var(--gold); color: #1A1508; border-color: var(--gold); }
+  .cell.mark-yellow { box-shadow: inset 0 -3px 0 #E8C547; }
+  .cell.mark-blue { box-shadow: inset 0 -3px 0 #5B9BD5; }
+  .cell.mark-purple { box-shadow: inset 0 -3px 0 #9B6FD1; }
+  .cell.mark-pink { box-shadow: inset 0 -3px 0 #E2789A; }
+  .cell.mark-white { box-shadow: inset 0 -3px 0 #EFE7D2; }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-bottom: 10px;
+    border: 1px solid var(--line); padding: 3px; border-radius: 10px; background: var(--felt-2);
+  }
+  .cell {
+    aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
+    font-size: 9.5px; border-radius: 3px; cursor: pointer; background: var(--fold-cell);
+    color: var(--muted); font-weight: 600; user-select: none; position: relative;
+  }
+  .cell.raise { background: var(--success); color: #0E2416; }
+  .cell.allin { background: var(--allin); color: #2C1204; }
+  .cell.added { background: var(--added); color: #2C1204; }
+  .cell.selected { outline: 2px solid var(--gold); outline-offset: -2px; }
+  .cell.edited::after {
+    content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px;
+    border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
+  }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; font-size: 11px; color: var(--muted); }
+  .legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
+
+  .autosave-note { font-size: 11px; color: var(--muted); margin-bottom: 20px; }
+
+  .io-panel { display: none; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 20px; }
+  .io-panel.show { display: block; }
+  .io-panel h3 { font-size: 12px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
+  .io-panel textarea {
+    width: 100%; min-height: 80px; background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--cream); font-size: 11px; font-family: ui-monospace, monospace; padding: 8px; resize: vertical;
+  }
+  .io-panel .io-row { display: flex; gap: 8px; margin-top: 8px; }
+  .io-panel button {
+    flex: 1; background: var(--panel-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 600;
+  }
+  .io-status { font-size: 11px; margin-top: 8px; color: var(--muted); min-height: 14px; }
+
+  .lookup { margin-bottom: 18px; }
+  .card-face {
+    width: 50px; height: 64px; border-radius: 8px; background: var(--cream);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 20px; color: #1A1508;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.25); cursor: pointer; user-select: none; flex-shrink: 0;
+  }
+  .card-face.empty { background: var(--panel); border: 1.5px dashed var(--line); color: var(--muted); font-size: 24px; font-weight: 400; }
+  .card-face.empty:hover { border-color: var(--gold-dim); color: var(--gold-dim); }
+  .lookup-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .lookup-row .x { color: var(--muted); font-size: 13px; }
+  .rank-picker { display: none; flex-wrap: wrap; gap: 4px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px; margin-bottom: 12px; }
+  .rank-picker.show { display: flex; }
+  .rank-picker button {
+    width: 30px; height: 38px; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer;
+  }
+  .rank-picker button:hover { border-color: var(--gold-dim); color: var(--gold); }
+  .seg { display: flex; gap: 6px; }
+  .seg button { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 9px 8px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+  .seg button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+
+  .result {
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; font-size: 14px; font-weight: 600;
+    border: 1px solid transparent; display: none;
+  }
+  .result.show { display: block; }
+  .result.raise { background: var(--success-bg); color: var(--success); border-color: rgba(95,174,124,0.3); }
+  .result.allin { background: var(--allin-bg); color: var(--allin); border-color: rgba(201,98,42,0.35); }
+  .result.added { background: rgba(255,145,66,0.15); color: var(--added); border-color: rgba(255,145,66,0.35); }
+  .result.fold { background: var(--danger-bg); color: var(--danger); border-color: rgba(210,86,74,0.3); }
+  .result .sub { display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 4px; }
+
+  footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Range Pré-Flop</h1>
+    <span>colorbydoug</span>
+  </header>
+
+  <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
+  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional.</div>
+
+  <h2 class="section">Posição</h2>
+  <div class="table-oval" id="table">
+    <div class="seat" data-pos="UTG" style="left:10%; top:38%;">UTG<small>early</small></div>
+    <div class="seat" data-pos="MP" style="left:28%; top:8%;">MP<small>meio</small></div>
+    <div class="seat" data-pos="CO" style="left:65%; top:8%;">CO<small>cutoff</small></div>
+    <div class="seat active" data-pos="BTN" style="left:90%; top:38%;">BTN<small>botão</small></div>
+    <div class="seat" data-pos="SB" style="left:72%; top:80%;">SB<small>small</small></div>
+    <div class="seat" data-pos="BB" style="left:28%; top:80%;">BB<small>defesa</small></div>
+  </div>
+
+  <div class="row-header">
+    <h2 class="section" style="margin:0;">Profundidade do stack</h2>
+    <div class="switch on" id="stackSwitch"><span id="stackSwitchLabel">Ativado</span><span class="knob"></span></div>
+  </div>
+  <div class="stacks" id="stacks">
+    <button data-bb="100" class="active">100bb</button>
+    <button data-bb="70">70bb</button>
+    <button data-bb="40">40bb</button>
+    <button data-bb="25">25bb</button>
+    <button data-bb="15">15bb</button>
+    <button data-bb="10">10bb</button>
+  </div>
+
+  <div class="opener-row" id="openerRow">
+    <span class="label-inline">Quem abriu a mão?</span>
+    <button data-opener="UTG">UTG</button>
+    <button data-opener="MP">MP</button>
+    <button data-opener="CO">CO</button>
+    <button data-opener="BTN" class="active">BTN</button>
+    <button data-opener="SB">SB</button>
+  </div>
+
+  <div class="stat" id="stat"></div>
+
+  <div class="toolbar">
+    <button id="editBtn">🎨 Pintar range</button>
+    <button id="zeroBtn">🗒️ Começar do zero</button>
+    <button id="resetBtn">↺ Restaurar padrão</button>
+    <button id="ioBtn">🔄 Backup / outro aparelho</button>
+  </div>
+  <div class="palette" id="palette"></div>
+  <p style="font-size: 11px; color: var(--muted); margin: -4px 0 10px;">"Começar do zero" apaga tudo (vira fold geral) pra você montar do seu jeito. "Restaurar padrão" desfaz suas edições e volta pro range calculado.</p>
+
+  <div id="grid" class="grid"></div>
+
+  <div class="legend" id="legend"></div>
+  <p class="autosave-note">💾 Edições salvam automaticamente neste navegador. O botão "Backup / outro aparelho" só é necessário se você quiser levar suas edições pra outro navegador/computador/celular, ou guardar uma cópia de segurança.</p>
+
+  <div class="io-panel" id="ioPanel">
+    <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 12px;">
+      Suas edições já salvam sozinhas neste navegador — isso aqui é só pra <b style="color:var(--cream);">levar suas edições pra outro navegador/aparelho</b> ou <b style="color:var(--cream);">guardar um backup de segurança</b>.
+    </p>
+    <h3>1. Copiar minhas edições daqui</h3>
+    <textarea id="exportArea" readonly placeholder="Clique em Copiar abaixo..."></textarea>
+    <div class="io-row">
+      <button id="copyBtn">📋 Copiar</button>
+    </div>
+    <h3 style="margin-top:16px;">2. Colar no outro navegador/aparelho</h3>
+    <textarea id="importArea" placeholder="Cole aqui o texto que você copiou antes"></textarea>
+    <div class="io-row">
+      <button id="importBtn">Aplicar</button>
+    </div>
+    <p class="io-status" id="ioStatus"></p>
+  </div>
+
+  <h2 class="section">Escolha uma mão</h2>
+  <div class="lookup">
+    <div class="lookup-row">
+      <div class="card-face empty" id="slot0">+</div>
+      <span class="x">+</span>
+      <div class="card-face empty" id="slot1">+</div>
+      <div class="seg" id="suitedToggle" style="display:none; margin:0; flex:1;">
+        <button data-suited="s" class="active">Suited</button>
+        <button data-suited="o">Offsuit</button>
+      </div>
+    </div>
+    <div class="rank-picker" id="rankPicker"></div>
+  </div>
+
+  <div class="result" id="result"></div>
+
+  <footer>
+    Ranges aproximados calculados com a fórmula de força de mão de Chen (heurística clássica de classificação das 169 mãos), não são a saída literal de um solver GTO. A defesa do BB usa o mesmo método para estimar call e 3-bet contra a abertura de cada posição — também uma aproximação educacional, não um solver de equilíbrio real. Edições manuais salvam automaticamente neste navegador; use "Salvar / Carregar" pra levar suas edições pra outro navegador ou aparelho, ou como backup.
+  </footer>
+
+</div>
+
+<script>
+(function() {
+  document.getElementById('infoToggle').addEventListener('click', function() {
+    var n = document.getElementById('sourceNote');
+    n.style.display = (n.style.display === 'none') ? 'block' : 'none';
+  });
+
+  var RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+  var RANK_VAL = { A:14, K:13, Q:12, J:11, T:10, '9':9, '8':8, '7':7, '6':6, '5':5, '4':4, '3':3, '2':2 };
+  var CHEN_PTS = { A:10, K:8, Q:7, J:6, T:5, '9':4.5, '8':4, '7':3.5, '6':3, '5':2.5, '4':2, '3':1.5, '2':1 };
+
+  var positionPercents = {
+    100: { UTG:14, MP:18, CO:26, BTN:44, SB:38 },
+    70:  { UTG:15, MP:19, CO:28, BTN:46, SB:39 },
+    40:  { UTG:16, MP:20, CO:29, BTN:47, SB:40 },
+    25:  { UTG:12, MP:16, CO:24, BTN:40, SB:34 },
+    15:  { UTG:10, MP:14, CO:20, BTN:32, SB:45 },
+    10:  { UTG:16, MP:20, CO:28, BTN:42, SB:55 }
+  };
+  var actionType = { 100:'raise', 70:'raise', 40:'raise', 25:'raise', 15:'allin', 10:'allin' };
+
+  var bbDefenseDeep = {
+    UTG: { threeBet:7,  call:27 },
+    MP:  { threeBet:8,  call:30 },
+    CO:  { threeBet:10, call:34 },
+    BTN: { threeBet:12, call:40 },
+    SB:  { threeBet:14, call:44 }
+  };
+  var bbDefenseShort = {
+    15: { UTG:{call:12}, MP:{call:16}, CO:{call:22}, BTN:{call:34}, SB:{call:40} },
+    10: { UTG:{call:16}, MP:{call:20}, CO:{call:26}, BTN:{call:38}, SB:{call:46} }
+  };
+
+  var hands = [];
+  var handIndex = {};
+
+  for (var i = 0; i < 13; i++) {
+    for (var j = 0; j < 13; j++) {
+      var label, type, combos;
+      if (i === j) { label = RANKS[i] + RANKS[i]; type = 'pair'; combos = 6; }
+      else if (i < j) { label = RANKS[i] + RANKS[j] + 's'; type = 'suited'; combos = 4; }
+      else { label = RANKS[j] + RANKS[i] + 'o'; type = 'offsuit'; combos = 12; }
+      var score = chenScore(label, type);
+      var h = { label: label, type: type, combos: combos, score: score, i: i, j: j };
+      hands.push(h);
+      handIndex[label] = h;
+    }
+  }
+
+  function chenScore(label, type) {
+    var r1, r2;
+    if (type === 'pair') { r1 = r2 = label[0]; } else { r1 = label[0]; r2 = label[1]; }
+    var v1 = RANK_VAL[r1], v2 = RANK_VAL[r2];
+    var hi = v1 >= v2 ? r1 : r2, lo = v1 >= v2 ? r2 : r1;
+    var hiVal = RANK_VAL[hi], loVal = RANK_VAL[lo];
+    var score;
+    if (type === 'pair') {
+      score = Math.max(CHEN_PTS[r1] * 2, 5);
+    } else {
+      score = CHEN_PTS[hi];
+      if (type === 'suited') score += 2;
+      var gap = hiVal - loVal - 1;
+      if (gap === 0) score += 0;
+      else if (gap === 1) score -= 1;
+      else if (gap === 2) score -= 2;
+      else if (gap === 3) score -= 4;
+      else score -= 5;
+      if (gap <= 1 && hiVal <= 12) score += 1;
+    }
+    return score;
+  }
+
+  var sortedHands = hands.slice().sort(function(a, b) { return b.score - a.score; });
+
+  function topNCombos(pct) {
+    var target = (pct / 100) * 1326;
+    var acc = 0; var set = {};
+    for (var k = 0; k < sortedHands.length; k++) {
+      if (acc >= target) break;
+      set[sortedHands[k].label] = true;
+      acc += sortedHands[k].combos;
+    }
+    return set;
+  }
+
+  function getTiers(pct1, pct2) {
+    var target1 = (pct1 / 100) * 1326;
+    var target2 = ((pct1 + pct2) / 100) * 1326;
+    var acc = 0; var tier1 = {}, tier2 = {};
+    for (var k = 0; k < sortedHands.length; k++) {
+      var h = sortedHands[k];
+      if (acc < target1) { tier1[h.label] = true; acc += h.combos; continue; }
+      if (acc < target2) { tier2[h.label] = true; acc += h.combos; continue; }
+      break;
+    }
+    return { tier1: tier1, tier2: tier2 };
+  }
+
+  var currentPos = 'BTN';
+  var currentBB = 100;
+  var currentOpener = 'BTN';
+  var stacksEnabled = true;
+  var editMode = false;
+  var paletteMode = 'action'; // 'action' | 'marker'
+  var paintColor = null;
+  var markColor = 'yellow';
+
+  var STORAGE_KEY = 'loppzloby_ranges_overrides_v1';
+  var customOverrides = {}; // { contextKey: { HAND: 'fold'|'raise'|'allin' } }
+  try {
+    var savedOverrides = localStorage.getItem(STORAGE_KEY);
+    if (savedOverrides) customOverrides = JSON.parse(savedOverrides);
+  } catch (e) { /* localStorage indisponível (ex: pré-visualização do chat) */ }
+
+  var MARKS_KEY = 'loppzloby_ranges_marks_v1';
+  var customMarks = {}; // { contextKey: { HAND: 'yellow'|'blue'|'purple'|'pink'|'white' } }
+  try {
+    var savedMarks = localStorage.getItem(MARKS_KEY);
+    if (savedMarks) customMarks = JSON.parse(savedMarks);
+  } catch (e) { /* localStorage indisponível */ }
+
+  var MARK_COLORS = [
+    { id: 'yellow', color: '#E8C547', label: 'Amarelo' },
+    { id: 'blue',   color: '#5B9BD5', label: 'Azul' },
+    { id: 'purple', color: '#9B6FD1', label: 'Roxo' },
+    { id: 'pink',   color: '#E2789A', label: 'Rosa' },
+    { id: 'white',  color: '#EFE7D2', label: 'Branco' }
+  ];
+
+  function persistOverrides() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(customOverrides)); }
+    catch (e) { /* ignora silenciosamente */ }
+  }
+  function persistMarks() {
+    try { localStorage.setItem(MARKS_KEY, JSON.stringify(customMarks)); }
+    catch (e) { /* ignora silenciosamente */ }
+  }
+
+  function ctxKey() {
+    return currentPos + '_' + currentBB + (currentPos === 'BB' ? '_' + currentOpener : '');
+  }
+
+  function computeBase() {
+    var map = {};
+    hands.forEach(function(h) { map[h.label] = 'fold'; });
+
+    if (currentPos === 'BB') {
+      if (currentBB <= 20) {
+        var cfg = bbDefenseShort[currentBB][currentOpener];
+        var callSet = topNCombos(cfg.call);
+        Object.keys(callSet).forEach(function(l) { map[l] = 'raise'; });
+      } else {
+        var cfg2 = bbDefenseDeep[currentOpener];
+        var tiers = getTiers(cfg2.threeBet, cfg2.call);
+        Object.keys(tiers.tier1).forEach(function(l) { map[l] = 'allin'; });
+        Object.keys(tiers.tier2).forEach(function(l) { map[l] = 'raise'; });
+      }
+    } else {
+      var pct = positionPercents[currentBB][currentPos];
+      var active = topNCombos(pct);
+      var cls = actionType[currentBB] === 'allin' ? 'allin' : 'raise';
+      Object.keys(active).forEach(function(l) { map[l] = cls; });
+    }
+    return map;
+  }
+
+  function computeFinal() {
+    var base = computeBase();
+    var overrides = customOverrides[ctxKey()] || {};
+    var final = {};
+    Object.keys(base).forEach(function(l) { final[l] = base[l]; });
+    Object.keys(overrides).forEach(function(l) { final[l] = overrides[l]; });
+    return final;
+  }
+
+  function getCycle() {
+    var base;
+    if (currentPos === 'BB') {
+      base = currentBB <= 20 ? ['fold', 'raise'] : ['fold', 'raise', 'allin'];
+    } else {
+      base = actionType[currentBB] === 'allin' ? ['fold', 'allin'] : ['fold', 'raise'];
+    }
+    return base.concat(['added']);
+  }
+
+  function actionLabel(cls) {
+    if (cls === 'fold') return 'FOLD';
+    if (cls === 'added') return 'ADICIONADO';
+    if (currentPos === 'BB') return cls === 'allin' ? '3-BET' : 'CALL';
+    return cls === 'allin' ? 'ALL-IN' : 'RAISE';
+  }
+
+  function colorFor(cls) {
+    if (cls === 'fold') return 'var(--fold-cell)';
+    if (cls === 'added') return 'var(--added)';
+    if (cls === 'allin') return 'var(--allin)';
+    return 'var(--success)';
+  }
+
+  var gridEl = document.getElementById('grid');
+  var cellsByLabel = {};
+
+  hands.forEach(function(h) {
+    var cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.textContent = h.label;
+    cell.dataset.label = h.label;
+    cell.style.order = h.i * 13 + h.j;
+    gridEl.appendChild(cell);
+    cellsByLabel[h.label] = cell;
+    cell.addEventListener('click', function() {
+      if (editMode) {
+        if (paletteMode === 'marker') {
+          markCell(h.label);
+        } else {
+          paintCell(h.label);
+        }
+      } else {
+        showResult(h.label);
+      }
+    });
+  });
+  gridEl.style.display = 'grid';
+
+  function paintCell(label) {
+    if (!paintColor) return;
+    var key = ctxKey();
+    if (!customOverrides[key]) customOverrides[key] = {};
+    customOverrides[key][label] = paintColor;
+    persistOverrides();
+    render();
+  }
+
+  function markCell(label) {
+    var key = ctxKey();
+    if (!customMarks[key]) customMarks[key] = {};
+    if (customMarks[key][label] === markColor) {
+      delete customMarks[key][label]; // tap same color again to remove
+    } else {
+      customMarks[key][label] = markColor;
+    }
+    persistMarks();
+    render();
+  }
+
+  function renderPalette() {
+    var box = document.getElementById('palette');
+    box.innerHTML = '';
+    if (!editMode) { box.classList.remove('show'); return; }
+    box.classList.add('show');
+
+    var modeRow = document.createElement('div');
+    modeRow.className = 'palette-mode';
+    [['action', '🎯 Ação (raise/fold/etc)'], ['marker', '🎨 Marcador livre']].forEach(function(pair) {
+      var btn = document.createElement('button');
+      btn.textContent = pair[1];
+      btn.className = paletteMode === pair[0] ? 'active' : '';
+      btn.addEventListener('click', function() { paletteMode = pair[0]; renderPalette(); });
+      modeRow.appendChild(btn);
+    });
+    box.appendChild(modeRow);
+
+    if (paletteMode === 'action') {
+      var lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.textContent = 'Escolha a cor e toque nas mãos do grid:';
+      box.appendChild(lbl);
+      var cycle = getCycle();
+      if (!paintColor || cycle.indexOf(paintColor) === -1) paintColor = cycle[0];
+      cycle.forEach(function(cls) {
+        var btn = document.createElement('button');
+        btn.className = cls === paintColor ? 'selected' : '';
+        btn.innerHTML = '<span class="sw" style="background:' + colorFor(cls) + ';"></span>' + actionLabel(cls);
+        btn.addEventListener('click', function() { paintColor = cls; renderPalette(); });
+        box.appendChild(btn);
+      });
+    } else {
+      var lbl2 = document.createElement('div');
+      lbl2.className = 'lbl';
+      lbl2.textContent = 'Marcadores livres — use pra anotar o que quiser (revisar, dúvida, mix...). Toque de novo na mesma cor pra apagar.';
+      box.appendChild(lbl2);
+      MARK_COLORS.forEach(function(m) {
+        var btn = document.createElement('button');
+        btn.className = m.id === markColor ? 'selected' : '';
+        btn.innerHTML = '<span class="sw" style="background:' + m.color + ';"></span>' + m.label;
+        btn.addEventListener('click', function() { markColor = m.id; renderPalette(); });
+        box.appendChild(btn);
+      });
+    }
+  }
+
+  function render() {
+    var final = computeFinal();
+    var overrides = customOverrides[ctxKey()] || {};
+    var marks = customMarks[ctxKey()] || {};
+    hands.forEach(function(h) {
+      var cell = cellsByLabel[h.label];
+      cell.classList.remove('raise', 'allin', 'added', 'edited', 'mark-yellow', 'mark-blue', 'mark-purple', 'mark-pink', 'mark-white');
+      var cls = final[h.label];
+      if (cls !== 'fold') cell.classList.add(cls);
+      if (overrides.hasOwnProperty(h.label)) cell.classList.add('edited');
+      if (marks[h.label]) cell.classList.add('mark-' + marks[h.label]);
+    });
+    updateStat();
+    updateLegend();
+    renderPalette();
+  }
+
+  function updateStat() {
+    var posNames = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'Botão', SB:'Small blind', BB:'Big blind' };
+    var el = document.getElementById('stat');
+    if (currentPos === 'BB') {
+      var openerNames = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'botão', SB:'small blind' };
+      if (currentBB <= 20) {
+        var cfg = bbDefenseShort[currentBB][currentOpener];
+        el.innerHTML = 'BB vs shove do ' + openerNames[currentOpener] + ' · ' + currentBB + 'bb · call <b>' + cfg.call + '%</b> · fold <b>' + (100 - cfg.call) + '%</b>';
+      } else {
+        var cfg2 = bbDefenseDeep[currentOpener];
+        var foldPct = 100 - cfg2.threeBet - cfg2.call;
+        el.innerHTML = 'BB vs abertura do ' + openerNames[currentOpener] + ' · ' + currentBB + 'bb · 3-bet <b>' + cfg2.threeBet + '%</b> · call <b>' + cfg2.call + '%</b> · fold <b>' + foldPct + '%</b>';
+      }
+    } else {
+      var pct = positionPercents[currentBB][currentPos];
+      var verb = actionType[currentBB] === 'allin' ? 'all-in' : 'raise';
+      el.innerHTML = posNames[currentPos] + ' · ' + currentBB + 'bb · jogando <b>' + pct + '%</b> das mãos (' + verb + ')';
+    }
+  }
+
+  function updateLegend() {
+    var el = document.getElementById('legend');
+    var html = '';
+    if (currentPos === 'BB' && currentBB > 20) {
+      html += '<span><span class="dot" style="background: var(--allin);"></span>3-bet</span>';
+      html += '<span><span class="dot" style="background: var(--success);"></span>Call</span>';
+    } else if (currentPos === 'BB') {
+      html += '<span><span class="dot" style="background: var(--success);"></span>Call</span>';
+    } else if (actionType[currentBB] === 'allin') {
+      html += '<span><span class="dot" style="background: var(--allin);"></span>All-in</span>';
+    } else {
+      html += '<span><span class="dot" style="background: var(--success);"></span>Raise</span>';
+    }
+    html += '<span><span class="dot" style="background: var(--fold-cell); border: 1px solid var(--line);"></span>Fold</span>';
+    html += '<span><span class="dot" style="background: var(--added);"></span>Adicionado</span>';
+    el.innerHTML = html;
+  }
+
+  function showResult(label) {
+    var resultEl = document.getElementById('result');
+    Object.keys(cellsByLabel).forEach(function(l) { cellsByLabel[l].classList.remove('selected'); });
+
+    if (!label || !handIndex[label]) {
+      resultEl.className = 'result show fold';
+      resultEl.innerHTML = 'Mão não reconhecida.';
+      return;
+    }
+    cellsByLabel[label].classList.add('selected');
+    syncLookupSlotsFromLabel(label);
+
+    var final = computeFinal();
+    var cls = final[label];
+    var posNames = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'botão', SB:'small blind', BB:'big blind' };
+    var openerNames = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'botão', SB:'small blind' };
+    var contextTxt;
+    if (currentPos === 'BB') {
+      contextTxt = 'Defendendo o BB contra abertura do ' + openerNames[currentOpener] + ' a ' + currentBB + 'bb.';
+    } else {
+      contextTxt = 'Range de abertura do ' + posNames[currentPos] + ' a ' + currentBB + 'bb.';
+    }
+    resultEl.className = 'result show ' + cls;
+    resultEl.innerHTML = label + ' — ' + actionLabel(cls) + '<span class="sub">' + contextTxt + '</span>';
+  }
+
+  // ---------- visual hand picker (rank slots + suited/offsuit) ----------
+  var lookupRanks = [null, null];
+  var lookupSuited = 's';
+
+  function renderLookupSlots() {
+    for (var i = 0; i < 2; i++) {
+      var el = document.getElementById('slot' + i);
+      var r = lookupRanks[i];
+      el.textContent = r || '+';
+      el.classList.toggle('empty', !r);
+    }
+    var toggle = document.getElementById('suitedToggle');
+    var showToggle = lookupRanks[0] && lookupRanks[1] && lookupRanks[0] !== lookupRanks[1];
+    toggle.style.display = showToggle ? 'flex' : 'none';
+  }
+
+  function buildLabelFromSlots() {
+    var r1 = lookupRanks[0], r2 = lookupRanks[1];
+    if (!r1 || !r2) return null;
+    if (r1 === r2) return r1 + r2;
+    var v1 = RANK_VAL[r1], v2 = RANK_VAL[r2];
+    var hi = v1 >= v2 ? r1 : r2, lo = v1 >= v2 ? r2 : r1;
+    return hi + lo + lookupSuited;
+  }
+
+  function syncLookupSlotsFromLabel(label) {
+    if (label.length === 2) { lookupRanks = [label[0], label[1]]; }
+    else { lookupRanks = [label[0], label[1]]; lookupSuited = label[2]; }
+    renderLookupSlots();
+    document.querySelectorAll('#suitedToggle button').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.suited === lookupSuited);
+    });
+  }
+
+  function openRankPicker(slotIdx) {
+    var picker = document.getElementById('rankPicker');
+    picker.innerHTML = '';
+    RANKS.forEach(function(r) {
+      var btn = document.createElement('button');
+      btn.textContent = r;
+      btn.addEventListener('click', function() {
+        lookupRanks[slotIdx] = r;
+        picker.classList.remove('show');
+        renderLookupSlots();
+        var label = buildLabelFromSlots();
+        if (label) showResult(label);
+      });
+      picker.appendChild(btn);
+    });
+    picker.classList.add('show');
+  }
+
+  document.getElementById('slot0').addEventListener('click', function() { openRankPicker(0); });
+  document.getElementById('slot1').addEventListener('click', function() { openRankPicker(1); });
+  document.querySelectorAll('#suitedToggle button').forEach(function(b) {
+    b.addEventListener('click', function() {
+      document.querySelectorAll('#suitedToggle button').forEach(function(x) { x.classList.remove('active'); });
+      b.classList.add('active');
+      lookupSuited = b.dataset.suited;
+      var label = buildLabelFromSlots();
+      if (label) showResult(label);
+    });
+  });
+
+  document.querySelectorAll('.seat').forEach(function(seat) {
+    seat.addEventListener('click', function() {
+      document.querySelectorAll('.seat').forEach(function(s) { s.classList.remove('active'); });
+      seat.classList.add('active');
+      currentPos = seat.dataset.pos;
+      document.getElementById('openerRow').classList.toggle('show', currentPos === 'BB');
+      render();
+    });
+  });
+
+  document.querySelectorAll('.stacks button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.stacks button').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentBB = parseInt(btn.dataset.bb);
+      render();
+    });
+  });
+
+  var stackSwitch = document.getElementById('stackSwitch');
+  var stackSwitchLabel = document.getElementById('stackSwitchLabel');
+  var stacksBox = document.getElementById('stacks');
+  stackSwitch.addEventListener('click', function() {
+    stacksEnabled = !stacksEnabled;
+    stackSwitch.classList.toggle('on', stacksEnabled);
+    stackSwitchLabel.textContent = stacksEnabled ? 'Ativado' : 'Desativado';
+    stacksBox.classList.toggle('hidden', !stacksEnabled);
+    if (!stacksEnabled) {
+      currentBB = 100;
+      document.querySelectorAll('.stacks button').forEach(function(b) {
+        b.classList.toggle('active', parseInt(b.dataset.bb) === 100);
+      });
+    }
+    render();
+  });
+
+  document.querySelectorAll('.opener-row button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.opener-row button').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentOpener = btn.dataset.opener;
+      render();
+    });
+  });
+
+  var editBtn = document.getElementById('editBtn');
+  editBtn.addEventListener('click', function() {
+    editMode = !editMode;
+    editBtn.classList.toggle('active', editMode);
+    renderPalette();
+  });
+
+  document.getElementById('zeroBtn').addEventListener('click', function() {
+    var key = ctxKey();
+    if (!customOverrides[key]) customOverrides[key] = {};
+    hands.forEach(function(h) { customOverrides[key][h.label] = 'fold'; });
+    persistOverrides();
+    render();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function() {
+    delete customOverrides[ctxKey()];
+    delete customMarks[ctxKey()];
+    persistOverrides();
+    persistMarks();
+    render();
+  });
+
+  var ioPanel = document.getElementById('ioPanel');
+  var ioBtn = document.getElementById('ioBtn');
+  ioBtn.addEventListener('click', function() {
+    ioPanel.classList.toggle('show');
+    ioBtn.classList.toggle('active', ioPanel.classList.contains('show'));
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function() {
+    var area = document.getElementById('exportArea');
+    area.value = JSON.stringify({ overrides: customOverrides, marks: customMarks });
+    area.select();
+    try {
+      document.execCommand('copy');
+      document.getElementById('ioStatus').textContent = 'Copiado! Cole no outro navegador ou aparelho.';
+    } catch (e) {
+      document.getElementById('ioStatus').textContent = 'Não deu pra copiar automaticamente — selecione o texto acima e copie manualmente.';
+    }
+  });
+
+  document.getElementById('importBtn').addEventListener('click', function() {
+    var raw = document.getElementById('importArea').value.trim();
+    var statusEl = document.getElementById('ioStatus');
+    if (!raw) { statusEl.textContent = 'Cole o texto copiado antes de aplicar.'; return; }
+    try {
+      var parsed = JSON.parse(raw);
+      if (parsed.overrides || parsed.marks) {
+        customOverrides = parsed.overrides || {};
+        customMarks = parsed.marks || {};
+      } else {
+        customOverrides = parsed; // compatibilidade com backups antigos (só overrides)
+      }
+      persistOverrides();
+      persistMarks();
+      render();
+      statusEl.textContent = 'Edições aplicadas com sucesso.';
+    } catch (e) {
+      statusEl.textContent = 'Não consegui ler esse texto — confira se colou tudo certinho.';
+    }
+  });
+
+  render();
+  renderLookupSlots();
+})();
+</script>
+</body>
+</html>

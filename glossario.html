@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Glossário</title>
+<style>
+  :root {
+    --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
+    --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
+    --line: rgba(239, 231, 210, 0.12);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--felt); color: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 26px 18px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 18px; font-weight: 700; margin: 0; color: var(--gold); }
+  header span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  input#search {
+    width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--cream); font-size: 16px; padding: 12px 14px; outline: none; margin-bottom: 12px;
+  }
+  input#search:focus { border-color: var(--gold-dim); }
+
+  .az { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; }
+  .az button {
+    width: 26px; height: 26px; font-size: 11px; font-weight: 700; border-radius: 6px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--muted); cursor: pointer;
+  }
+  .az button.has { color: var(--cream); }
+  .az button:hover { border-color: var(--gold-dim); }
+
+  h2.cat {
+    font-size: 13px; color: var(--gold); letter-spacing: 0.08em; font-weight: 800;
+    margin: 26px 0 10px; border-bottom: 1px solid var(--line); padding-bottom: 6px;
+  }
+  .term { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 8px; scroll-margin-top: 12px; }
+  .term b { color: var(--cream); font-size: 14px; }
+  .term p { margin: 4px 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .count { font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+  .empty { text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
+  footer { margin-top: 24px; font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; }
+
+  .source-note {
+    background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: var(--muted); line-height: 1.55;
+  }
+  .source-note b { color: var(--gold); }
+  .info-toggle {
+    background: var(--panel); border: 1px solid var(--gold-dim); color: var(--gold);
+    font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    margin-bottom: 14px; display: inline-block;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Glossário</h1>
+    <span>colorbydoug</span>
+  </header>
+
+  <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
+  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> a lista de quais termos incluir foi baseada num levantamento de glossários de poker em português (incluindo o glossário do PokerLAB como referência de cobertura). Todas as definições foram escritas do zero, com minhas próprias palavras — nenhum texto foi copiado de nenhuma fonte.</div>
+
+  <input type="text" id="search" placeholder="Buscar termo (ex: VPIP, 3-bet, equity...)">
+  <div class="az" id="az"></div>
+  <p class="count" id="count"></p>
+
+  <div id="list"></div>
+  <p class="empty" id="empty" style="display:none;">Nenhum termo encontrado.</p>
+
+  <footer>
+    Glossário ampliado a partir de um levantamento de termos comuns usados no poker em português — as definições foram todas reescritas do zero. Peça no chat pra adicionar, corrigir ou detalhar qualquer termo.
+  </footer>
+</div>
+
+<script>
+var TERMOS = [
+["3-bet","O segundo aumento de uma sequência de apostas na mesma rodada — alguém apostou, outro aumentou e agora você aumenta de novo."],
+["3-bet light","Um 3-bet feito com uma mão que não é necessariamente premium, usado como jogada de pressão."],
+["4-bet","O terceiro aumento na mesma rodada de apostas, normalmente sinalizando uma mão muito forte (ou um blefe avançado)."],
+["A-Game","O nível máximo de concentração e qualidade de jogo que um jogador consegue atingir."],
+["Add-on","Compra extra opcional de fichas, geralmente oferecida em um momento específico do torneio."],
+["Agressivo","Estilo de jogo baseado em apostar e aumentar com frequência, em vez de só pagar."],
+["Agressor","O jogador que iniciou a aposta ou o aumento numa rodada, assumindo a iniciativa da mão."],
+["All-in","Apostar todas as fichas que você tem na mesa de uma só vez."],
+["Ante","Aposta obrigatória, geralmente pequena, paga por todos antes das cartas serem distribuídas — comum em fases avançadas de torneios."],
+["Any Two Cards","Expressão usada para se referir a qualquer combinação possível de duas cartas, sem especificar quais."],
+["Average","Quantidade de fichas ou pontuação na média dos demais jogadores da mesa ou torneio."],
+["Backdoor","Formar uma mão precisando acertar exatamente as duas últimas cartas (turn e river) em sequência."],
+["Backer","Pessoa que financia a entrada de um jogador em um torneio ou cash game, geralmente dividindo os lucros depois."],
+["Bad beat","Perder uma mão em que você estava matematicamente favorito, por causa de uma carta improvável."],
+["Balancear","Distribuir suas jogadas entre mãos fortes e fracas para que os oponentes não consigam adivinhar sua força só pela ação."],
+["Bankroll (Banca)","O total de dinheiro que um jogador reserva especificamente para jogar poker."],
+["Barrel","Termo usado para uma aposta feita numa street, geralmente contado em sequência (primeiro barrel, segundo barrel etc.)."],
+["Bet","Apostar, colocar fichas voluntariamente no pote."],
+["Bet Sizing","O tamanho escolhido para uma aposta — uma das decisões estratégicas centrais no poker moderno."],
+["Big Blind (BB)","Aposta obrigatória maior, paga pelo jogador à esquerda do small blind antes das cartas serem distribuídas."],
+["Big Stack","Jogador com uma quantidade de fichas bem acima da média da mesa."],
+["Blank","Carta que sai numa street e não muda nada relevante na força das mãos envolvidas."],
+["Blind War","Disputa direta de apostas entre o small blind e o big blind quando todos os outros desistem."],
+["Blocker","Uma carta na sua mão que reduz a chance do oponente ter determinada combinação, porque ocupa uma carta que ele precisaria."],
+["Blocking Bet","Aposta pequena feita para travar o tamanho da aposta e evitar levar uma aposta maior do oponente."],
+["Bluff","Apostar ou aumentar com uma mão fraca tentando fazer o oponente desistir de uma mão melhor."],
+["Bluff Catcher","Mão mediana que só vence se o oponente estiver blefando."],
+["Board","As cartas comunitárias reveladas na mesa."],
+["Breakeven","Jogada ou resultado que não gera lucro nem prejuízo no longo prazo."],
+["Broadway","As cartas de valor mais alto (10, J, Q, K, A), usadas em combinações de sequência alta."],
+["Broca (Gutshot)","Draw de sequência em que falta uma carta específica no meio, não nas pontas, para completar."],
+["Bubble (Bolha)","A posição imediatamente antes da zona de premiação em um torneio — quem sai ali fica sem prêmio."],
+["Bubble Pressure","A pressão extra que os jogadores aplicam uns nos outros perto da bolha, já que ninguém quer ser eliminado sem premiação."],
+["Busted / Bust-out","Perder todas as fichas e ser eliminado de um torneio."],
+["Button","O disco que indica a posição do dealer e, por extensão, a melhor posição da mesa — age por último em todas as rodadas pós-flop."],
+["Buy-in","O valor pago para entrar em um torneio, ou o valor mínimo para sentar numa mesa de cash game."],
+["Call","Pagar o valor da aposta atual sem aumentar."],
+["Calling Station","Jogador que paga apostas com frequência muito acima do normal, raramente desistindo."],
+["Cap","Número máximo de inscrições permitidas em um torneio."],
+["Cash Game","Modalidade onde cada jogador senta com fichas que valem dinheiro real e pode entrar/sair da mesa quando quiser."],
+["Cash out","Sacar, total ou parcialmente, o saldo disponível numa conta de poker."],
+["Check","Passar a vez sem apostar, quando não há aposta pendente para pagar."],
+["Check Behind","Dar check depois que todos os outros jogadores também já deram check na rodada."],
+["Chip","Ficha usada para representar valor na mesa."],
+["Chip Leader","O jogador com mais fichas em um torneio, num dado momento."],
+["Close","Situação em que duas mãos ou decisões têm equity muito parecida."],
+["Clubs","O naipe de paus."],
+["Coach","Profissional que ensina e orienta jogadores de poker."],
+["Coin Flip","Situação em que duas mãos têm chances bem próximas de 50/50 de vencer o confronto."],
+["Cold Call","Pagar uma aposta que já foi aumentada por outro jogador, sem você ter participado da ação antes."],
+["Collusion","Conluio — dois ou mais jogadores combinando jogadas entre si para prejudicar os demais, prática proibida."],
+["Committed","Estado em que um jogador já investiu tantas fichas no pote que faz pouco sentido desistir depois."],
+["Connector","Duas cartas consecutivas (ex: 8-9), com potencial de formar sequência."],
+["Continuation Bet (C-bet)","Aposta feita no flop pelo jogador que foi o agressor pré-flop, mantendo a linha de força mesmo sem ter acertado o board."],
+["Cooler","Uma mão em que dois jogadores têm cartas muito fortes ao mesmo tempo, quase impossível de evitar perder fichas."],
+["Crupiê","O profissional que embaralha, distribui as cartas e conduz o jogo na mesa."],
+["Cut-off","A posição logo antes do botão."],
+["Dead Money","Fichas que já estão no pote e não pertencem mais a ninguém, disputadas pelos jogadores ainda na mão."],
+["Deal","Um acordo entre jogadores, geralmente sobre a divisão da premiação numa mesa final."],
+["Dealer","Quem distribui as cartas e conduz a mecânica da mesa."],
+["Deep Stack","Quando o stack de um jogador é bem grande em relação ao valor do big blind."],
+["Diamonds","O naipe de ouros."],
+["Dominado","Situação em que dois jogadores têm cartas do mesmo valor mas kickers diferentes — quem tem o kicker maior domina o outro."],
+["Donk Bet","Aposta feita por um jogador fora de posição que só pagou pré-flop, antecipando-se ao agressor original."],
+["Donkey","Gíria (pejorativa) para um jogador que toma decisões ruins com frequência."],
+["Downswing","Período prolongado de perdas, mesmo jogando corretamente."],
+["Draw","Mão incompleta que ainda precisa de cartas para se tornar forte."],
+["Drawing Dead","Estar numa situação onde nenhuma carta que ainda pode sair vai fazer você vencer o pote."],
+["Early Position","As primeiras posições a agir numa rodada, geralmente as mais desfavoráveis."],
+["Edge","Vantagem técnica que um jogador tem sobre os demais."],
+["Equidade (Equity)","A fatia do pote que, matematicamente, pertence à sua mão de acordo com a chance dela vencer."],
+["Equilab","Software usado para calcular equity e estudar ranges de mãos."],
+["Expected Value (EV)","O ganho ou perda médio esperado de uma jogada, calculado matematicamente."],
+["Field","O conjunto de jogadores inscritos em um torneio."],
+["Final Table (FT)","A mesa final de um torneio."],
+["Fish","Gíria para um jogador iniciante ou que comete erros claros com frequência."],
+["Flat Call","Apenas pagar uma aposta numa situação em que aumentar seria a jogada mais esperada."],
+["Float","Pagar uma aposta com uma mão fraca planejando blefar mais adiante na mão."],
+["Flop","As três primeiras cartas comunitárias, reveladas juntas."],
+["Flopzilla","Software usado para analisar ranges e frequências de mãos contra diferentes boards."],
+["Flush","Cinco cartas do mesmo naipe, não necessariamente em sequência."],
+["Flush Draw","Quando falta apenas uma carta do mesmo naipe para completar um flush."],
+["Fold","Desistir da mão, jogando fora suas cartas."],
+["Fold Equity","A parte do seu ganho esperado que vem da chance do oponente desistir diante de uma aposta ou aumento."],
+["Four of a Kind (Quadra)","Quatro cartas do mesmo valor."],
+["Free Card","Uma carta que chega numa street sem que ninguém tenha apostado antes — todos veem de graça."],
+["Freeroll","Torneio sem custo de inscrição."],
+["Freezeout","Torneio sem opção de recompra — uma vez eliminado, o jogador está fora."],
+["Full House","Uma trinca mais um par."],
+["Full Ring","Mesa cheia, geralmente de 9 ou 10 jogadores."],
+["Gamble","Apostar contando com a sorte, geralmente numa decisão marginal."],
+["Gap","Situação em que todos os jogadores desistem até chegar sua vez de agir."],
+["Grind","Jogar um grande volume de mãos ou torneios de forma disciplinada, visando lucro no longo prazo."],
+["Hand for Hand","Quando todas as mesas de um torneio jogam a mesma mão ao mesmo tempo, geralmente perto da bolha, evitando vantagem entre mesas."],
+["Heads Up (HU)","Confronto de apenas dois jogadores."],
+["Hearts","O naipe de copas."],
+["Hit and Run","Sair da mesa logo depois de ganhar um pote grande — prática vista como pouco sociável, mas comum em cash games online."],
+["Hold'em","A modalidade mais popular de poker, com duas cartas privadas e cinco comunitárias."],
+["Holdem Manager","Software de análise de estatísticas e histórico de mãos."],
+["Hole Cards","As cartas privadas de cada jogador."],
+["ICM","Modelo matemático usado em torneios para converter fichas em valor real de premiação, especialmente relevante perto da bolha e da mesa final."],
+["ICMizer","Software voltado para cálculos de ICM em decisões de all-in e call em torneios."],
+["Implied Odds","O valor extra que você pode ganhar em apostas futuras, além do que já está no pote agora."],
+["ITM (In The Money)","Momento em que um jogador garante alguma premiação no torneio."],
+["Kicker","A carta mais alta que desempata duas mãos de mesmo valor principal."],
+["Knockout","Formato de torneio em que você recebe uma recompensa em dinheiro por cada jogador que elimina."],
+["Late Position","As últimas posições a agir numa rodada, geralmente as mais vantajosas."],
+["Leak","Um erro recorrente na estratégia de um jogador que custa dinheiro no longo prazo."],
+["Light","Fazer uma jogada (como um 3-bet) com um leque de mãos mais amplo do que só as premium."],
+["Limit","Formato de jogo com apostas de tamanho fixo."],
+["Limp","Apenas pagar o big blind pré-flop em vez de aumentar."],
+["Loose","Estilo de jogo que entra em muitas mãos."],
+["Loose Aggressive (LAG)","Jogador que entra em muitas mãos e joga elas de forma agressiva."],
+["Maniac","Jogador extremamente agressivo, que aposta e aumenta em praticamente qualquer situação."],
+["Metagame","A camada de jogo psicológico e de imagem que existe entre os jogadores, além das cartas em si."],
+["Middle pair","Formar um par com a carta do meio do board."],
+["Middle Position","Posições intermediárias na ordem de ação."],
+["Monotone","Board em que todas as cartas comunitárias são do mesmo naipe."],
+["MTT","Torneio multi-mesas, com várias mesas jogando simultaneamente até restar uma."],
+["Muck","Descartar as cartas sem mostrá-las."],
+["Nit","Jogador extremamente tight, que só entra com mãos muito fortes."],
+["No Limit","Formato onde os jogadores podem apostar qualquer valor até o total do próprio stack."],
+["Notes","Anotações que um jogador faz sobre o estilo de outros oponentes."],
+["Nuts","A melhor mão possível considerando as cartas do board naquele momento."],
+["Odds","A probabilidade matemática de determinado evento acontecer (por exemplo, completar uma mão)."],
+["Offsuit","Duas cartas de naipes diferentes."],
+["Omaha","Variante de poker em que cada jogador recebe quatro cartas privadas e precisa usar exatamente duas delas com três do board."],
+["One Gap","Duas cartas iniciais separadas por uma carta de diferença (ex: J9)."],
+["OOP (Out of Position)","Estar fora de posição, ou seja, agindo antes do oponente numa rodada."],
+["Outs","As cartas que ainda restam no baralho e que melhorariam sua mão."],
+["Over Bet","Uma aposta maior que o próprio tamanho do pote."],
+["Over Cards","Duas cartas na mão maiores que todas as cartas do board."],
+["Over lay","Quando a premiação garantida de um torneio é maior do que o valor arrecadado com as inscrições, favorecendo quem joga."],
+["Over Pair","Um par na mão maior que todas as cartas do board."],
+["Over the Top","Aumentar em cima de um aumento (ou dar all-in em cima de outro all-in), numa disputa de fichas."],
+["Pair","Um par de cartas de mesmo valor."],
+["PFR","Percentual de vezes que um jogador aumenta pré-flop, uma das estatísticas mais usadas em HUDs."],
+["Play Money","Modalidade de jogo com fichas sem valor real, só para prática."],
+["Pocket / Pocket Pair","Duas cartas de mesmo valor recebidas como cartas privadas."],
+["Pot","O total de fichas acumuladas em disputa numa mão."],
+["Pot Limit","Formato onde a aposta máxima permitida é o tamanho atual do pote."],
+["Pot Odds","A relação entre o quanto você precisa pagar e o tamanho total do pote, usada para decidir se vale a pena continuar numa mão."],
+["Pré-Flop","A primeira rodada de apostas, antes de qualquer carta comunitária ser revelada."],
+["Prize Pool","O total de dinheiro destinado à premiação de um torneio."],
+["Profitable","Uma jogada ou estratégia que gera lucro no longo prazo."],
+["Push","Sinônimo de all-in."],
+["Quadra (Quads)","Quatro cartas do mesmo valor."],
+["Rail","A área onde espectadores acompanham um torneio ou mesa."],
+["Rainbow","Board em que todas as cartas comunitárias são de naipes diferentes."],
+["Raise","Aumentar o valor da aposta atual."],
+["Rake","Taxa cobrada pela casa ou plataforma sobre os potes disputados."],
+["Rake Back","Parte do rake pago que retorna para o jogador, geralmente por acordo com a sala."],
+["Random","Jogador sobre o qual não se tem informação, ou uma decisão tomada sem muito critério."],
+["Range","O conjunto de mãos possíveis que um jogador pode ter numa situação específica."],
+["Re-Raise","Aumentar em cima de um aumento anterior."],
+["Re-steal","Aumentar contra um jogador que provavelmente está tentando roubar as blinds."],
+["Rebuy","Comprar mais fichas durante um torneio, quando permitido."],
+["Reg (Regular)","Jogador que aparece com frequência nas mesmas mesas ou torneios."],
+["Reverse Implied Odds","O risco de perder fichas adicionais em rodadas futuras mesmo completando sua mão, porque o oponente pode ter algo ainda melhor."],
+["Ring Game","Outro nome para cash game."],
+["River","A quinta e última carta comunitária, e também a última rodada de apostas."],
+["Royal Flush","Sequência de 10 a Ás, toda do mesmo naipe — a melhor mão possível no poker."],
+["Runner-Runner","Completar uma mão precisando acertar tanto o turn quanto o river."],
+["Satélite","Torneio de entrada mais barata que dá como prêmio a vaga (buy-in) para um torneio maior."],
+["Scared Card","Uma carta que sai numa street e assusta o jogador, por poder ter completado uma mão forte do oponente."],
+["Second Barrel","A segunda aposta seguida do mesmo jogador, feita no turn depois de já ter apostado no flop."],
+["Semi Blefe","Blefar com uma mão que ainda não é a melhor, mas que tem outs para se tornar a melhor mão."],
+["Set","Trinca formada usando um par na mão e uma carta igual no board."],
+["Set Value","O valor esperado de ganho quando você acerta um set."],
+["Sharkscope","Site que reúne resultados históricos de jogadores de torneio."],
+["Shoot-out","Formato de torneio em que só o campeão de cada mesa avança para a fase seguinte."],
+["Short handed","Mesa com seis jogadores ou menos."],
+["Short Stack","Jogador com poucas fichas em relação ao big blind."],
+["Shove","Sinônimo de all-in."],
+["Showdown","O momento em que os jogadores restantes mostram as cartas para definir o vencedor."],
+["Showdown Value","Uma mão fraca que ainda assim tem chance de vencer se for levada ao showdown sem mais apostas."],
+["Side Pot","Pote paralelo criado quando um jogador vai all-in e os demais continuam apostando entre si."],
+["Sit-and-Go","Torneio que começa assim que as vagas se preenchem, sem horário fixo."],
+["Slow Play","Jogar uma mão forte de forma passiva para não afugentar o oponente."],
+["Slow Roll","Demorar de propósito para mostrar uma mão vencedora — atitude considerada deselegante na mesa."],
+["Small Blind (SB)","Aposta obrigatória menor, paga pelo jogador à esquerda do botão."],
+["Snap","Tomar uma decisão muito rápida, quase instantânea."],
+["Spades","O naipe de espadas."],
+["Spew","Perder fichas de forma descontrolada, com jogadas ruins."],
+["Split Pot","Dividir o pote entre dois ou mais jogadores com mãos de força equivalente."],
+["Spot","Uma situação específica de jogo."],
+["Squeeze","Um aumento grande feito contra um jogador que abriu e outro(s) que só pagaram, buscando isolar ou forçar desistências."],
+["Stack","O total de fichas que um jogador tem na mesa."],
+["Stack Efetivo","O menor stack entre os jogadores envolvidos numa mão, que limita o quanto pode ser disputado."],
+["Stackear","Ganhar todas as fichas de um oponente numa mesma mão."],
+["Standard","Uma jogada considerada comum ou esperada na maioria das situações."],
+["Stats","As estatísticas registradas sobre o estilo de jogo de alguém."],
+["Steal","Aumentar de uma posição tardia visando fazer os outros desistirem e ganhar as blinds sem disputa."],
+["Straddle","Uma aposta extra voluntária feita antes das cartas serem distribuídas, aumentando o valor em jogo naquela mão."],
+["Straight","Cinco cartas em sequência, de naipes diferentes."],
+["Straight Draw","Faltando uma carta para completar uma sequência."],
+["Straight Flush","Cinco cartas em sequência e do mesmo naipe."],
+["Street","Cada rodada de apostas do jogo (pré-flop, flop, turn, river)."],
+["Suckout","Quando uma mão fraca vence uma mão muito mais forte, geralmente numa carta improvável."],
+["Suited","Duas cartas do mesmo naipe."],
+["Suited Connector","Duas cartas consecutivas e do mesmo naipe."],
+["Take it down","Vencer o pote, geralmente fazendo o oponente desistir."],
+["Tell","Um comportamento involuntário que pode entregar a força da mão de um jogador."],
+["Thin Value","Apostar buscando valor mesmo com uma mão que não é muito forte, na expectativa de ser paga por algo pior."],
+["Third Barrel","A terceira aposta seguida do mesmo jogador, no river, depois de já ter apostado no flop e no turn."],
+["Tight","Estilo de jogo que entra em poucas mãos."],
+["Tilt","Estado emocional que faz um jogador se afastar da sua melhor tomada de decisão."],
+["Top Pair","Formar um par com a carta mais alta do board."],
+["Tournament Life","A permanência de um jogador no torneio enquanto ele ainda tem fichas."],
+["Trap","Jogar de forma passiva para esconder a força de uma mão boa."],
+["Trash Hand","Uma mão fraca, sem valor real."],
+["Trips","Trinca formada usando apenas uma carta da mão e duas do board — diferente do set."],
+["Turn","A quarta carta comunitária, e a terceira rodada de apostas."],
+["Two Pair","Dois pares diferentes na mesma mão."],
+["Underdog","A mão com menos chances de vencer o confronto."],
+["Underpair","Um par na mão com valor menor do que a menor carta do board."],
+["Upswing","Período de ganhos consistentes."],
+["UTG","A primeira posição a agir numa rodada, logo à esquerda do big blind."],
+["Variância","A oscilação natural de resultados no poker, que não indica sozinha se um jogador é bom ou ruim."],
+["Vilão","Termo usado para se referir ao oponente numa análise de mão."],
+["VPIP","Percentual de vezes que um jogador entra voluntariamente numa mão, uma das estatísticas mais usadas em HUDs."],
+["Walk","Quando todos desistem pré-flop e o big blind ganha o pote sem disputa."],
+["Winrate","A taxa de lucro de um jogador ao longo do tempo, geralmente medida em bb/100 mãos ou formato parecido."]
+];
+
+var listEl = document.getElementById('list');
+document.getElementById('infoToggle').addEventListener('click', function() {
+  var n = document.getElementById('sourceNote');
+  n.style.display = (n.style.display === 'none') ? 'block' : 'none';
+});
+var emptyEl = document.getElementById('empty');
+var countEl = document.getElementById('count');
+var searchEl = document.getElementById('search');
+var azEl = document.getElementById('az');
+
+function firstLetter(term) {
+  var c = term.trim()[0].toUpperCase();
+  return /[A-Z]/.test(c) ? c : '#';
+}
+
+var lettersPresent = {};
+TERMOS.forEach(function(t) { lettersPresent[firstLetter(t[0])] = true; });
+
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(function(letter) {
+  var btn = document.createElement('button');
+  btn.textContent = letter;
+  if (lettersPresent[letter]) {
+    btn.className = 'has';
+    btn.addEventListener('click', function() {
+      var target = document.getElementById('sec-' + letter);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  } else {
+    btn.disabled = true;
+  }
+  azEl.appendChild(btn);
+});
+
+function render(filter) {
+  filter = (filter || '').toLowerCase().trim();
+  var groups = {};
+  var count = 0;
+  TERMOS.forEach(function(t) {
+    var term = t[0], def = t[1];
+    if (filter && term.toLowerCase().indexOf(filter) === -1 && def.toLowerCase().indexOf(filter) === -1) return;
+    var letter = firstLetter(term);
+    if (!groups[letter]) groups[letter] = [];
+    groups[letter].push(t);
+    count++;
+  });
+  listEl.innerHTML = '';
+  Object.keys(groups).sort().forEach(function(letter) {
+    var h = document.createElement('h2');
+    h.className = 'cat';
+    h.id = 'sec-' + letter;
+    h.textContent = letter;
+    listEl.appendChild(h);
+    groups[letter].forEach(function(t) {
+      var div = document.createElement('div');
+      div.className = 'term';
+      div.innerHTML = '<b>' + t[0] + '</b><p>' + t[1] + '</p>';
+      listEl.appendChild(div);
+    });
+  });
+  emptyEl.style.display = count === 0 ? 'block' : 'none';
+  countEl.textContent = count + ' termo' + (count === 1 ? '' : 's');
+}
+
+searchEl.addEventListener('input', function() { render(this.value); });
+render('');
+</script>
+</body>
+</html>

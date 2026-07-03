@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ICM</title>
+<style>
+  :root {
+    --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
+    --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
+    --danger: #D2564A; --danger-bg: #3A211D; --success: #5FAE7C; --success-bg: #163A28;
+    --line: rgba(239, 231, 210, 0.12);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--felt); color: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; }
+  .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 26px 18px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 18px; font-weight: 700; margin: 0; color: var(--gold); }
+  header span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .info-toggle {
+    background: var(--panel); border: 1px solid var(--gold-dim); color: var(--gold);
+    font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    margin-bottom: 14px; display: inline-block;
+  }
+  .source-note {
+    background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: var(--muted); line-height: 1.55;
+  }
+  .source-note b { color: var(--gold); }
+
+  h2.section { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 22px 0 10px; }
+
+  .explain {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 20px;
+  }
+  .explain h3 { font-size: 13px; color: var(--gold); margin: 0 0 8px; }
+  .explain p { font-size: 13px; color: var(--cream); line-height: 1.6; margin: 0 0 10px; }
+  .explain p:last-child { margin-bottom: 0; }
+  .explain ul { margin: 0 0 10px; padding-left: 18px; }
+  .explain li { font-size: 13px; color: var(--cream); line-height: 1.6; margin-bottom: 4px; }
+
+  .players-list { margin-bottom: 14px; }
+  .player-row {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  .player-row .pname { width: 62px; font-size: 12px; color: var(--muted); font-weight: 700; flex-shrink: 0; }
+  .player-row input {
+    flex: 1; min-width: 0; background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--cream); font-size: 15px; font-weight: 700; padding: 8px 10px; outline: none;
+  }
+  .player-row input:focus { border-color: var(--gold-dim); }
+  .player-row .rm {
+    background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding: 4px 6px; flex-shrink: 0;
+  }
+
+  .add-row-btns { display: flex; gap: 8px; margin-bottom: 20px; }
+  .add-row-btns button {
+    flex: 1; background: var(--panel); border: 1px dashed var(--gold-dim); color: var(--gold);
+    font-size: 13px; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 600;
+  }
+
+  .payouts-list { margin-bottom: 14px; }
+  .payout-row {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  .payout-row .place { width: 44px; font-size: 12px; color: var(--muted); font-weight: 700; flex-shrink: 0; }
+  .payout-row input {
+    flex: 1; min-width: 0; background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px;
+    color: var(--cream); font-size: 15px; font-weight: 700; padding: 8px 10px; outline: none;
+  }
+
+  .calc-btn { width: 100%; background: var(--gold); border: none; color: #1A1508; font-size: 15px; font-weight: 800;
+    padding: 14px; border-radius: 12px; cursor: pointer; margin-bottom: 18px; }
+  .calc-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .error { background: var(--danger-bg); color: var(--danger); border-radius: 10px; padding: 12px 14px;
+    font-size: 13px; margin-bottom: 16px; display: none; }
+  .error.show { display: block; }
+
+  .results { display: none; margin-bottom: 20px; }
+  .results.show { display: block; }
+  table.res-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  table.res-table th { text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  table.res-table td { font-size: 13px; padding: 8px; border-bottom: 1px solid var(--line); }
+  table.res-table td.num { text-align: right; font-family: ui-monospace, monospace; }
+  table.res-table td.delta-pos { color: var(--success); }
+  table.res-table td.delta-neg { color: var(--danger); }
+  .meta { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; }
+
+  footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>ICM</h1>
+    <span>colorbydoug</span>
+  </header>
+
+  <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
+  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> algoritmo padrão de ICM (Independent Chip Model), baseado no modelo de Malmuth-Harville — o mesmo método matemático usado por praticamente todas as calculadoras de ICM do mercado (ICMizer, HoldemResources Calculator, etc). Não é aproximação: para o número de jogadores e prize pool que você informar, o resultado é o valor ICM exato.</div>
+
+  <button class="info-toggle" id="explainToggle">📖 O que é e pra que serve</button>
+  <div class="explain" id="explainBox" style="display:none;">
+    <h3>O que é e pra que serve</h3>
+    <p>Em torneio, fichas não valem dinheiro de forma linear. Se você tem metade das fichas da mesa, isso <b>não</b> significa que você vale metade da premiação total — porque ainda existe o risco de ser eliminado antes de subir de posição.</p>
+    <p>O ICM converte a quantidade de fichas de cada jogador em <b>valor esperado real em dinheiro ($EV)</b>, considerando quantos lugares pagam e quanto cada posição paga.</p>
+    <ul>
+      <li><b>Stacks curtos</b> costumam valer, em $, um pouco <b>mais</b> do que sua % de fichas sugere — porque ainda têm chance de subir de posição só sobrevivendo.</li>
+      <li><b>Stacks grandes</b> costumam valer um pouco <b>menos</b> em $ do que sua % de fichas — porque arriscar tudo numa mão põe em jogo um valor real desproporcional ao ganho potencial.</li>
+      <li>Isso é mais relevante perto da <b>bolha</b> e na <b>mesa final</b>, onde decisões de all-in/call precisam levar em conta esse "desconto" e esse "prêmio" de ICM — não só a força da mão.</li>
+    </ul>
+    <p>Na prática: perto da bolha, você deve jogar <b>mais tight</b> do que jogaria só olhando pra força da mão, porque o risco de ser eliminado custa mais caro (em $) do que ganha o upside de dobrar de fichas.</p>
+  </div>
+
+  <h2 class="section">Jogadores e stacks</h2>
+  <div class="players-list" id="playersList"></div>
+  <div class="add-row-btns">
+    <button id="addPlayer">+ Adicionar jogador</button>
+  </div>
+
+  <h2 class="section">Premiação (lugares pagos)</h2>
+  <div class="payouts-list" id="payoutsList"></div>
+  <div class="add-row-btns">
+    <button id="addPayout">+ Adicionar lugar pago</button>
+  </div>
+
+  <div class="error" id="errorBox"></div>
+
+  <button class="calc-btn" id="calcBtn">Calcular ICM</button>
+
+  <div class="results" id="results">
+    <table class="res-table">
+      <thead><tr><th>Jogador</th><th class="num">Fichas</th><th class="num">% fichas</th><th class="num">Valor ICM</th><th class="num">Δ vs % fichas</th></tr></thead>
+      <tbody id="resBody"></tbody>
+    </table>
+    <p class="meta" id="meta"></p>
+  </div>
+
+  <footer>
+    Funciona com até 9 jogadores restantes (mesa final típica). Com mais jogadores que isso, o cálculo fica pesado demais pro navegador — nesses casos, calcule ICM só quando restarem 9 ou menos na mesa.
+  </footer>
+
+</div>
+
+<script>
+(function() {
+  document.getElementById('infoToggle').addEventListener('click', function() {
+    var n = document.getElementById('sourceNote');
+    n.style.display = (n.style.display === 'none') ? 'block' : 'none';
+  });
+  document.getElementById('explainToggle').addEventListener('click', function() {
+    var n = document.getElementById('explainBox');
+    n.style.display = (n.style.display === 'none') ? 'block' : 'none';
+  });
+
+  var MAX_PLAYERS = 9;
+  var players = [
+    { name: 'J1', stack: 15000 },
+    { name: 'J2', stack: 12000 },
+    { name: 'J3', stack: 9000 },
+    { name: 'J4', stack: 6000 }
+  ];
+  var payouts = [500, 300, 200];
+
+  function renderPlayers() {
+    var box = document.getElementById('playersList');
+    box.innerHTML = '';
+    players.forEach(function(p, idx) {
+      var row = document.createElement('div');
+      row.className = 'player-row';
+      var label = document.createElement('div');
+      label.className = 'pname';
+      label.textContent = 'J' + (idx + 1);
+      var input = document.createElement('input');
+      input.type = 'number'; input.min = '0'; input.value = p.stack;
+      input.addEventListener('input', function() { players[idx].stack = parseFloat(this.value) || 0; });
+      var rm = document.createElement('button');
+      rm.className = 'rm'; rm.textContent = '×';
+      rm.addEventListener('click', function() {
+        if (players.length <= 2) return;
+        players.splice(idx, 1); renderPlayers();
+      });
+      row.appendChild(label); row.appendChild(input); row.appendChild(rm);
+      box.appendChild(row);
+    });
+  }
+
+  function renderPayouts() {
+    var box = document.getElementById('payoutsList');
+    box.innerHTML = '';
+    payouts.forEach(function(v, idx) {
+      var row = document.createElement('div');
+      row.className = 'payout-row';
+      var label = document.createElement('div');
+      label.className = 'place';
+      label.textContent = (idx + 1) + 'º';
+      var input = document.createElement('input');
+      input.type = 'number'; input.min = '0'; input.value = v;
+      input.addEventListener('input', function() { payouts[idx] = parseFloat(this.value) || 0; });
+      var rm = document.createElement('button');
+      rm.className = 'rm'; rm.textContent = '×';
+      rm.addEventListener('click', function() {
+        if (payouts.length <= 1) return;
+        payouts.splice(idx, 1); renderPayouts();
+      });
+      row.appendChild(label); row.appendChild(input); row.appendChild(rm);
+      box.appendChild(row);
+    });
+  }
+
+  document.getElementById('addPlayer').addEventListener('click', function() {
+    if (players.length >= MAX_PLAYERS) return;
+    players.push({ name: 'J' + (players.length + 1), stack: 1000 });
+    renderPlayers();
+  });
+  document.getElementById('addPayout').addEventListener('click', function() {
+    if (payouts.length >= MAX_PLAYERS) return;
+    payouts.push(0);
+    renderPayouts();
+  });
+
+  // Recursive ICM (Malmuth-Harville model)
+  function icmEquity(stacks, payoutArr) {
+    var n = stacks.length;
+    if (payoutArr.length === 0 || n === 0) return stacks.map(function(){ return 0; });
+    var total = stacks.reduce(function(a,b){ return a+b; }, 0);
+    if (total <= 0) return stacks.map(function(){ return 0; });
+    var equity = new Array(n).fill(0);
+    for (var i = 0; i < n; i++) {
+      var pWin = stacks[i] / total;
+      equity[i] += pWin * payoutArr[0];
+      if (n > 1 && payoutArr.length > 1) {
+        var remStacks = stacks.filter(function(_, idx){ return idx !== i; });
+        var remPayouts = payoutArr.slice(1);
+        var subEquity = icmEquity(remStacks, remPayouts);
+        var si = 0;
+        for (var j = 0; j < n; j++) {
+          if (j === i) continue;
+          equity[j] += pWin * subEquity[si];
+          si++;
+        }
+      }
+    }
+    return equity;
+  }
+
+  function runCalc() {
+    var errorBox = document.getElementById('errorBox');
+    errorBox.classList.remove('show'); errorBox.textContent = '';
+
+    if (players.length < 2) { showError('Adicione pelo menos 2 jogadores.'); return; }
+    if (players.length > MAX_PLAYERS) { showError('Máximo de ' + MAX_PLAYERS + ' jogadores.'); return; }
+    var stacks = players.map(function(p){ return p.stack; });
+    if (stacks.some(function(s){ return s <= 0; })) { showError('Todos os stacks precisam ser maiores que zero.'); return; }
+    if (payouts.length === 0 || payouts.every(function(p){ return p<=0; })) { showError('Informe pelo menos um valor de premiação.'); return; }
+
+    var effectivePayouts = payouts.slice(0, players.length);
+    var equity = icmEquity(stacks, effectivePayouts);
+    var totalStacks = stacks.reduce(function(a,b){ return a+b; }, 0);
+    var totalPrize = effectivePayouts.reduce(function(a,b){ return a+b; }, 0);
+
+    var body = document.getElementById('resBody');
+    body.innerHTML = '';
+    players.forEach(function(p, idx) {
+      var chipPct = (stacks[idx] / totalStacks) * 100;
+      var icmValue = equity[idx];
+      var icmPct = totalPrize > 0 ? (icmValue / totalPrize) * 100 : 0;
+      var delta = icmPct - chipPct;
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>J' + (idx+1) + '</td>' +
+        '<td class="num">' + stacks[idx].toLocaleString('pt-BR') + '</td>' +
+        '<td class="num">' + chipPct.toFixed(1) + '%</td>' +
+        '<td class="num">' + icmValue.toLocaleString('pt-BR', {maximumFractionDigits:2}) + '</td>' +
+        '<td class="num ' + (delta >= 0 ? 'delta-pos' : 'delta-neg') + '">' + (delta>=0?'+':'') + delta.toFixed(1) + '%</td>';
+      body.appendChild(tr);
+    });
+
+    document.getElementById('meta').textContent = 'Prize pool considerado: ' + totalPrize.toLocaleString('pt-BR') + ' · ' + effectivePayouts.length + ' lugar(es) pago(s)';
+    document.getElementById('results').classList.add('show');
+  }
+
+  function showError(msg) {
+    var errorBox = document.getElementById('errorBox');
+    errorBox.textContent = msg;
+    errorBox.classList.add('show');
+    document.getElementById('results').classList.remove('show');
+  }
+
+  document.getElementById('calcBtn').addEventListener('click', function() {
+    var btn = this;
+    btn.disabled = true; btn.textContent = 'Calculando...';
+    setTimeout(function() {
+      try { runCalc(); }
+      finally { btn.disabled = false; btn.textContent = 'Calcular ICM'; }
+    }, 20);
+  });
+
+  renderPlayers();
+  renderPayouts();
+})();
+</script>
+</body>
+</html>
