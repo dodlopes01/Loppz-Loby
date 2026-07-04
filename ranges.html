@@ -30,8 +30,9 @@
   .info-toggle {
     background: var(--panel); border: 1px solid var(--gold-dim); color: var(--gold);
     font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 8px; cursor: pointer;
-    margin-bottom: 12px; display: inline-block;
+    margin-bottom: 12px; margin-right: 8px; display: inline-block;
   }
+  .info-toggle.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
   .source-note {
     background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 10px;
     padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: var(--muted); line-height: 1.55;
@@ -259,6 +260,7 @@
   </header>
 
   <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
+  <button class="info-toggle" id="presetBtn">📁 Presets</button>
   <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional. A mesa é de 9-max (UTG, UTG+1, UTG+2, LJ, HJ, CO, BTN, SB, BB).</div>
 
   <!-- PRESETS -->
@@ -356,7 +358,6 @@
       <button id="editBtn">🎨 Pintar range</button>
       <button id="zeroBtn">🗒️ Começar do zero</button>
       <button id="resetBtn">↺ Restaurar padrão</button>
-      <button id="presetBtn">📁 Presets</button>
       <button id="ioBtn">🔄 Backup manual</button>
     </div>
     <div class="palette" id="palette"></div>
