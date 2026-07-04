@@ -54,6 +54,15 @@
     font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer;
     margin-bottom: 14px; display: inline-block;
   }
+
+  /* ---- layout mais amplo para desktop/tablet ---- */
+  @media (min-width: 860px) {
+    .wrap { max-width: 980px; padding: 40px 24px 70px; }
+    header h1 { font-size: 22px; }
+    #list { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
+    h2.cat { grid-column: 1 / -1; }
+    .term { margin-bottom: 8px; }
+  }
 </style>
 </head>
 <body>
