@@ -234,6 +234,15 @@
   .preset-empty { font-size: 12px; color: var(--muted); margin: 0 0 4px; }
 
   footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
+
+  /* ---- layout mais amplo para desktop/tablet ---- */
+  @media (min-width: 980px) {
+    .wrap { max-width: 1040px; padding: 40px 24px 70px; }
+    header h1 { font-size: 22px; }
+    .page-grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
+    .page-grid .col-left { position: sticky; top: 24px; }
+    .table-oval { max-width: 420px; height: 320px; }
+  }
 </style>
 </head>
 <body>
@@ -247,6 +256,8 @@
   <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
   <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional. A mesa é de 9-max (UTG, UTG+1, UTG+2, LJ, HJ, CO, BTN, SB, BB).</div>
 
+  <div class="page-grid">
+  <div class="col-left">
   <!-- HAND PICKER (topo) -->
   <div class="range-card hand-card">
     <h2 class="section">Escolha uma mão</h2>
@@ -267,6 +278,8 @@
     <div class="playable-positions" id="playablePositions"></div>
   </div>
 
+  </div>
+  <div class="col-right">
   <!-- MESA + GRID -->
   <div class="range-card">
     <h2 class="section">Posição na mesa (9-max)</h2>
@@ -335,6 +348,9 @@
 
     <div class="legend" id="legend"></div>
     <p class="autosave-note">💾 Edições salvam automaticamente neste navegador. Use "Presets" pra guardar cópias nomeadas de todos os seus ranges (todas as posições e profundidades de uma vez), ou "Backup manual" pra levar tudo pra outro navegador/aparelho.</p>
+  </div>
+
+  </div>
   </div>
 
   <!-- PRESETS -->
