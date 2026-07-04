@@ -250,6 +250,13 @@
     font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer;
     margin-bottom: 14px; display: inline-block;
   }
+
+  /* ---- layout mais amplo para desktop/tablet ---- */
+  @media (min-width: 860px) {
+    .wrap { max-width: 760px; padding: 40px 24px 70px; }
+    header h1 { font-size: 22px; }
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 36px; align-items: start; }
+  }
 </style>
 </head>
 <body>
@@ -263,71 +270,77 @@
   <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
   <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> fórmula matemática padrão de pot odds (call ÷ pote total) e equity de outs (probabilidade exata a partir das cartas restantes no baralho). Não é aproximação — é cálculo direto, mesma lógica usada em qualquer material técnico de poker.</div>
 
-  <div class="row2">
-    <div class="field">
-      <label for="pot">Pote atual</label>
-      <input type="number" id="pot" inputmode="decimal" value="100" min="0" step="1">
-    </div>
-    <div class="field">
-      <label for="call">Valor do call</label>
-      <input type="number" id="call" inputmode="decimal" value="25" min="0" step="1">
-    </div>
-  </div>
+  <div class="calc-grid">
+    <div class="calc-left">
+      <div class="row2">
+        <div class="field">
+          <label for="pot">Pote atual</label>
+          <input type="number" id="pot" inputmode="decimal" value="100" min="0" step="1">
+        </div>
+        <div class="field">
+          <label for="call">Valor do call</label>
+          <input type="number" id="call" inputmode="decimal" value="25" min="0" step="1">
+        </div>
+      </div>
 
-  <div class="field">
-    <label for="outs">Seus outs</label>
-    <div class="slider-row">
-      <input type="range" id="outs" min="0" max="21" value="9" step="1">
-      <span class="outs-val" id="outsVal">9</span>
-    </div>
-    <div class="chips">
-      <button type="button" class="chip" data-outs="4">Gutshot · 4</button>
-      <button type="button" class="chip" data-outs="8">Seq. aberta · 8</button>
-      <button type="button" class="chip active" data-outs="9">Flush draw · 9</button>
-      <button type="button" class="chip" data-outs="12">Flush+gut · 12</button>
-      <button type="button" class="chip" data-outs="15">Flush+seq. · 15</button>
-    </div>
-  </div>
+      <div class="field">
+        <label for="outs">Seus outs</label>
+        <div class="slider-row">
+          <input type="range" id="outs" min="0" max="21" value="9" step="1">
+          <span class="outs-val" id="outsVal">9</span>
+        </div>
+        <div class="chips">
+          <button type="button" class="chip" data-outs="4">Gutshot · 4</button>
+          <button type="button" class="chip" data-outs="8">Seq. aberta · 8</button>
+          <button type="button" class="chip active" data-outs="9">Flush draw · 9</button>
+          <button type="button" class="chip" data-outs="12">Flush+gut · 12</button>
+          <button type="button" class="chip" data-outs="15">Flush+seq. · 15</button>
+        </div>
+      </div>
 
-  <div class="field">
-    <label>Cartas por vir</label>
-    <div class="toggle">
-      <button type="button" id="street2" class="active">Turn + river</button>
-      <button type="button" id="street1">Só o river</button>
+      <div class="field">
+        <label>Cartas por vir</label>
+        <div class="toggle">
+          <button type="button" id="street2" class="active">Turn + river</button>
+          <button type="button" id="street1">Só o river</button>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="meter" id="meter">
-    <div class="meter-pot" id="meterPot" style="width: 80%"></div>
-    <div class="meter-call" id="meterCall" style="width: 20%"></div>
-  </div>
-  <div class="meter-labels">
-    <span>Pote</span>
-    <span>Call</span>
-  </div>
+    <div class="calc-right">
+      <div class="meter" id="meter">
+        <div class="meter-pot" id="meterPot" style="width: 80%"></div>
+        <div class="meter-call" id="meterCall" style="width: 20%"></div>
+      </div>
+      <div class="meter-labels">
+        <span>Pote</span>
+        <span>Call</span>
+      </div>
 
-  <div class="results">
-    <div class="card">
-      <p class="label">Pot odds</p>
-      <p class="value mono" id="ratioOut">4 : 1</p>
-    </div>
-    <div class="card">
-      <p class="label">Equity necessária</p>
-      <p class="value mono" id="neededOut">20%</p>
-    </div>
-  </div>
-  <div class="results">
-    <div class="card">
-      <p class="label">Sua equity</p>
-      <p class="value mono" id="equityOut">35%</p>
-    </div>
-    <div class="card">
-      <p class="label">Diferença</p>
-      <p class="value mono" id="diffOut">+15%</p>
-    </div>
-  </div>
+      <div class="results">
+        <div class="card">
+          <p class="label">Pot odds</p>
+          <p class="value mono" id="ratioOut">4 : 1</p>
+        </div>
+        <div class="card">
+          <p class="label">Equity necessária</p>
+          <p class="value mono" id="neededOut">20%</p>
+        </div>
+      </div>
+      <div class="results">
+        <div class="card">
+          <p class="label">Sua equity</p>
+          <p class="value mono" id="equityOut">35%</p>
+        </div>
+        <div class="card">
+          <p class="label">Diferença</p>
+          <p class="value mono" id="diffOut">+15%</p>
+        </div>
+      </div>
 
-  <div class="decision ok" id="decision">Pagar compensa.</div>
+      <div class="decision ok" id="decision">Pagar compensa.</div>
+    </div>
+  </div>
 
   <footer>
     Equity calculada de forma exata a partir dos outs e das cartas restantes no baralho (não é a regra do 2 e do 4). Funciona offline — salve este arquivo no celular ou notebook.
