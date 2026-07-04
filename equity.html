@@ -157,6 +157,14 @@
     font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; cursor: pointer;
     margin-bottom: 14px; display: inline-block;
   }
+
+  /* ---- layout mais amplo para desktop/tablet ---- */
+  @media (min-width: 900px) {
+    .wrap { max-width: 940px; padding: 40px 24px 70px; }
+    header h1 { font-size: 22px; }
+    .calc-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 8px 36px; align-items: start; }
+    .calc-right { position: sticky; top: 24px; }
+  }
 </style>
 </head>
 <body>
@@ -170,86 +178,92 @@
   <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
   <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> a equidade em si é calculada por simulação Monte Carlo (matemática exata, converge pro valor real conforme aumenta o número de simulações). Já os ranges por posição (quando você usa o modo "Range" em vez de mão específica) vêm da mesma aproximação heurística de Chen usada na aba Ranges — não de um solver real. Mãos específicas vs mãos específicas, ou ranges editados manualmente, não têm essa limitação.</div>
 
-  <h2 class="section">Editando</h2>
-  <div class="seg" id="panelSeg">
-    <button data-panel="hero" class="active">Minha mão</button>
-    <button data-panel="villain">Vilão</button>
-  </div>
+  <div class="calc-grid">
+    <div class="calc-left">
+      <h2 class="section">Editando</h2>
+      <div class="seg" id="panelSeg">
+        <button data-panel="hero" class="active">Minha mão</button>
+        <button data-panel="villain">Vilão</button>
+      </div>
 
-  <div class="seg" id="modeSeg">
-    <button data-mode="hand" class="active">Mão específica</button>
-    <button data-mode="range">Range</button>
-  </div>
+      <div class="seg" id="modeSeg">
+        <button data-mode="hand" class="active">Mão específica</button>
+        <button data-mode="range">Range</button>
+      </div>
 
-  <div id="handModeBox">
-    <div class="cards-row" id="handSlots"></div>
-    <div class="hint" style="font-size:11px; color:var(--muted);">Toque num espaço vazio pra escolher a carta.</div>
-  </div>
+      <div id="handModeBox">
+        <div class="cards-row" id="handSlots"></div>
+        <div class="hint" style="font-size:11px; color:var(--muted);">Toque num espaço vazio pra escolher a carta.</div>
+      </div>
 
-  <div id="rangeModeBox" style="display:none;">
-    <div class="mini-row" id="posRow">
-      <button data-pos="UTG">UTG</button>
-      <button data-pos="MP">MP</button>
-      <button data-pos="CO">CO</button>
-      <button data-pos="BTN" class="active">BTN</button>
-      <button data-pos="SB">SB</button>
-      <button data-pos="BB">BB</button>
+      <div id="rangeModeBox" style="display:none;">
+        <div class="mini-row" id="posRow">
+          <button data-pos="UTG">UTG</button>
+          <button data-pos="MP">MP</button>
+          <button data-pos="CO">CO</button>
+          <button data-pos="BTN" class="active">BTN</button>
+          <button data-pos="SB">SB</button>
+          <button data-pos="BB">BB</button>
+        </div>
+        <div class="mini-row" id="stackRow">
+          <button data-bb="100" class="active">100bb</button>
+          <button data-bb="70">70bb</button>
+          <button data-bb="40">40bb</button>
+          <button data-bb="25">25bb</button>
+          <button data-bb="15">15bb</button>
+          <button data-bb="10">10bb</button>
+        </div>
+        <div class="mini-row hidden" id="openerRow">
+          <button data-opener="UTG">UTG</button>
+          <button data-opener="MP">MP</button>
+          <button data-opener="CO">CO</button>
+          <button data-opener="BTN" class="active">BTN</button>
+          <button data-opener="SB">SB</button>
+        </div>
+        <div class="toolbar">
+          <button id="editBtn">✎ Editar</button>
+          <button id="clearBtn">Limpar tudo</button>
+          <button id="resetBtn">Restaurar padrão</button>
+        </div>
+        <div id="grid" class="grid"></div>
+        <p class="range-summary" id="rangeSummary"></p>
+      </div>
+
+      <h2 class="section">Board (opcional)</h2>
+      <div class="board-box">
+        <div class="cards-row" id="boardSlots"></div>
+        <div class="hint">Toque num espaço vazio pra montar o flop, turn ou river. Deixe tudo vazio pra pré-flop.</div>
+      </div>
+
+      <h2 class="section">Precisão da simulação</h2>
+      <div class="iters" id="iters">
+        <button data-n="8000" class="active">Rápido</button>
+        <button data-n="20000">Padrão</button>
+        <button data-n="50000">Preciso</button>
+      </div>
     </div>
-    <div class="mini-row" id="stackRow">
-      <button data-bb="100" class="active">100bb</button>
-      <button data-bb="70">70bb</button>
-      <button data-bb="40">40bb</button>
-      <button data-bb="25">25bb</button>
-      <button data-bb="15">15bb</button>
-      <button data-bb="10">10bb</button>
+
+    <div class="calc-right">
+      <div class="summary-box" id="summaryBox">
+        <div class="row"><span class="tag">Você</span><span class="txt" id="summaryHero">—</span></div>
+        <div class="row"><span class="tag">Vilão</span><span class="txt" id="summaryVillain">—</span></div>
+        <div class="row"><span class="tag muted-tag">Board</span><span class="txt" id="summaryBoard">Pré-flop (sem cartas no board)</span></div>
+      </div>
+
+      <div class="error" id="errorBox"></div>
+
+      <button class="calc-btn" id="calcBtn">Calcular equity</button>
+
+      <div class="results" id="results">
+        <div class="eq-row">
+          <div class="eq-card"><p class="who">Você</p><p class="pct mono" id="heroPct">—</p></div>
+          <div class="eq-card"><p class="who">Vilão</p><p class="pct mono" id="villainPct">—</p></div>
+        </div>
+        <div class="legend2"><span>Você</span><span>Empate</span><span>Vilão</span></div>
+        <div class="bar"><div class="h" id="barH"></div><div class="t" id="barT"></div><div class="v" id="barV"></div></div>
+        <p class="meta" id="meta"></p>
+      </div>
     </div>
-    <div class="mini-row hidden" id="openerRow">
-      <button data-opener="UTG">UTG</button>
-      <button data-opener="MP">MP</button>
-      <button data-opener="CO">CO</button>
-      <button data-opener="BTN" class="active">BTN</button>
-      <button data-opener="SB">SB</button>
-    </div>
-    <div class="toolbar">
-      <button id="editBtn">✎ Editar</button>
-      <button id="clearBtn">Limpar tudo</button>
-      <button id="resetBtn">Restaurar padrão</button>
-    </div>
-    <div id="grid" class="grid"></div>
-    <p class="range-summary" id="rangeSummary"></p>
-  </div>
-
-  <h2 class="section">Board (opcional)</h2>
-  <div class="board-box">
-    <div class="cards-row" id="boardSlots"></div>
-    <div class="hint">Toque num espaço vazio pra montar o flop, turn ou river. Deixe tudo vazio pra pré-flop.</div>
-  </div>
-
-  <h2 class="section">Precisão da simulação</h2>
-  <div class="iters" id="iters">
-    <button data-n="8000" class="active">Rápido</button>
-    <button data-n="20000">Padrão</button>
-    <button data-n="50000">Preciso</button>
-  </div>
-
-  <div class="summary-box" id="summaryBox">
-    <div class="row"><span class="tag">Você</span><span class="txt" id="summaryHero">—</span></div>
-    <div class="row"><span class="tag">Vilão</span><span class="txt" id="summaryVillain">—</span></div>
-    <div class="row"><span class="tag muted-tag">Board</span><span class="txt" id="summaryBoard">Pré-flop (sem cartas no board)</span></div>
-  </div>
-
-  <div class="error" id="errorBox"></div>
-
-  <button class="calc-btn" id="calcBtn">Calcular equity</button>
-
-  <div class="results" id="results">
-    <div class="eq-row">
-      <div class="eq-card"><p class="who">Você</p><p class="pct mono" id="heroPct">—</p></div>
-      <div class="eq-card"><p class="who">Vilão</p><p class="pct mono" id="villainPct">—</p></div>
-    </div>
-    <div class="legend2"><span>Você</span><span>Empate</span><span>Vilão</span></div>
-    <div class="bar"><div class="h" id="barH"></div><div class="t" id="barT"></div><div class="v" id="barV"></div></div>
-    <p class="meta" id="meta"></p>
   </div>
 
   <footer>
