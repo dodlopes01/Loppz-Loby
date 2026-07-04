@@ -95,6 +95,13 @@
   .meta { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; }
 
   footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
+
+  /* ---- layout mais amplo para desktop/tablet ---- */
+  @media (min-width: 860px) {
+    .wrap { max-width: 900px; padding: 40px 24px 70px; }
+    header h1 { font-size: 22px; }
+    .calc-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 8px 36px; align-items: start; }
+  }
 </style>
 </head>
 <body>
@@ -121,28 +128,34 @@
     <p>Na prática: perto da bolha, você deve jogar <b>mais tight</b> do que jogaria só olhando pra força da mão, porque o risco de ser eliminado custa mais caro (em $) do que ganha o upside de dobrar de fichas.</p>
   </div>
 
-  <h2 class="section">Jogadores e stacks</h2>
-  <div class="players-list" id="playersList"></div>
-  <div class="add-row-btns">
-    <button id="addPlayer">+ Adicionar jogador</button>
-  </div>
+  <div class="calc-grid">
+    <div class="calc-left">
+      <h2 class="section">Jogadores e stacks</h2>
+      <div class="players-list" id="playersList"></div>
+      <div class="add-row-btns">
+        <button id="addPlayer">+ Adicionar jogador</button>
+      </div>
 
-  <h2 class="section">Premiação (lugares pagos)</h2>
-  <div class="payouts-list" id="payoutsList"></div>
-  <div class="add-row-btns">
-    <button id="addPayout">+ Adicionar lugar pago</button>
-  </div>
+      <h2 class="section">Premiação (lugares pagos)</h2>
+      <div class="payouts-list" id="payoutsList"></div>
+      <div class="add-row-btns">
+        <button id="addPayout">+ Adicionar lugar pago</button>
+      </div>
 
-  <div class="error" id="errorBox"></div>
+      <div class="error" id="errorBox"></div>
 
-  <button class="calc-btn" id="calcBtn">Calcular ICM</button>
+      <button class="calc-btn" id="calcBtn">Calcular ICM</button>
+    </div>
 
-  <div class="results" id="results">
-    <table class="res-table">
-      <thead><tr><th>Jogador</th><th class="num">Fichas</th><th class="num">% fichas</th><th class="num">Valor ICM</th><th class="num">Δ vs % fichas</th></tr></thead>
-      <tbody id="resBody"></tbody>
-    </table>
-    <p class="meta" id="meta"></p>
+    <div class="calc-right">
+      <div class="results" id="results">
+        <table class="res-table">
+          <thead><tr><th>Jogador</th><th class="num">Fichas</th><th class="num">% fichas</th><th class="num">Valor ICM</th><th class="num">Δ vs % fichas</th></tr></thead>
+          <tbody id="resBody"></tbody>
+        </table>
+        <p class="meta" id="meta"></p>
+      </div>
+    </div>
   </div>
 
   <footer>
