@@ -9,22 +9,23 @@
     --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
     --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
     --danger: #D2564A; --danger-bg: #3A211D; --success: #5FAE7C; --success-bg: #163A28;
-    --allin: #C9622A; --allin-bg: #3A2313; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.12);
-    --added: #FF9142;
+    --allin: #C9622A; --allin-bg: #3A2313; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.14);
+    --added: #FF9142; --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    margin: 0; padding: 0; background: var(--felt); color: var(--cream);
+    margin: 0; padding: 0; background: radial-gradient(ellipse at top, #10352A 0%, #0A2018 100%);
+    color: var(--cream);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     min-height: 100vh;
   }
   .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
-  .wrap { max-width: 560px; margin: 0 auto; padding: 22px 18px 60px; }
+  .wrap { max-width: 580px; margin: 0 auto; padding: 20px 16px 60px; }
   header { display: flex; align-items: baseline; justify-content: space-between;
     margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
-  header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; margin: 0; color: var(--gold); }
+  header h1 { font-size: 19px; font-weight: 800; letter-spacing: 0.02em; margin: 0; color: var(--gold); }
   header span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-  h2.section { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
+  h2.section { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 10px; font-weight: 700; }
 
   .info-toggle {
     background: var(--panel); border: 1px solid var(--gold-dim); color: var(--gold);
@@ -37,24 +38,80 @@
   }
   .source-note b { color: var(--gold); }
 
+  .range-card {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--line); border-radius: 18px; padding: 18px 16px;
+    margin-bottom: 18px; box-shadow: var(--card-shadow);
+  }
+  .card-divider { height: 1px; background: var(--line); margin: 16px 0; border: none; }
+
+  /* ---- hand picker (top) ---- */
+  .lookup { margin-bottom: 4px; }
+  .card-face {
+    width: 52px; height: 66px; border-radius: 9px; background: var(--cream);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 21px; color: #1A1508;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.28); cursor: pointer; user-select: none; flex-shrink: 0;
+  }
+  .card-face.empty { background: var(--panel); border: 1.5px dashed var(--line); color: var(--muted); font-size: 24px; font-weight: 400; }
+  .card-face.empty:hover { border-color: var(--gold-dim); color: var(--gold-dim); }
+  .lookup-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .lookup-row .x { color: var(--muted); font-size: 13px; }
+  .rank-picker { display: none; flex-wrap: wrap; gap: 4px; background: var(--felt-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px; margin-bottom: 12px; }
+  .rank-picker.show { display: flex; }
+  .rank-picker button {
+    width: 32px; height: 40px; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer;
+  }
+  .rank-picker button:hover { border-color: var(--gold-dim); color: var(--gold); }
+  .seg { display: flex; gap: 6px; }
+  .seg button { flex: 1; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 9px 8px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+  .seg button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+
+  .result {
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; font-size: 14px; font-weight: 700;
+    border: 1px solid transparent; display: none;
+  }
+  .result.show { display: block; }
+  .result.raise { background: var(--success-bg); color: var(--success); border-color: rgba(95,174,124,0.3); }
+  .result.allin { background: var(--allin-bg); color: var(--allin); border-color: rgba(201,98,42,0.35); }
+  .result.added { background: rgba(255,145,66,0.15); color: var(--added); border-color: rgba(255,145,66,0.35); }
+  .result.fold { background: var(--danger-bg); color: var(--danger); border-color: rgba(210,86,74,0.3); }
+  .result .sub { display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 4px; }
+
+  .playable-positions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 4px; min-height: 26px; }
+  .pp-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-right: 2px; }
+  .pp-none { font-size: 12px; color: var(--muted); }
+  .pp-badge { font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 999px; letter-spacing: 0.02em; }
+  .pp-badge.raise { background: var(--success-bg); color: var(--success); border: 1px solid rgba(95,174,124,0.4); }
+  .pp-badge.allin { background: var(--allin-bg); color: var(--allin); border: 1px solid rgba(201,98,42,0.45); }
+  .pp-badge.added { background: rgba(255,145,66,0.15); color: var(--added); border: 1px solid rgba(255,145,66,0.4); }
+
+  /* ---- table ---- */
   .table-oval {
-    position: relative; width: 100%; max-width: 340px; height: 160px; margin: 0 auto 14px;
-    background: radial-gradient(ellipse at center, var(--panel-2) 0%, var(--panel) 70%, var(--felt-2) 100%);
-    border: 5px solid #0A251C; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line);
+    position: relative; width: 100%; max-width: 360px; height: 280px; margin: 0 auto 14px;
+    background: radial-gradient(ellipse at center, var(--panel-2) 0%, var(--panel) 65%, var(--felt-2) 100%);
+    border: 6px solid #0A251C; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line), inset 0 10px 30px rgba(0,0,0,0.3);
   }
+  .table-oval .felt-label { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    font-size: 10px; letter-spacing: 0.12em; color: var(--gold-dim); font-weight: 700; text-transform: uppercase; opacity: 0.7; }
   .seat {
-    position: absolute; width: 50px; height: 50px; margin-left: -25px; margin-top: -25px;
+    position: absolute; width: 46px; height: 46px; margin-left: -23px; margin-top: -23px;
     border-radius: 50%; background: var(--felt-2); border: 1.5px solid var(--line);
-    display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800;
     cursor: pointer; color: var(--cream); text-align: center; line-height: 1.1;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform .1s;
   }
-  .seat.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
-  .seat small { display: block; font-size: 7px; font-weight: 500; opacity: 0.8; }
+  .seat:active { transform: scale(0.94); }
+  .seat.active { background: var(--gold); border-color: var(--gold); color: #1A1508; box-shadow: 0 0 0 4px rgba(201,162,39,0.2), 0 2px 6px rgba(0,0,0,0.3); }
+  .seat small { display: block; font-size: 6.5px; font-weight: 600; opacity: 0.8; }
 
   .row-header { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 8px; }
   .row-header h2.section { margin: 0; }
   .switch {
-    display: inline-flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line);
+    display: inline-flex; align-items: center; gap: 6px; background: var(--felt-2); border: 1px solid var(--line);
     border-radius: 999px; padding: 4px 4px 4px 10px; cursor: pointer; font-size: 11px; color: var(--muted); font-weight: 600;
   }
   .switch .knob { width: 30px; height: 18px; border-radius: 999px; background: var(--fold-cell); position: relative; transition: background .15s; }
@@ -66,17 +123,31 @@
   .stacks { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .stacks.hidden { display: none; }
   .stacks button {
-    flex: 1; min-width: 64px; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
-    font-size: 12px; padding: 9px 6px; border-radius: 10px; cursor: pointer; font-weight: 600;
+    flex: 1; min-width: 60px; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 9px 6px; border-radius: 10px; cursor: pointer; font-weight: 700;
   }
-  .stacks button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); }
+  .stacks button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+
+  /* ---- BB calculator ---- */
+  .bb-calc { background: var(--felt-2); border: 1px dashed var(--gold-dim); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+  .bb-calc-head { font-size: 12px; color: var(--gold); font-weight: 700; margin-bottom: 8px; }
+  .bb-calc-row { display: flex; align-items: center; gap: 8px; }
+  .bb-calc-row input {
+    flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 13px; padding: 9px 10px; border-radius: 8px; -moz-appearance: textfield;
+  }
+  .bb-calc-op { color: var(--muted); font-size: 13px; font-weight: 700; }
+  .bb-calc-result { margin-top: 10px; font-size: 15px; font-weight: 800; color: var(--cream); text-align: center; }
+  .bb-calc-result b { color: var(--gold); }
+  .bb-calc-use { display: block; width: 100%; margin-top: 8px; background: var(--gold-dim); border: 1px solid var(--gold); color: #1A1508;
+    font-size: 12px; font-weight: 700; padding: 8px; border-radius: 8px; cursor: pointer; }
 
   .opener-row { display: none; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .opener-row.show { display: flex; }
   .opener-row .label-inline { width: 100%; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
   .opener-row button {
-    flex: 1; min-width: 54px; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
-    font-size: 12px; padding: 9px 6px; border-radius: 10px; cursor: pointer; font-weight: 600;
+    flex: 1; min-width: 50px; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 11.5px; padding: 9px 4px; border-radius: 10px; cursor: pointer; font-weight: 700;
   }
   .opener-row button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); }
 
@@ -85,24 +156,24 @@
 
   .toolbar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .toolbar button {
-    flex: 1 1 calc(50% - 4px); background: var(--panel); border: 1px solid var(--line); color: var(--cream);
-    font-size: 12px; padding: 9px; border-radius: 10px; cursor: pointer; font-weight: 600;
+    flex: 1 1 calc(50% - 4px); background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 9px; border-radius: 10px; cursor: pointer; font-weight: 700;
   }
   .toolbar button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
 
-  .palette { display: none; gap: 8px; margin-bottom: 10px; background: var(--panel); border: 1px dashed var(--gold-dim);
+  .palette { display: none; gap: 8px; margin-bottom: 10px; background: var(--felt-2); border: 1px dashed var(--gold-dim);
     border-radius: 10px; padding: 10px; flex-wrap: wrap; align-items: center; }
   .palette.show { display: flex; }
   .palette .lbl { font-size: 11px; color: var(--gold); font-weight: 600; width: 100%; margin-bottom: 2px; }
   .palette button {
-    display: flex; align-items: center; gap: 6px; background: var(--felt-2); border: 2px solid transparent;
+    display: flex; align-items: center; gap: 6px; background: var(--panel); border: 2px solid transparent;
     color: var(--cream); font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer;
   }
   .palette button .sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
   .palette button.selected { border-color: var(--gold); }
   .palette-mode { display: flex; gap: 6px; width: 100%; margin-bottom: 6px; }
   .palette-mode button {
-    flex: 1; justify-content: center; background: var(--felt-2); border: 1px solid var(--line);
+    flex: 1; justify-content: center; background: var(--panel); border: 1px solid var(--line);
     padding: 7px; font-size: 11px;
   }
   .palette-mode button.active { background: var(--gold); color: #1A1508; border-color: var(--gold); }
@@ -114,7 +185,7 @@
 
   .grid {
     display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-bottom: 10px;
-    border: 1px solid var(--line); padding: 3px; border-radius: 10px; background: var(--felt-2);
+    border: 1px solid var(--line); padding: 4px; border-radius: 10px; background: var(--felt-2);
   }
   .cell {
     aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
@@ -130,12 +201,13 @@
     border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
   }
 
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; font-size: 11px; color: var(--muted); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; font-size: 11px; color: var(--muted); }
   .legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
 
-  .autosave-note { font-size: 11px; color: var(--muted); margin-bottom: 20px; }
+  .autosave-note { font-size: 11px; color: var(--muted); margin: 10px 0 0; }
+  .hint-text { font-size: 11px; color: var(--muted); margin: -4px 0 10px; }
 
-  .io-panel { display: none; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 20px; }
+  .io-panel { display: none; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: var(--card-shadow); }
   .io-panel.show { display: block; }
   .io-panel h3 { font-size: 12px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
   .io-panel textarea {
@@ -143,46 +215,23 @@
     color: var(--cream); font-size: 11px; font-family: ui-monospace, monospace; padding: 8px; resize: vertical;
   }
   .io-panel .io-row { display: flex; gap: 8px; margin-top: 8px; }
+  .io-panel input[type=text] {
+    flex: 1; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12px; padding: 9px 10px; border-radius: 8px;
+  }
   .io-panel button {
     flex: 1; background: var(--panel-2); border: 1px solid var(--line); color: var(--cream);
     font-size: 12px; padding: 8px; border-radius: 8px; cursor: pointer; font-weight: 600;
   }
   .io-status { font-size: 11px; margin-top: 8px; color: var(--muted); min-height: 14px; }
 
-  .lookup { margin-bottom: 18px; }
-  .card-face {
-    width: 50px; height: 64px; border-radius: 8px; background: var(--cream);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 20px; color: #1A1508;
-    box-shadow: 0 2px 0 rgba(0,0,0,0.25); cursor: pointer; user-select: none; flex-shrink: 0;
-  }
-  .card-face.empty { background: var(--panel); border: 1.5px dashed var(--line); color: var(--muted); font-size: 24px; font-weight: 400; }
-  .card-face.empty:hover { border-color: var(--gold-dim); color: var(--gold-dim); }
-  .lookup-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .lookup-row .x { color: var(--muted); font-size: 13px; }
-  .rank-picker { display: none; flex-wrap: wrap; gap: 4px; background: var(--panel); border: 1px solid var(--line);
-    border-radius: 10px; padding: 8px; margin-bottom: 12px; }
-  .rank-picker.show { display: flex; }
-  .rank-picker button {
-    width: 30px; height: 38px; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
-    font-size: 14px; font-weight: 700; border-radius: 6px; cursor: pointer;
-  }
-  .rank-picker button:hover { border-color: var(--gold-dim); color: var(--gold); }
-  .seg { display: flex; gap: 6px; }
-  .seg button { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
-    font-size: 12px; padding: 9px 8px; border-radius: 8px; cursor: pointer; font-weight: 700; }
-  .seg button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
-
-  .result {
-    border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; font-size: 14px; font-weight: 600;
-    border: 1px solid transparent; display: none;
-  }
-  .result.show { display: block; }
-  .result.raise { background: var(--success-bg); color: var(--success); border-color: rgba(95,174,124,0.3); }
-  .result.allin { background: var(--allin-bg); color: var(--allin); border-color: rgba(201,98,42,0.35); }
-  .result.added { background: rgba(255,145,66,0.15); color: var(--added); border-color: rgba(255,145,66,0.35); }
-  .result.fold { background: var(--danger-bg); color: var(--danger); border-color: rgba(210,86,74,0.3); }
-  .result .sub { display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 4px; }
+  .preset-row { display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; }
+  .preset-name { flex: 1; color: var(--cream); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preset-row button { flex: 0 0 auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  .preset-row button.danger { border-color: rgba(210,86,74,0.4); color: var(--danger); }
+  .preset-empty { font-size: 12px; color: var(--muted); margin: 0 0 4px; }
 
   footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
 </style>
@@ -196,59 +245,117 @@
   </header>
 
   <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
-  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional.</div>
+  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional. A mesa é de 9-max (UTG, UTG+1, UTG+2, LJ, HJ, CO, BTN, SB, BB).</div>
 
-  <h2 class="section">Posição</h2>
-  <div class="table-oval" id="table">
-    <div class="seat" data-pos="UTG" style="left:10%; top:38%;">UTG<small>early</small></div>
-    <div class="seat" data-pos="MP" style="left:28%; top:8%;">MP<small>meio</small></div>
-    <div class="seat" data-pos="CO" style="left:65%; top:8%;">CO<small>cutoff</small></div>
-    <div class="seat active" data-pos="BTN" style="left:90%; top:38%;">BTN<small>botão</small></div>
-    <div class="seat" data-pos="SB" style="left:72%; top:80%;">SB<small>small</small></div>
-    <div class="seat" data-pos="BB" style="left:28%; top:80%;">BB<small>defesa</small></div>
+  <!-- HAND PICKER (topo) -->
+  <div class="range-card hand-card">
+    <h2 class="section">Escolha uma mão</h2>
+    <div class="lookup">
+      <div class="lookup-row">
+        <div class="card-face empty" id="slot0">+</div>
+        <span class="x">+</span>
+        <div class="card-face empty" id="slot1">+</div>
+        <div class="seg" id="suitedToggle" style="display:none; margin:0; flex:1;">
+          <button data-suited="s" class="active">Suited</button>
+          <button data-suited="o">Offsuit</button>
+        </div>
+      </div>
+      <div class="rank-picker" id="rankPicker"></div>
+    </div>
+
+    <div class="result" id="result"></div>
+    <div class="playable-positions" id="playablePositions"></div>
   </div>
 
-  <div class="row-header">
-    <h2 class="section" style="margin:0;">Profundidade do stack</h2>
-    <div class="switch on" id="stackSwitch"><span id="stackSwitchLabel">Ativado</span><span class="knob"></span></div>
+  <!-- MESA + GRID -->
+  <div class="range-card">
+    <h2 class="section">Posição na mesa (9-max)</h2>
+    <div class="table-oval" id="table">
+      <span class="felt-label">9-max</span>
+      <div class="seat" data-pos="BTN" style="left:50%; top:90%;">BTN<small>botão</small></div>
+      <div class="seat" data-pos="SB" style="left:21.7%; top:80.6%;">SB<small>small</small></div>
+      <div class="seat" data-pos="BB" style="left:6.7%; top:57%;">BB<small>defesa</small></div>
+      <div class="seat" data-pos="UTG" style="left:11.9%; top:30%;">UTG<small>early</small></div>
+      <div class="seat" data-pos="UTG1" style="left:35%; top:12.4%;">UTG+1<small>early</small></div>
+      <div class="seat" data-pos="UTG2" style="left:65%; top:12.4%;">UTG+2<small>early</small></div>
+      <div class="seat" data-pos="LJ" style="left:88.1%; top:30%;">LJ<small>lojack</small></div>
+      <div class="seat" data-pos="HJ" style="left:93.3%; top:57%;">HJ<small>hijack</small></div>
+      <div class="seat active" data-pos="CO" style="left:78.3%; top:80.6%;">CO<small>cutoff</small></div>
+    </div>
+
+    <div class="row-header">
+      <h2 class="section" style="margin:0;">Profundidade do stack</h2>
+      <div class="switch on" id="stackSwitch"><span id="stackSwitchLabel">Ativado</span><span class="knob"></span></div>
+    </div>
+    <div class="stacks" id="stacks">
+      <button data-bb="100" class="active">100bb</button>
+      <button data-bb="70">70bb</button>
+      <button data-bb="40">40bb</button>
+      <button data-bb="25">25bb</button>
+      <button data-bb="15">15bb</button>
+      <button data-bb="10">10bb</button>
+    </div>
+
+    <div class="bb-calc">
+      <div class="bb-calc-head">🧮 Quantos big blinds eu tenho?</div>
+      <div class="bb-calc-row">
+        <input type="number" id="calcStack" placeholder="Seu stack" inputmode="decimal">
+        <span class="bb-calc-op">÷</span>
+        <input type="number" id="calcBBsize" placeholder="Valor do BB" inputmode="decimal">
+      </div>
+      <div class="bb-calc-result" id="calcResult">Preencha os dois campos</div>
+      <button class="bb-calc-use" id="calcUseBtn" style="display:none;">Usar essa profundidade ↑</button>
+    </div>
+
+    <div class="opener-row" id="openerRow">
+      <span class="label-inline">Quem abriu a mão?</span>
+      <button data-opener="UTG">UTG</button>
+      <button data-opener="UTG1">UTG+1</button>
+      <button data-opener="UTG2">UTG+2</button>
+      <button data-opener="LJ">LJ</button>
+      <button data-opener="HJ">HJ</button>
+      <button data-opener="CO" class="active">CO</button>
+      <button data-opener="BTN">BTN</button>
+      <button data-opener="SB">SB</button>
+    </div>
+
+    <div class="stat" id="stat"></div>
+
+    <div class="toolbar">
+      <button id="editBtn">🎨 Pintar range</button>
+      <button id="zeroBtn">🗒️ Começar do zero</button>
+      <button id="resetBtn">↺ Restaurar padrão</button>
+      <button id="presetBtn">📁 Presets</button>
+      <button id="ioBtn">🔄 Backup manual</button>
+    </div>
+    <div class="palette" id="palette"></div>
+    <p class="hint-text">"Começar do zero" apaga tudo (vira fold geral) pra você montar do seu jeito. "Restaurar padrão" desfaz suas edições e volta pro range calculado. No modo pintura, tocar de novo na mesma mão com a mesma cor desfaz aquela pintura.</p>
+
+    <div id="grid" class="grid"></div>
+
+    <div class="legend" id="legend"></div>
+    <p class="autosave-note">💾 Edições salvam automaticamente neste navegador. Use "Presets" pra guardar cópias nomeadas de todos os seus ranges (todas as posições e profundidades de uma vez), ou "Backup manual" pra levar tudo pra outro navegador/aparelho.</p>
   </div>
-  <div class="stacks" id="stacks">
-    <button data-bb="100" class="active">100bb</button>
-    <button data-bb="70">70bb</button>
-    <button data-bb="40">40bb</button>
-    <button data-bb="25">25bb</button>
-    <button data-bb="15">15bb</button>
-    <button data-bb="10">10bb</button>
+
+  <!-- PRESETS -->
+  <div class="io-panel" id="presetPanel">
+    <h3>Salvar preset atual</h3>
+    <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 10px;">
+      Um preset guarda <b style="color:var(--cream);">todos os seus ranges de todas as posições, profundidades e openers de uma vez</b> — não só a mesa/mão que está na tela agora.
+    </p>
+    <div class="io-row">
+      <input type="text" id="presetName" placeholder="Nome do preset (ex: Torneio, Cash 100bb...)">
+      <button id="presetSaveBtn">💾 Salvar</button>
+    </div>
+    <h3 style="margin-top:16px;">Meus presets</h3>
+    <div id="presetList"></div>
+    <p class="io-status" id="presetStatus"></p>
   </div>
 
-  <div class="opener-row" id="openerRow">
-    <span class="label-inline">Quem abriu a mão?</span>
-    <button data-opener="UTG">UTG</button>
-    <button data-opener="MP">MP</button>
-    <button data-opener="CO">CO</button>
-    <button data-opener="BTN" class="active">BTN</button>
-    <button data-opener="SB">SB</button>
-  </div>
-
-  <div class="stat" id="stat"></div>
-
-  <div class="toolbar">
-    <button id="editBtn">🎨 Pintar range</button>
-    <button id="zeroBtn">🗒️ Começar do zero</button>
-    <button id="resetBtn">↺ Restaurar padrão</button>
-    <button id="ioBtn">🔄 Backup / outro aparelho</button>
-  </div>
-  <div class="palette" id="palette"></div>
-  <p style="font-size: 11px; color: var(--muted); margin: -4px 0 10px;">"Começar do zero" apaga tudo (vira fold geral) pra você montar do seu jeito. "Restaurar padrão" desfaz suas edições e volta pro range calculado.</p>
-
-  <div id="grid" class="grid"></div>
-
-  <div class="legend" id="legend"></div>
-  <p class="autosave-note">💾 Edições salvam automaticamente neste navegador. O botão "Backup / outro aparelho" só é necessário se você quiser levar suas edições pra outro navegador/computador/celular, ou guardar uma cópia de segurança.</p>
-
+  <!-- BACKUP MANUAL (texto) -->
   <div class="io-panel" id="ioPanel">
     <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 12px;">
-      Suas edições já salvam sozinhas neste navegador — isso aqui é só pra <b style="color:var(--cream);">levar suas edições pra outro navegador/aparelho</b> ou <b style="color:var(--cream);">guardar um backup de segurança</b>.
+      Suas edições já salvam sozinhas neste navegador — isso aqui é só pra <b style="color:var(--cream);">levar suas edições pra outro navegador/aparelho</b> ou <b style="color:var(--cream);">guardar um backup de segurança</b> em texto.
     </p>
     <h3>1. Copiar minhas edições daqui</h3>
     <textarea id="exportArea" readonly placeholder="Clique em Copiar abaixo..."></textarea>
@@ -263,24 +370,8 @@
     <p class="io-status" id="ioStatus"></p>
   </div>
 
-  <h2 class="section">Escolha uma mão</h2>
-  <div class="lookup">
-    <div class="lookup-row">
-      <div class="card-face empty" id="slot0">+</div>
-      <span class="x">+</span>
-      <div class="card-face empty" id="slot1">+</div>
-      <div class="seg" id="suitedToggle" style="display:none; margin:0; flex:1;">
-        <button data-suited="s" class="active">Suited</button>
-        <button data-suited="o">Offsuit</button>
-      </div>
-    </div>
-    <div class="rank-picker" id="rankPicker"></div>
-  </div>
-
-  <div class="result" id="result"></div>
-
   <footer>
-    Ranges aproximados calculados com a fórmula de força de mão de Chen (heurística clássica de classificação das 169 mãos), não são a saída literal de um solver GTO. A defesa do BB usa o mesmo método para estimar call e 3-bet contra a abertura de cada posição — também uma aproximação educacional, não um solver de equilíbrio real. Edições manuais salvam automaticamente neste navegador; use "Salvar / Carregar" pra levar suas edições pra outro navegador ou aparelho, ou como backup.
+    Ranges aproximados calculados com a fórmula de força de mão de Chen (heurística clássica de classificação das 169 mãos), não são a saída literal de um solver GTO. A defesa do BB usa o mesmo método para estimar call e 3-bet/all-in contra a abertura de cada posição — também uma aproximação educacional, não um solver de equilíbrio real. Edições manuais salvam automaticamente neste navegador; use "Presets" ou "Backup manual" pra levar suas edições pra outro navegador ou aparelho.
   </footer>
 
 </div>
@@ -296,26 +387,35 @@
   var RANK_VAL = { A:14, K:13, Q:12, J:11, T:10, '9':9, '8':8, '7':7, '6':6, '5':5, '4':4, '3':3, '2':2 };
   var CHEN_PTS = { A:10, K:8, Q:7, J:6, T:5, '9':4.5, '8':4, '7':3.5, '6':3, '5':2.5, '4':2, '3':1.5, '2':1 };
 
+  // 9-max: 8 posições que abrem + BB que defende
+  var POSITIONS = ['UTG','UTG1','UTG2','LJ','HJ','CO','BTN','SB','BB'];
+  var OPENERS = ['UTG','UTG1','UTG2','LJ','HJ','CO','BTN','SB'];
+  var posNames = { UTG:'UTG', UTG1:'UTG+1', UTG2:'UTG+2', LJ:'Lojack', HJ:'Hijack', CO:'Cutoff', BTN:'Botão', SB:'Small blind', BB:'Big blind' };
+  var posShort = { UTG:'UTG', UTG1:'UTG+1', UTG2:'UTG+2', LJ:'LJ', HJ:'HJ', CO:'CO', BTN:'BTN', SB:'SB', BB:'BB' };
+
   var positionPercents = {
-    100: { UTG:14, MP:18, CO:26, BTN:44, SB:38 },
-    70:  { UTG:15, MP:19, CO:28, BTN:46, SB:39 },
-    40:  { UTG:16, MP:20, CO:29, BTN:47, SB:40 },
-    25:  { UTG:12, MP:16, CO:24, BTN:40, SB:34 },
-    15:  { UTG:10, MP:14, CO:20, BTN:32, SB:45 },
-    10:  { UTG:16, MP:20, CO:28, BTN:42, SB:55 }
+    100: { UTG:10, UTG1:13, UTG2:16, LJ:20, HJ:23, CO:26, BTN:44, SB:38 },
+    70:  { UTG:11, UTG1:14, UTG2:18, LJ:21, HJ:25, CO:28, BTN:46, SB:39 },
+    40:  { UTG:12, UTG1:15, UTG2:19, LJ:22, HJ:26, CO:29, BTN:47, SB:40 },
+    25:  { UTG:8,  UTG1:11, UTG2:14, LJ:18, HJ:21, CO:24, BTN:40, SB:34 },
+    15:  { UTG:6,  UTG1:9,  UTG2:12, LJ:14, HJ:17, CO:20, BTN:32, SB:45 },
+    10:  { UTG:12, UTG1:15, UTG2:18, LJ:22, HJ:25, CO:28, BTN:42, SB:55 }
   };
   var actionType = { 100:'raise', 70:'raise', 40:'raise', 25:'raise', 15:'allin', 10:'allin' };
 
   var bbDefenseDeep = {
-    UTG: { threeBet:7,  call:27 },
-    MP:  { threeBet:8,  call:30 },
-    CO:  { threeBet:10, call:34 },
-    BTN: { threeBet:12, call:40 },
-    SB:  { threeBet:14, call:44 }
+    UTG:  { threeBet:6,  call:24 },
+    UTG1: { threeBet:6,  call:25 },
+    UTG2: { threeBet:7,  call:27 },
+    LJ:   { threeBet:8,  call:29 },
+    HJ:   { threeBet:9,  call:31 },
+    CO:   { threeBet:10, call:34 },
+    BTN:  { threeBet:12, call:40 },
+    SB:   { threeBet:14, call:44 }
   };
   var bbDefenseShort = {
-    15: { UTG:{call:12}, MP:{call:16}, CO:{call:22}, BTN:{call:34}, SB:{call:40} },
-    10: { UTG:{call:16}, MP:{call:20}, CO:{call:26}, BTN:{call:38}, SB:{call:46} }
+    15: { UTG:{call:10}, UTG1:{call:11}, UTG2:{call:13}, LJ:{call:15}, HJ:{call:18}, CO:{call:22}, BTN:{call:34}, SB:{call:40} },
+    10: { UTG:{call:14}, UTG1:{call:15}, UTG2:{call:17}, LJ:{call:19}, HJ:{call:22}, CO:{call:26}, BTN:{call:38}, SB:{call:46} }
   };
 
   var hands = [];
@@ -383,28 +483,44 @@
     return { tier1: tier1, tier2: tier2 };
   }
 
-  var currentPos = 'BTN';
+  var currentPos = 'CO';
   var currentBB = 100;
-  var currentOpener = 'BTN';
+  var currentOpener = 'CO';
   var stacksEnabled = true;
   var editMode = false;
   var paletteMode = 'action'; // 'action' | 'marker'
   var paintColor = null;
   var markColor = 'yellow';
 
-  var STORAGE_KEY = 'loppzloby_ranges_overrides_v1';
+  var STORAGE_KEY = 'loppzloby_ranges_overrides_v2';
   var customOverrides = {}; // { contextKey: { HAND: 'fold'|'raise'|'allin' } }
   try {
     var savedOverrides = localStorage.getItem(STORAGE_KEY);
     if (savedOverrides) customOverrides = JSON.parse(savedOverrides);
+    else {
+      // migração leve de uma versão anterior de 6-max, se existir
+      var old = localStorage.getItem('loppzloby_ranges_overrides_v1');
+      if (old) customOverrides = JSON.parse(old);
+    }
   } catch (e) { /* localStorage indisponível (ex: pré-visualização do chat) */ }
 
-  var MARKS_KEY = 'loppzloby_ranges_marks_v1';
+  var MARKS_KEY = 'loppzloby_ranges_marks_v2';
   var customMarks = {}; // { contextKey: { HAND: 'yellow'|'blue'|'purple'|'pink'|'white' } }
   try {
     var savedMarks = localStorage.getItem(MARKS_KEY);
     if (savedMarks) customMarks = JSON.parse(savedMarks);
+    else {
+      var oldMarks = localStorage.getItem('loppzloby_ranges_marks_v1');
+      if (oldMarks) customMarks = JSON.parse(oldMarks);
+    }
   } catch (e) { /* localStorage indisponível */ }
+
+  var PRESETS_KEY = 'loppzloby_ranges_presets_v1';
+  var presets = {}; // { nome: { overrides: {...}, marks: {...} } }
+  try {
+    var savedPresets = localStorage.getItem(PRESETS_KEY);
+    if (savedPresets) presets = JSON.parse(savedPresets);
+  } catch (e) { /* ignora */ }
 
   var MARK_COLORS = [
     { id: 'yellow', color: '#E8C547', label: 'Amarelo' },
@@ -422,43 +538,51 @@
     try { localStorage.setItem(MARKS_KEY, JSON.stringify(customMarks)); }
     catch (e) { /* ignora silenciosamente */ }
   }
-
-  function ctxKey() {
-    return currentPos + '_' + currentBB + (currentPos === 'BB' ? '_' + currentOpener : '');
+  function persistPresets() {
+    try { localStorage.setItem(PRESETS_KEY, JSON.stringify(presets)); }
+    catch (e) { /* ignora silenciosamente */ }
   }
 
-  function computeBase() {
+  function ctxKeyFor(pos, bb, opener) {
+    return pos + '_' + bb + (pos === 'BB' ? '_' + opener : '');
+  }
+  function ctxKey() { return ctxKeyFor(currentPos, currentBB, currentOpener); }
+
+  function computeBaseFor(pos, bb, opener) {
     var map = {};
     hands.forEach(function(h) { map[h.label] = 'fold'; });
 
-    if (currentPos === 'BB') {
-      if (currentBB <= 20) {
-        var cfg = bbDefenseShort[currentBB][currentOpener];
+    if (pos === 'BB') {
+      if (bb <= 20) {
+        var cfg = bbDefenseShort[bb][opener];
         var callSet = topNCombos(cfg.call);
         Object.keys(callSet).forEach(function(l) { map[l] = 'raise'; });
       } else {
-        var cfg2 = bbDefenseDeep[currentOpener];
+        var cfg2 = bbDefenseDeep[opener];
         var tiers = getTiers(cfg2.threeBet, cfg2.call);
         Object.keys(tiers.tier1).forEach(function(l) { map[l] = 'allin'; });
         Object.keys(tiers.tier2).forEach(function(l) { map[l] = 'raise'; });
       }
     } else {
-      var pct = positionPercents[currentBB][currentPos];
+      var pct = positionPercents[bb][pos];
       var active = topNCombos(pct);
-      var cls = actionType[currentBB] === 'allin' ? 'allin' : 'raise';
+      var cls = actionType[bb] === 'allin' ? 'allin' : 'raise';
       Object.keys(active).forEach(function(l) { map[l] = cls; });
     }
     return map;
   }
 
-  function computeFinal() {
-    var base = computeBase();
-    var overrides = customOverrides[ctxKey()] || {};
+  function computeFinalFor(pos, bb, opener) {
+    var base = computeBaseFor(pos, bb, opener);
+    var overrides = customOverrides[ctxKeyFor(pos, bb, opener)] || {};
     var final = {};
     Object.keys(base).forEach(function(l) { final[l] = base[l]; });
     Object.keys(overrides).forEach(function(l) { final[l] = overrides[l]; });
     return final;
   }
+
+  function computeBase() { return computeBaseFor(currentPos, currentBB, currentOpener); }
+  function computeFinal() { return computeFinalFor(currentPos, currentBB, currentOpener); }
 
   function getCycle() {
     var base;
@@ -513,7 +637,12 @@
     if (!paintColor) return;
     var key = ctxKey();
     if (!customOverrides[key]) customOverrides[key] = {};
-    customOverrides[key][label] = paintColor;
+    if (customOverrides[key][label] === paintColor) {
+      // tocar de novo na mesma cor desfaz a pintura (volta pro range base)
+      delete customOverrides[key][label];
+    } else {
+      customOverrides[key][label] = paintColor;
+    }
     persistOverrides();
     render();
   }
@@ -550,7 +679,7 @@
     if (paletteMode === 'action') {
       var lbl = document.createElement('div');
       lbl.className = 'lbl';
-      lbl.textContent = 'Escolha a cor e toque nas mãos do grid:';
+      lbl.textContent = 'Escolha a ação e toque nas mãos do grid (toque de novo pra desfazer):';
       box.appendChild(lbl);
       var cycle = getCycle();
       if (!paintColor || cycle.indexOf(paintColor) === -1) paintColor = cycle[0];
@@ -591,20 +720,21 @@
     updateStat();
     updateLegend();
     renderPalette();
+    // se uma mão está selecionada no result, atualiza o indicador de posições jogáveis
+    var selected = Object.keys(cellsByLabel).filter(function(l) { return cellsByLabel[l].classList.contains('selected'); })[0];
+    if (selected) updatePlayablePositions(selected);
   }
 
   function updateStat() {
-    var posNames = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'Botão', SB:'Small blind', BB:'Big blind' };
     var el = document.getElementById('stat');
     if (currentPos === 'BB') {
-      var openerNames = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'botão', SB:'small blind' };
       if (currentBB <= 20) {
         var cfg = bbDefenseShort[currentBB][currentOpener];
-        el.innerHTML = 'BB vs shove do ' + openerNames[currentOpener] + ' · ' + currentBB + 'bb · call <b>' + cfg.call + '%</b> · fold <b>' + (100 - cfg.call) + '%</b>';
+        el.innerHTML = 'BB vs shove do ' + posNames[currentOpener] + ' · ' + currentBB + 'bb · call <b>' + cfg.call + '%</b> · fold <b>' + (100 - cfg.call) + '%</b>';
       } else {
         var cfg2 = bbDefenseDeep[currentOpener];
         var foldPct = 100 - cfg2.threeBet - cfg2.call;
-        el.innerHTML = 'BB vs abertura do ' + openerNames[currentOpener] + ' · ' + currentBB + 'bb · 3-bet <b>' + cfg2.threeBet + '%</b> · call <b>' + cfg2.call + '%</b> · fold <b>' + foldPct + '%</b>';
+        el.innerHTML = 'BB vs abertura do ' + posNames[currentOpener] + ' · ' + currentBB + 'bb · 3-bet <b>' + cfg2.threeBet + '%</b> · call <b>' + cfg2.call + '%</b> · fold <b>' + foldPct + '%</b>';
       }
     } else {
       var pct = positionPercents[currentBB][currentPos];
@@ -631,6 +761,27 @@
     el.innerHTML = html;
   }
 
+  function updatePlayablePositions(label) {
+    var box = document.getElementById('playablePositions');
+    if (!label || !handIndex[label]) { box.innerHTML = ''; return; }
+    var list = [];
+    POSITIONS.forEach(function(pos) {
+      var opener = pos === 'BB' ? currentOpener : null;
+      var final = computeFinalFor(pos, currentBB, opener);
+      var cls = final[label];
+      if (cls !== 'fold') list.push({ pos: pos, cls: cls });
+    });
+    if (!list.length) {
+      box.innerHTML = '<span class="pp-none">Fold em todas as 9 posições a ' + currentBB + 'bb (nos ranges que você tem hoje).</span>';
+      return;
+    }
+    var html = '<span class="pp-label">Jogável (' + currentBB + 'bb) em:</span>';
+    list.forEach(function(x) {
+      html += '<span class="pp-badge ' + x.cls + '">' + posShort[x.pos] + '</span>';
+    });
+    box.innerHTML = html;
+  }
+
   function showResult(label) {
     var resultEl = document.getElementById('result');
     Object.keys(cellsByLabel).forEach(function(l) { cellsByLabel[l].classList.remove('selected'); });
@@ -638,6 +789,7 @@
     if (!label || !handIndex[label]) {
       resultEl.className = 'result show fold';
       resultEl.innerHTML = 'Mão não reconhecida.';
+      document.getElementById('playablePositions').innerHTML = '';
       return;
     }
     cellsByLabel[label].classList.add('selected');
@@ -645,16 +797,16 @@
 
     var final = computeFinal();
     var cls = final[label];
-    var posNames = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'botão', SB:'small blind', BB:'big blind' };
-    var openerNames = { UTG:'UTG', MP:'MP', CO:'CO', BTN:'botão', SB:'small blind' };
     var contextTxt;
     if (currentPos === 'BB') {
-      contextTxt = 'Defendendo o BB contra abertura do ' + openerNames[currentOpener] + ' a ' + currentBB + 'bb.';
+      contextTxt = 'Defendendo o BB contra abertura do ' + posNames[currentOpener] + ' a ' + currentBB + 'bb.';
     } else {
       contextTxt = 'Range de abertura do ' + posNames[currentPos] + ' a ' + currentBB + 'bb.';
     }
     resultEl.className = 'result show ' + cls;
     resultEl.innerHTML = label + ' — ' + actionLabel(cls) + '<span class="sub">' + contextTxt + '</span>';
+
+    updatePlayablePositions(label);
   }
 
   // ---------- visual hand picker (rank slots + suited/offsuit) ----------
@@ -789,9 +941,83 @@
     render();
   });
 
+  // ---------- Presets ----------
+  var presetPanel = document.getElementById('presetPanel');
+  var presetBtn = document.getElementById('presetBtn');
+  presetBtn.addEventListener('click', function() {
+    document.getElementById('ioPanel').classList.remove('show');
+    document.getElementById('ioBtn').classList.remove('active');
+    presetPanel.classList.toggle('show');
+    presetBtn.classList.toggle('active', presetPanel.classList.contains('show'));
+    if (presetPanel.classList.contains('show')) renderPresetList();
+  });
+
+  function renderPresetList() {
+    var box = document.getElementById('presetList');
+    var names = Object.keys(presets);
+    if (!names.length) {
+      box.innerHTML = '<p class="preset-empty">Nenhum preset salvo ainda.</p>';
+      return;
+    }
+    box.innerHTML = '';
+    names.forEach(function(name) {
+      var row = document.createElement('div');
+      row.className = 'preset-row';
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'preset-name';
+      nameSpan.textContent = name;
+      row.appendChild(nameSpan);
+
+      var loadBtn = document.createElement('button');
+      loadBtn.textContent = 'Carregar';
+      loadBtn.addEventListener('click', function() {
+        customOverrides = JSON.parse(JSON.stringify(presets[name].overrides || {}));
+        customMarks = JSON.parse(JSON.stringify(presets[name].marks || {}));
+        persistOverrides();
+        persistMarks();
+        render();
+        document.getElementById('presetStatus').textContent = 'Preset "' + name + '" carregado em todas as mesas.';
+      });
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'danger';
+      delBtn.textContent = 'Excluir';
+      delBtn.addEventListener('click', function() {
+        if (confirm('Excluir o preset "' + name + '"? Essa ação não pode ser desfeita.')) {
+          delete presets[name];
+          persistPresets();
+          renderPresetList();
+          document.getElementById('presetStatus').textContent = 'Preset "' + name + '" excluído.';
+        }
+      });
+
+      row.appendChild(loadBtn);
+      row.appendChild(delBtn);
+      box.appendChild(row);
+    });
+  }
+
+  document.getElementById('presetSaveBtn').addEventListener('click', function() {
+    var input = document.getElementById('presetName');
+    var name = input.value.trim();
+    var statusEl = document.getElementById('presetStatus');
+    if (!name) { statusEl.textContent = 'Digite um nome pra esse preset antes de salvar.'; return; }
+    presets[name] = {
+      overrides: JSON.parse(JSON.stringify(customOverrides)),
+      marks: JSON.parse(JSON.stringify(customMarks))
+    };
+    persistPresets();
+    renderPresetList();
+    input.value = '';
+    statusEl.textContent = 'Preset "' + name + '" salvo com os ranges de todas as mesas.';
+  });
+
+  // ---------- Backup manual (texto) ----------
   var ioPanel = document.getElementById('ioPanel');
   var ioBtn = document.getElementById('ioBtn');
   ioBtn.addEventListener('click', function() {
+    presetPanel.classList.remove('show');
+    presetBtn.classList.remove('active');
     ioPanel.classList.toggle('show');
     ioBtn.classList.toggle('active', ioPanel.classList.contains('show'));
   });
@@ -827,6 +1053,60 @@
     } catch (e) {
       statusEl.textContent = 'Não consegui ler esse texto — confira se colou tudo certinho.';
     }
+  });
+
+  // ---------- Calculadora rápida de BBs ----------
+  var calcStack = document.getElementById('calcStack');
+  var calcBBsize = document.getElementById('calcBBsize');
+  var calcResult = document.getElementById('calcResult');
+  var calcUseBtn = document.getElementById('calcUseBtn');
+  var lastCalcBB = null;
+  var AVAILABLE_BBS = [100, 70, 40, 25, 15, 10];
+
+  function nearestAvailableBB(value) {
+    var best = AVAILABLE_BBS[0], bestDiff = Math.abs(AVAILABLE_BBS[0] - value);
+    AVAILABLE_BBS.forEach(function(v) {
+      var diff = Math.abs(v - value);
+      if (diff < bestDiff) { best = v; bestDiff = diff; }
+    });
+    return best;
+  }
+
+  function updateCalc() {
+    var stack = parseFloat(calcStack.value);
+    var bbSize = parseFloat(calcBBsize.value);
+    if (!stack || !bbSize || bbSize <= 0) {
+      calcResult.innerHTML = 'Preencha os dois campos';
+      calcUseBtn.style.display = 'none';
+      lastCalcBB = null;
+      return;
+    }
+    var bbCount = stack / bbSize;
+    lastCalcBB = bbCount;
+    calcResult.innerHTML = 'Você tem <b>' + bbCount.toFixed(1) + ' bb</b> na mesa';
+    calcUseBtn.style.display = 'block';
+    calcUseBtn.textContent = 'Usar profundidade mais próxima (' + nearestAvailableBB(bbCount) + 'bb) ↑';
+  }
+
+  calcStack.addEventListener('input', updateCalc);
+  calcBBsize.addEventListener('input', updateCalc);
+
+  calcUseBtn.addEventListener('click', function() {
+    if (lastCalcBB == null) return;
+    var target = nearestAvailableBB(lastCalcBB);
+    if (!stacksEnabled) {
+      stacksEnabled = true;
+      stackSwitch.classList.add('on');
+      stackSwitchLabel.textContent = 'Ativado';
+      stacksBox.classList.remove('hidden');
+    }
+    currentBB = target;
+    document.querySelectorAll('.stacks button').forEach(function(b) {
+      b.classList.toggle('active', parseInt(b.dataset.bb) === target);
+    });
+    render();
+    calcResult.innerHTML = 'Ajustado pra <b>' + target + 'bb</b> na tabela de ranges acima ⬆️';
+    calcUseBtn.style.display = 'none';
   });
 
   render();
