@@ -237,11 +237,11 @@
 
   /* ---- layout mais amplo para desktop/tablet ---- */
   @media (min-width: 980px) {
-    .wrap { max-width: 1040px; padding: 40px 24px 70px; }
+    .wrap { max-width: 1100px; padding: 40px 24px 70px; }
     header h1 { font-size: 22px; }
-    .page-grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
-    .page-grid .col-left { position: sticky; top: 24px; }
-    .table-oval { max-width: 420px; height: 320px; }
+    .page-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
+    .page-grid .col-right { position: sticky; top: 24px; }
+    .table-oval { max-width: 440px; height: 330px; }
   }
 </style>
 </head>
@@ -278,24 +278,8 @@
     <div class="playable-positions" id="playablePositions"></div>
   </div>
 
-  </div>
-  <div class="col-right">
-  <!-- MESA + GRID -->
+  <!-- MENU / CONTROLES -->
   <div class="range-card">
-    <h2 class="section">Posição na mesa (9-max)</h2>
-    <div class="table-oval" id="table">
-      <span class="felt-label">9-max</span>
-      <div class="seat" data-pos="BTN" style="left:50%; top:90%;">BTN<small>botão</small></div>
-      <div class="seat" data-pos="SB" style="left:21.7%; top:80.6%;">SB<small>small</small></div>
-      <div class="seat" data-pos="BB" style="left:6.7%; top:57%;">BB<small>defesa</small></div>
-      <div class="seat" data-pos="UTG" style="left:11.9%; top:30%;">UTG<small>early</small></div>
-      <div class="seat" data-pos="UTG1" style="left:35%; top:12.4%;">UTG+1<small>early</small></div>
-      <div class="seat" data-pos="UTG2" style="left:65%; top:12.4%;">UTG+2<small>early</small></div>
-      <div class="seat" data-pos="LJ" style="left:88.1%; top:30%;">LJ<small>lojack</small></div>
-      <div class="seat" data-pos="HJ" style="left:93.3%; top:57%;">HJ<small>hijack</small></div>
-      <div class="seat active" data-pos="CO" style="left:78.3%; top:80.6%;">CO<small>cutoff</small></div>
-    </div>
-
     <div class="row-header">
       <h2 class="section" style="margin:0;">Profundidade do stack</h2>
       <div class="switch on" id="stackSwitch"><span id="stackSwitchLabel">Ativado</span><span class="knob"></span></div>
@@ -307,17 +291,6 @@
       <button data-bb="25">25bb</button>
       <button data-bb="15">15bb</button>
       <button data-bb="10">10bb</button>
-    </div>
-
-    <div class="bb-calc">
-      <div class="bb-calc-head">🧮 Quantos big blinds eu tenho?</div>
-      <div class="bb-calc-row">
-        <input type="number" id="calcStack" placeholder="Seu stack" inputmode="decimal">
-        <span class="bb-calc-op">÷</span>
-        <input type="number" id="calcBBsize" placeholder="Valor do BB" inputmode="decimal">
-      </div>
-      <div class="bb-calc-result" id="calcResult">Preencha os dois campos</div>
-      <button class="bb-calc-use" id="calcUseBtn" style="display:none;">Usar essa profundidade ↑</button>
     </div>
 
     <div class="opener-row" id="openerRow">
@@ -344,10 +317,41 @@
     <div class="palette" id="palette"></div>
     <p class="hint-text">"Começar do zero" apaga tudo (vira fold geral) pra você montar do seu jeito. "Restaurar padrão" desfaz suas edições e volta pro range calculado. No modo pintura, tocar de novo na mesma mão com a mesma cor desfaz aquela pintura.</p>
 
-    <div id="grid" class="grid"></div>
-
     <div class="legend" id="legend"></div>
     <p class="autosave-note">💾 Edições salvam automaticamente neste navegador. Use "Presets" pra guardar cópias nomeadas de todos os seus ranges (todas as posições e profundidades de uma vez), ou "Backup manual" pra levar tudo pra outro navegador/aparelho.</p>
+  </div>
+
+  </div>
+  <div class="col-right">
+  <!-- CALCULADORA + MESA + GRID -->
+  <div class="range-card">
+    <div class="bb-calc">
+      <div class="bb-calc-head">🧮 Quantos big blinds eu tenho?</div>
+      <div class="bb-calc-row">
+        <input type="number" id="calcStack" placeholder="Seu stack" inputmode="decimal">
+        <span class="bb-calc-op">÷</span>
+        <input type="number" id="calcBBsize" placeholder="Valor do BB" inputmode="decimal">
+      </div>
+      <div class="bb-calc-result" id="calcResult">Preencha os dois campos</div>
+      <button class="bb-calc-use" id="calcUseBtn" style="display:none;">Usar essa profundidade ↑</button>
+    </div>
+
+    <h2 class="section">Posição na mesa (9-max)</h2>
+    <div class="table-oval" id="table">
+      <span class="felt-label">9-max</span>
+      <div class="seat" data-pos="BTN" style="left:50%; top:90%;">BTN</div>
+      <div class="seat" data-pos="SB" style="left:21.7%; top:80.6%;">SB</div>
+      <div class="seat" data-pos="BB" style="left:6.7%; top:57%;">BB</div>
+      <div class="seat" data-pos="UTG" style="left:11.9%; top:30%;">UTG</div>
+      <div class="seat" data-pos="UTG1" style="left:35%; top:12.4%;">UTG+1</div>
+      <div class="seat" data-pos="UTG2" style="left:65%; top:12.4%;">UTG+2</div>
+      <div class="seat" data-pos="LJ" style="left:88.1%; top:30%;">LJ</div>
+      <div class="seat" data-pos="HJ" style="left:93.3%; top:57%;">HJ</div>
+      <div class="seat active" data-pos="CO" style="left:78.3%; top:80.6%;">CO</div>
+    </div>
+
+    <h2 class="section">Grade de mãos (169 combinações)</h2>
+    <div id="grid" class="grid"></div>
   </div>
 
   </div>
