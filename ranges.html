@@ -207,8 +207,18 @@
   .autosave-note { font-size: 11px; color: var(--muted); margin: 10px 0 0; }
   .hint-text { font-size: 11px; color: var(--muted); margin: -4px 0 10px; }
 
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(6, 20, 15, 0.72);
+    z-index: 150; align-items: flex-start; justify-content: center; padding: 6vh 16px; overflow-y: auto;
+  }
+  .modal-backdrop.show { display: flex; }
   .io-panel { display: none; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: var(--card-shadow); }
-  .io-panel.show { display: block; }
+  .io-panel.show { display: block; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; margin: 0; }
+  .io-panel .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .io-panel .panel-close {
+    background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 14px; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; flex-shrink: 0;
+  }
   .io-panel h3 { font-size: 12px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px; }
   .io-panel textarea {
     width: 100%; min-height: 80px; background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px;
@@ -357,37 +367,47 @@
   </div>
   </div>
 
-  <!-- PRESETS -->
-  <div class="io-panel" id="presetPanel">
-    <h3>Salvar preset atual</h3>
-    <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 10px;">
-      Um preset guarda <b style="color:var(--cream);">todos os seus ranges de todas as posições, profundidades e openers de uma vez</b> — não só a mesa/mão que está na tela agora.
-    </p>
-    <div class="io-row">
-      <input type="text" id="presetName" placeholder="Nome do preset (ex: Torneio, Cash 100bb...)">
-      <button id="presetSaveBtn">💾 Salvar</button>
+  <!-- BACKDROP + MODAIS (Presets / Backup manual) -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <!-- PRESETS -->
+    <div class="io-panel" id="presetPanel">
+      <div class="panel-head">
+        <h3 style="margin:0;">Salvar preset atual</h3>
+        <button class="panel-close" id="presetCloseBtn">✕</button>
+      </div>
+      <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:10px 0 10px;">
+        Um preset guarda <b style="color:var(--cream);">todos os seus ranges de todas as posições, profundidades e openers de uma vez</b> — não só a mesa/mão que está na tela agora.
+      </p>
+      <div class="io-row">
+        <input type="text" id="presetName" placeholder="Nome do preset (ex: Torneio, Cash 100bb...)">
+        <button id="presetSaveBtn">💾 Salvar</button>
+      </div>
+      <h3 style="margin-top:16px;">Meus presets</h3>
+      <div id="presetList"></div>
+      <p class="io-status" id="presetStatus"></p>
     </div>
-    <h3 style="margin-top:16px;">Meus presets</h3>
-    <div id="presetList"></div>
-    <p class="io-status" id="presetStatus"></p>
-  </div>
 
-  <!-- BACKUP MANUAL (texto) -->
-  <div class="io-panel" id="ioPanel">
-    <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:0 0 12px;">
-      Suas edições já salvam sozinhas neste navegador — isso aqui é só pra <b style="color:var(--cream);">levar suas edições pra outro navegador/aparelho</b> ou <b style="color:var(--cream);">guardar um backup de segurança</b> em texto.
-    </p>
-    <h3>1. Copiar minhas edições daqui</h3>
-    <textarea id="exportArea" readonly placeholder="Clique em Copiar abaixo..."></textarea>
-    <div class="io-row">
-      <button id="copyBtn">📋 Copiar</button>
+    <!-- BACKUP MANUAL (texto) -->
+    <div class="io-panel" id="ioPanel">
+      <div class="panel-head">
+        <h3 style="margin:0;">Backup manual</h3>
+        <button class="panel-close" id="ioCloseBtn">✕</button>
+      </div>
+      <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:10px 0 12px;">
+        Suas edições já salvam sozinhas neste navegador — isso aqui é só pra <b style="color:var(--cream);">levar suas edições pra outro navegador/aparelho</b> ou <b style="color:var(--cream);">guardar um backup de segurança</b> em texto.
+      </p>
+      <h3>1. Copiar minhas edições daqui</h3>
+      <textarea id="exportArea" readonly placeholder="Clique em Copiar abaixo..."></textarea>
+      <div class="io-row">
+        <button id="copyBtn">📋 Copiar</button>
+      </div>
+      <h3 style="margin-top:16px;">2. Colar no outro navegador/aparelho</h3>
+      <textarea id="importArea" placeholder="Cole aqui o texto que você copiou antes"></textarea>
+      <div class="io-row">
+        <button id="importBtn">Aplicar</button>
+      </div>
+      <p class="io-status" id="ioStatus"></p>
     </div>
-    <h3 style="margin-top:16px;">2. Colar no outro navegador/aparelho</h3>
-    <textarea id="importArea" placeholder="Cole aqui o texto que você copiou antes"></textarea>
-    <div class="io-row">
-      <button id="importBtn">Aplicar</button>
-    </div>
-    <p class="io-status" id="ioStatus"></p>
   </div>
 
   <footer>
@@ -961,15 +981,41 @@
     render();
   });
 
-  // ---------- Presets ----------
+  // ---------- Modal (backdrop compartilhado por Presets e Backup manual) ----------
+  var modalBackdrop = document.getElementById('modalBackdrop');
   var presetPanel = document.getElementById('presetPanel');
+  var ioPanel = document.getElementById('ioPanel');
   var presetBtn = document.getElementById('presetBtn');
+  var ioBtn = document.getElementById('ioBtn');
+
+  function openModal(panel, btn) {
+    presetPanel.classList.remove('show');
+    ioPanel.classList.remove('show');
+    presetBtn.classList.remove('active');
+    ioBtn.classList.remove('active');
+    panel.classList.add('show');
+    btn.classList.add('active');
+    modalBackdrop.classList.add('show');
+  }
+  function closeModal() {
+    presetPanel.classList.remove('show');
+    ioPanel.classList.remove('show');
+    presetBtn.classList.remove('active');
+    ioBtn.classList.remove('active');
+    modalBackdrop.classList.remove('show');
+  }
+
+  modalBackdrop.addEventListener('click', function(e) {
+    if (e.target === modalBackdrop) closeModal();
+  });
+  document.getElementById('presetCloseBtn').addEventListener('click', closeModal);
+  document.getElementById('ioCloseBtn').addEventListener('click', closeModal);
+
+  // ---------- Presets ----------
   presetBtn.addEventListener('click', function() {
-    document.getElementById('ioPanel').classList.remove('show');
-    document.getElementById('ioBtn').classList.remove('active');
-    presetPanel.classList.toggle('show');
-    presetBtn.classList.toggle('active', presetPanel.classList.contains('show'));
-    if (presetPanel.classList.contains('show')) renderPresetList();
+    if (presetPanel.classList.contains('show')) { closeModal(); return; }
+    openModal(presetPanel, presetBtn);
+    renderPresetList();
   });
 
   function renderPresetList() {
@@ -1033,13 +1079,9 @@
   });
 
   // ---------- Backup manual (texto) ----------
-  var ioPanel = document.getElementById('ioPanel');
-  var ioBtn = document.getElementById('ioBtn');
   ioBtn.addEventListener('click', function() {
-    presetPanel.classList.remove('show');
-    presetBtn.classList.remove('active');
-    ioPanel.classList.toggle('show');
-    ioBtn.classList.toggle('active', ioPanel.classList.contains('show'));
+    if (ioPanel.classList.contains('show')) { closeModal(); return; }
+    openModal(ioPanel, ioBtn);
   });
 
   document.getElementById('copyBtn').addEventListener('click', function() {
