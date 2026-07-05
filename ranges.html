@@ -769,15 +769,21 @@
     var key = ctxKey();
     var baseAction = computeBase()[label];
     var existing = customOverrides[key] ? customOverrides[key][label] : undefined;
+    var currentEffective = existing !== undefined ? existing : baseAction;
 
-    if (existing === paintColor) {
-      // tocar de novo na mesma cor desfaz a pintura (volta pro range base)
-      delete customOverrides[key][label];
-    } else if (existing === undefined && baseAction === paintColor) {
-      // a mão já é dessa cor por padrão — não há nada pra pintar/alternar
-      return;
+    if (!customOverrides[key]) customOverrides[key] = {};
+
+    if (currentEffective === paintColor) {
+      // tocar de novo na mesma cor desfaz a pintura
+      if (paintColor === 'fold') {
+        // desfazer um fold pintado: remove o override e mostra o que a formula calcularia
+        delete customOverrides[key][label];
+      } else {
+        // desfazer qualquer outra cor sempre apaga pra fold — nunca reverte escondido
+        // pro cálculo automático, o que perderia o "zero"/preset que estava valendo antes
+        customOverrides[key][label] = 'fold';
+      }
     } else {
-      if (!customOverrides[key]) customOverrides[key] = {};
       customOverrides[key][label] = paintColor;
     }
     persistOverrides();
