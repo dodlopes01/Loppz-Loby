@@ -154,6 +154,7 @@
   /* ---- BB calculator ---- */
   .bb-calc { background: var(--felt-2); border: 1px dashed var(--gold-dim); border-radius: 12px; padding: 12px 14px; margin-top: 10px; margin-bottom: 12px; }
   .bb-calc-toggle { margin-bottom: 0; }
+  .util-row { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: 4px; }
   .bb-calc-head { font-size: 12px; color: var(--gold); font-weight: 700; margin-bottom: 8px; }
   .bb-calc-row { display: flex; align-items: center; gap: 8px; }
   .bb-calc-row input {
@@ -398,24 +399,21 @@
 
     <div class="stat" id="stat"></div>
 
-    <div class="toolbar">
-      <button id="editBtn">🎨 Pintar range</button>
-      <button id="zeroBtn">🗒️ Começar do zero</button>
-      <button id="resetBtn">↺ Restaurar padrão</button>
-      <button id="ioBtn">🔄 Backup manual</button>
-    </div>
-    <div class="palette" id="palette"></div>
-    <p class="hint-text">"Começar do zero" apaga tudo (vira fold geral) pra você montar do seu jeito. "Restaurar padrão" desfaz suas edições e volta pro range calculado. No modo pintura, tocar de novo na mesma mão com a mesma cor desfaz aquela pintura.</p>
-
-    <div class="legend" id="legend"></div>
-    <p class="autosave-note">💾 Edições salvam automaticamente neste navegador. Use "Presets" pra guardar cópias nomeadas de todos os seus ranges (todas as posições e profundidades de uma vez), ou "Backup manual" pra levar tudo pra outro navegador/aparelho.</p>
+    <p class="autosave-note">💾 Suas edições salvam automaticamente neste navegador.</p>
   </div>
 
   </div>
   <div class="col-right">
-  <!-- CALCULADORA + GRID -->
+  <!-- CALCULADORA + PINTURA + GRID -->
   <div class="range-card">
-    <button class="info-toggle bb-calc-toggle" id="bbCalcToggle">🧮 Calculadora de BBs</button>
+    <div class="util-row">
+      <button class="info-toggle" id="bbCalcToggle">🧮 Calculadora de BBs</button>
+      <button class="info-toggle" id="editBtn">🎨 Pintar range</button>
+      <button class="info-toggle" id="zeroBtn">🗒️ Zerar</button>
+      <button class="info-toggle" id="resetBtn">↺ Restaurar</button>
+      <button class="info-toggle" id="ioBtn">🔄 Backup</button>
+    </div>
+
     <div class="bb-calc" id="bbCalc" style="display:none;">
       <div class="bb-calc-row">
         <input type="number" id="calcStack" placeholder="Seu stack" inputmode="decimal">
@@ -426,8 +424,11 @@
       <button class="bb-calc-use" id="calcUseBtn" style="display:none;">Usar essa profundidade ↑</button>
     </div>
 
+    <div class="palette" id="palette"></div>
+
     <h2 class="section">Grade de mãos (169 combinações)</h2>
     <span class="active-preset-badge" id="activePresetBadge" style="display:none;"></span>
+    <div class="legend" id="legend"></div>
     <div id="grid" class="grid"></div>
   </div>
 
@@ -765,7 +766,6 @@
       customOverrides[key][label] = paintColor;
     }
     persistOverrides();
-    setActivePreset(null);
     render();
   }
 
@@ -1054,7 +1054,6 @@
     if (!customOverrides[key]) customOverrides[key] = {};
     hands.forEach(function(h) { customOverrides[key][h.label] = 'fold'; });
     persistOverrides();
-    setActivePreset(null);
     render();
   });
 
@@ -1063,7 +1062,6 @@
     delete customMarks[ctxKey()];
     persistOverrides();
     persistMarks();
-    setActivePreset(null);
     render();
   });
 
