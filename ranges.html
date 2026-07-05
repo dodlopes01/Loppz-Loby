@@ -136,7 +136,8 @@
   .stacks button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
 
   /* ---- BB calculator ---- */
-  .bb-calc { background: var(--felt-2); border: 1px dashed var(--gold-dim); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+  .bb-calc { background: var(--felt-2); border: 1px dashed var(--gold-dim); border-radius: 12px; padding: 12px 14px; margin-top: 10px; margin-bottom: 12px; }
+  .bb-calc-toggle { margin-bottom: 0; }
   .bb-calc-head { font-size: 12px; color: var(--gold); font-weight: 700; margin-bottom: 8px; }
   .bb-calc-row { display: flex; align-items: center; gap: 8px; }
   .bb-calc-row input {
@@ -314,7 +315,24 @@
 
   <div class="page-grid">
   <div class="col-left">
-  <!-- HAND PICKER (topo) -->
+  <!-- MESA (topo da esquerda) -->
+  <div class="range-card">
+    <h2 class="section">Posição na mesa (9-max)</h2>
+    <div class="table-oval" id="table">
+      <span class="felt-label">9-max</span>
+      <div class="seat" data-pos="BTN" style="left:50%; top:90%;">BTN</div>
+      <div class="seat" data-pos="SB" style="left:21.7%; top:80.6%;">SB</div>
+      <div class="seat" data-pos="BB" style="left:6.7%; top:57%;">BB</div>
+      <div class="seat" data-pos="UTG" style="left:11.9%; top:30%;">UTG</div>
+      <div class="seat" data-pos="UTG1" style="left:35%; top:12.4%;">UTG+1</div>
+      <div class="seat" data-pos="UTG2" style="left:65%; top:12.4%;">UTG+2</div>
+      <div class="seat" data-pos="LJ" style="left:88.1%; top:30%;">LJ</div>
+      <div class="seat" data-pos="HJ" style="left:93.3%; top:57%;">HJ</div>
+      <div class="seat active" data-pos="CO" style="left:78.3%; top:80.6%;">CO</div>
+    </div>
+  </div>
+
+  <!-- HAND PICKER -->
   <div class="range-card hand-card">
     <h2 class="section">Escolha uma mão</h2>
     <div class="lookup">
@@ -378,10 +396,10 @@
 
   </div>
   <div class="col-right">
-  <!-- CALCULADORA + GRID + MESA -->
+  <!-- CALCULADORA + GRID -->
   <div class="range-card">
-    <div class="bb-calc">
-      <div class="bb-calc-head">🧮 Quantos big blinds eu tenho?</div>
+    <button class="info-toggle bb-calc-toggle" id="bbCalcToggle">🧮 Calculadora de BBs</button>
+    <div class="bb-calc" id="bbCalc" style="display:none;">
       <div class="bb-calc-row">
         <input type="number" id="calcStack" placeholder="Seu stack" inputmode="decimal">
         <span class="bb-calc-op">÷</span>
@@ -393,20 +411,6 @@
 
     <h2 class="section">Grade de mãos (169 combinações)</h2>
     <div id="grid" class="grid"></div>
-
-    <h2 class="section" style="margin-top:16px;">Posição na mesa (9-max)</h2>
-    <div class="table-oval" id="table">
-      <span class="felt-label">9-max</span>
-      <div class="seat" data-pos="BTN" style="left:50%; top:90%;">BTN</div>
-      <div class="seat" data-pos="SB" style="left:21.7%; top:80.6%;">SB</div>
-      <div class="seat" data-pos="BB" style="left:6.7%; top:57%;">BB</div>
-      <div class="seat" data-pos="UTG" style="left:11.9%; top:30%;">UTG</div>
-      <div class="seat" data-pos="UTG1" style="left:35%; top:12.4%;">UTG+1</div>
-      <div class="seat" data-pos="UTG2" style="left:65%; top:12.4%;">UTG+2</div>
-      <div class="seat" data-pos="LJ" style="left:88.1%; top:30%;">LJ</div>
-      <div class="seat" data-pos="HJ" style="left:93.3%; top:57%;">HJ</div>
-      <div class="seat active" data-pos="CO" style="left:78.3%; top:80.6%;">CO</div>
-    </div>
   </div>
 
   </div>
@@ -1146,6 +1150,14 @@
   });
 
   // ---------- Calculadora rápida de BBs ----------
+  var bbCalcToggle = document.getElementById('bbCalcToggle');
+  var bbCalc = document.getElementById('bbCalc');
+  bbCalcToggle.addEventListener('click', function() {
+    var isOpen = bbCalc.style.display !== 'none';
+    bbCalc.style.display = isOpen ? 'none' : 'block';
+    bbCalcToggle.classList.toggle('active', !isOpen);
+  });
+
   var calcStack = document.getElementById('calcStack');
   var calcBBsize = document.getElementById('calcBBsize');
   var calcResult = document.getElementById('calcResult');
