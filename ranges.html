@@ -438,6 +438,7 @@
       <button class="info-toggle" id="editBtn">🎨 Pintar range</button>
       <button class="info-toggle" id="zeroBtn">🗒️ Zerar</button>
       <button class="info-toggle" id="resetBtn">↺ Restaurar</button>
+      <button class="info-toggle" id="copyPrevBtn">📋 Copiar mesa anterior</button>
       <button class="info-toggle" id="ioBtn">🔄 Backup</button>
     </div>
 
@@ -667,6 +668,7 @@
     return pos + '_' + bb + (pos === 'BB' ? '_' + opener : '');
   }
   function ctxKey() { return ctxKeyFor(currentPos, currentBB, currentOpener); }
+  var lastCtxKey = ctxKey(); // guarda a "mesa" anterior, pra função de copiar
 
   function computeBaseFor(pos, bb, opener) {
     var map = {};
@@ -1043,6 +1045,7 @@
     seat.addEventListener('click', function() {
       document.querySelectorAll('.seat').forEach(function(s) { s.classList.remove('active'); });
       seat.classList.add('active');
+      lastCtxKey = ctxKey();
       currentPos = seat.dataset.pos;
       document.getElementById('openerRow').classList.toggle('show', currentPos === 'BB');
       render();
@@ -1055,6 +1058,7 @@
     btn.addEventListener('click', function() {
       document.querySelectorAll('.stacks button').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
+      lastCtxKey = ctxKey();
       currentBB = parseInt(btn.dataset.bb);
       render();
     });
@@ -1069,6 +1073,7 @@
     stackSwitchLabel.textContent = stacksEnabled ? 'Ativado' : 'Desativado';
     stacksBox.classList.toggle('hidden', !stacksEnabled);
     if (!stacksEnabled) {
+      lastCtxKey = ctxKey();
       currentBB = 100;
       document.querySelectorAll('.stacks button').forEach(function(b) {
         b.classList.toggle('active', parseInt(b.dataset.bb) === 100);
@@ -1081,6 +1086,7 @@
     btn.addEventListener('click', function() {
       document.querySelectorAll('.opener-row button').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
+      lastCtxKey = ctxKey();
       currentOpener = btn.dataset.opener;
       render();
     });
@@ -1104,6 +1110,20 @@
   document.getElementById('resetBtn').addEventListener('click', function() {
     delete customOverrides[ctxKey()];
     delete customMarks[ctxKey()];
+    persistOverrides();
+    persistMarks();
+    render();
+  });
+
+  document.getElementById('copyPrevBtn').addEventListener('click', function() {
+    var key = ctxKey();
+    if (lastCtxKey === key) {
+      alert('Ainda não existe uma "mesa anterior" diferente desta pra copiar. Troque de posição, profundidade ou opener primeiro.');
+      return;
+    }
+    if (!confirm('Copiar o range da mesa anterior (' + lastCtxKey + ') pra esta mesa (' + key + ')? Isso substitui as edições que você já fez aqui.')) return;
+    customOverrides[key] = JSON.parse(JSON.stringify(customOverrides[lastCtxKey] || {}));
+    customMarks[key] = JSON.parse(JSON.stringify(customMarks[lastCtxKey] || {}));
     persistOverrides();
     persistMarks();
     render();
