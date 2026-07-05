@@ -8,9 +8,9 @@
   :root {
     --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
     --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
-    --danger: #D2564A; --danger-bg: #3A211D; --success: #5FAE7C; --success-bg: #163A28;
-    --allin: #C9622A; --allin-bg: #3A2313; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.14);
-    --added: #FF9142; --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    --danger: #D2564A; --danger-bg: #3A211D; --success: #E8843A; --success-bg: #3A2712;
+    --allin: #B33B2E; --allin-bg: #35190F; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.14);
+    --added: #3FB7A8; --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -33,6 +33,12 @@
     margin-bottom: 12px; margin-right: 8px; display: inline-block;
   }
   .info-toggle.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .active-preset-badge {
+    display: inline-block; background: rgba(232,132,58,0.15); border: 1px solid rgba(232,132,58,0.4);
+    color: var(--success); font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 999px;
+    margin-bottom: 12px; margin-right: 8px; cursor: pointer; vertical-align: middle;
+  }
+  .active-preset-badge .x { opacity: 0.7; margin-left: 6px; font-weight: 400; }
   .source-note {
     background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 10px;
     padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: var(--muted); line-height: 1.55;
@@ -76,9 +82,9 @@
     border: 1px solid transparent; display: none;
   }
   .result.show { display: block; }
-  .result.raise { background: var(--success-bg); color: var(--success); border-color: rgba(95,174,124,0.3); }
-  .result.allin { background: var(--allin-bg); color: var(--allin); border-color: rgba(201,98,42,0.35); }
-  .result.added { background: rgba(255,145,66,0.15); color: var(--added); border-color: rgba(255,145,66,0.35); }
+  .result.raise { background: var(--success-bg); color: var(--success); border-color: rgba(232,132,58,0.3); }
+  .result.allin { background: var(--allin-bg); color: var(--allin); border-color: rgba(179,59,46,0.35); }
+  .result.added { background: rgba(63,183,168,0.15); color: var(--added); border-color: rgba(63,183,168,0.35); }
   .result.fold { background: var(--danger-bg); color: var(--danger); border-color: rgba(210,86,74,0.3); }
   .result .sub { display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 4px; }
 
@@ -86,22 +92,22 @@
   .pp-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-right: 2px; }
   .pp-none { font-size: 12px; color: var(--muted); }
   .pp-badge { font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 999px; letter-spacing: 0.02em; }
-  .pp-badge.raise { background: var(--success-bg); color: var(--success); border: 1px solid rgba(95,174,124,0.4); }
-  .pp-badge.allin { background: var(--allin-bg); color: var(--allin); border: 1px solid rgba(201,98,42,0.45); }
-  .pp-badge.added { background: rgba(255,145,66,0.15); color: var(--added); border: 1px solid rgba(255,145,66,0.4); }
+  .pp-badge.raise { background: var(--success-bg); color: var(--success); border: 1px solid rgba(232,132,58,0.4); }
+  .pp-badge.allin { background: var(--allin-bg); color: var(--allin); border: 1px solid rgba(179,59,46,0.45); }
+  .pp-badge.added { background: rgba(63,183,168,0.15); color: var(--added); border: 1px solid rgba(63,183,168,0.4); }
 
   /* ---- table ---- */
   .table-oval {
-    position: relative; width: 100%; max-width: 360px; height: 280px; margin: 0 auto 14px;
+    position: relative; width: 100%; max-width: 300px; height: 230px; margin: 0 auto 14px;
     background: radial-gradient(ellipse at center, var(--panel-2) 0%, var(--panel) 65%, var(--felt-2) 100%);
     border: 6px solid #0A251C; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line), inset 0 10px 30px rgba(0,0,0,0.3);
   }
   .table-oval .felt-label { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
     font-size: 10px; letter-spacing: 0.12em; color: var(--gold-dim); font-weight: 700; text-transform: uppercase; opacity: 0.7; }
   .seat {
-    position: absolute; width: 46px; height: 46px; margin-left: -23px; margin-top: -23px;
+    position: absolute; width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
     border-radius: 50%; background: var(--felt-2); border: 1.5px solid var(--line);
-    display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 800;
     cursor: pointer; color: var(--cream); text-align: center; line-height: 1.1;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform .1s;
   }
@@ -193,9 +199,9 @@
     font-size: 9.5px; border-radius: 3px; cursor: pointer; background: var(--fold-cell);
     color: var(--muted); font-weight: 600; user-select: none; position: relative;
   }
-  .cell.raise { background: var(--success); color: #0E2416; }
-  .cell.allin { background: var(--allin); color: #2C1204; }
-  .cell.added { background: var(--added); color: #2C1204; }
+  .cell.raise { background: var(--success); color: #2E1607; }
+  .cell.allin { background: var(--allin); color: #2A0D08; }
+  .cell.added { background: var(--added); color: #0C2E29; }
   .cell.selected { outline: 2px solid var(--gold); outline-offset: -2px; }
   .cell.edited::after {
     content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px;
@@ -233,6 +239,7 @@
 
   .preset-row { display: flex; align-items: center; justify-content: space-between; gap: 6px;
     background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; }
+  .preset-row.active { border-color: var(--success); background: rgba(232,132,58,0.1); }
   .preset-name { flex: 1; color: var(--cream); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .preset-row button { flex: 0 0 auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--cream);
     font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; }
@@ -247,7 +254,8 @@
     header h1 { font-size: 22px; }
     .page-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
     .page-grid .col-right { position: sticky; top: 24px; }
-    .table-oval { max-width: 440px; height: 330px; }
+    .table-oval { max-width: 360px; height: 270px; }
+    .seat { width: 44px; height: 44px; margin-left: -22px; margin-top: -22px; font-size: 10.5px; }
   }
 </style>
 </head>
@@ -261,6 +269,7 @@
 
   <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
   <button class="info-toggle" id="presetBtn">📁 Presets</button>
+  <span class="active-preset-badge" id="activePresetBadge" style="display:none;"></span>
   <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional. A mesa é de 9-max (UTG, UTG+1, UTG+2, LJ, HJ, CO, BTN, SB, BB).</div>
 
   <!-- PRESETS -->
@@ -369,7 +378,7 @@
 
   </div>
   <div class="col-right">
-  <!-- CALCULADORA + MESA + GRID -->
+  <!-- CALCULADORA + GRID + MESA -->
   <div class="range-card">
     <div class="bb-calc">
       <div class="bb-calc-head">🧮 Quantos big blinds eu tenho?</div>
@@ -382,7 +391,10 @@
       <button class="bb-calc-use" id="calcUseBtn" style="display:none;">Usar essa profundidade ↑</button>
     </div>
 
-    <h2 class="section">Posição na mesa (9-max)</h2>
+    <h2 class="section">Grade de mãos (169 combinações)</h2>
+    <div id="grid" class="grid"></div>
+
+    <h2 class="section" style="margin-top:16px;">Posição na mesa (9-max)</h2>
     <div class="table-oval" id="table">
       <span class="felt-label">9-max</span>
       <div class="seat" data-pos="BTN" style="left:50%; top:90%;">BTN</div>
@@ -395,9 +407,6 @@
       <div class="seat" data-pos="HJ" style="left:93.3%; top:57%;">HJ</div>
       <div class="seat active" data-pos="CO" style="left:78.3%; top:80.6%;">CO</div>
     </div>
-
-    <h2 class="section">Grade de mãos (169 combinações)</h2>
-    <div id="grid" class="grid"></div>
   </div>
 
   </div>
@@ -555,6 +564,29 @@
     if (savedPresets) presets = JSON.parse(savedPresets);
   } catch (e) { /* ignora */ }
 
+  var ACTIVE_PRESET_KEY = 'loppzloby_active_preset_v1';
+  var activePresetName = null;
+  try { activePresetName = localStorage.getItem(ACTIVE_PRESET_KEY) || null; } catch (e) { /* ignora */ }
+
+  function setActivePreset(name) {
+    activePresetName = name;
+    try {
+      if (name) localStorage.setItem(ACTIVE_PRESET_KEY, name);
+      else localStorage.removeItem(ACTIVE_PRESET_KEY);
+    } catch (e) { /* ignora */ }
+    updateActivePresetBadge();
+  }
+
+  function updateActivePresetBadge() {
+    var el = document.getElementById('activePresetBadge');
+    if (!activePresetName || !presets[activePresetName]) {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = 'inline-block';
+    el.innerHTML = '📌 Preset: <b>' + activePresetName + '</b><span class="x">✕</span>';
+  }
+
   var MARK_COLORS = [
     { id: 'yellow', color: '#E8C547', label: 'Amarelo' },
     { id: 'blue',   color: '#5B9BD5', label: 'Azul' },
@@ -649,6 +681,7 @@
     cell.className = 'cell';
     cell.textContent = h.label;
     cell.dataset.label = h.label;
+    cell.title = h.label + ' — ' + h.combos + ' combinação' + (h.combos > 1 ? 'ões' : '');
     cell.style.order = h.i * 13 + h.j;
     gridEl.appendChild(cell);
     cellsByLabel[h.label] = cell;
@@ -677,6 +710,7 @@
       customOverrides[key][label] = paintColor;
     }
     persistOverrides();
+    setActivePreset(null);
     render();
   }
 
@@ -963,6 +997,7 @@
     if (!customOverrides[key]) customOverrides[key] = {};
     hands.forEach(function(h) { customOverrides[key][h.label] = 'fold'; });
     persistOverrides();
+    setActivePreset(null);
     render();
   });
 
@@ -971,6 +1006,7 @@
     delete customMarks[ctxKey()];
     persistOverrides();
     persistMarks();
+    setActivePreset(null);
     render();
   });
 
@@ -1016,10 +1052,10 @@
     box.innerHTML = '';
     names.forEach(function(name) {
       var row = document.createElement('div');
-      row.className = 'preset-row';
+      row.className = 'preset-row' + (name === activePresetName ? ' active' : '');
       var nameSpan = document.createElement('span');
       nameSpan.className = 'preset-name';
-      nameSpan.textContent = name;
+      nameSpan.textContent = name + (name === activePresetName ? ' ✓' : '');
       row.appendChild(nameSpan);
 
       var loadBtn = document.createElement('button');
@@ -1029,7 +1065,9 @@
         customMarks = JSON.parse(JSON.stringify(presets[name].marks || {}));
         persistOverrides();
         persistMarks();
+        setActivePreset(name);
         render();
+        renderPresetList();
         document.getElementById('presetStatus').textContent = 'Preset "' + name + '" carregado em todas as mesas.';
       });
 
@@ -1040,6 +1078,7 @@
         if (confirm('Excluir o preset "' + name + '"? Essa ação não pode ser desfeita.')) {
           delete presets[name];
           persistPresets();
+          if (activePresetName === name) setActivePreset(null);
           renderPresetList();
           document.getElementById('presetStatus').textContent = 'Preset "' + name + '" excluído.';
         }
@@ -1061,6 +1100,7 @@
       marks: JSON.parse(JSON.stringify(customMarks))
     };
     persistPresets();
+    setActivePreset(name);
     renderPresetList();
     input.value = '';
     statusEl.textContent = 'Preset "' + name + '" salvo com os ranges de todas as mesas.';
@@ -1159,8 +1199,19 @@
     calcUseBtn.style.display = 'none';
   });
 
+  document.getElementById('activePresetBadge').addEventListener('click', function(e) {
+    if (e.target.classList.contains('x')) {
+      setActivePreset(null);
+      renderPresetList();
+      return;
+    }
+    openPanel(presetPanel, presetBtn);
+    renderPresetList();
+  });
+
   render();
   renderLookupSlots();
+  updateActivePresetBadge();
 })();
 </script>
 </body>
