@@ -33,12 +33,18 @@
     margin-bottom: 12px; margin-right: 8px; display: inline-block;
   }
   .info-toggle.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .active-preset-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
   .active-preset-badge {
     display: inline-block; background: rgba(232,132,58,0.15); border: 1px solid rgba(232,132,58,0.4);
     color: var(--success); font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 999px;
-    margin: 0 0 10px; cursor: pointer;
+    cursor: pointer;
   }
   .active-preset-badge .x { opacity: 0.7; margin-left: 6px; font-weight: 400; }
+  .preset-mini-btn {
+    background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 11px; font-weight: 700; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  }
+  .preset-mini-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
   .source-note {
     background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 10px;
     padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: var(--muted); line-height: 1.55;
@@ -122,14 +128,25 @@
   .seat-preview-grid .mc.added { background: var(--added); color: #0C2E29; }
   .seat {
     position: absolute; width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
-    border-radius: 50%; background: var(--felt-2); border: 1.5px solid var(--line);
+    border-radius: 50%; background: #1A1F1C; border: 2px solid var(--line);
     display: flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 800;
     cursor: pointer; color: var(--cream); text-align: center; line-height: 1.1;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform .1s;
   }
   .seat:active { transform: scale(0.94); }
+  /* cores por grupo de posição */
+  .seat[data-pos="UTG"], .seat[data-pos="UTG1"] { border-color: #E8843A; }
+  .seat[data-pos="MP1"], .seat[data-pos="MP2"] { border-color: #4FB3D9; }
+  .seat[data-pos="HJ"], .seat[data-pos="CO"], .seat[data-pos="BTN"] { border-color: #4CAF6D; }
+  .seat[data-pos="SB"], .seat[data-pos="BB"] { border-color: #D2564A; }
   .seat.active { background: var(--gold); border-color: var(--gold); color: #1A1508; box-shadow: 0 0 0 4px rgba(201,162,39,0.2), 0 2px 6px rgba(0,0,0,0.3); }
   .seat small { display: block; font-size: 6.5px; font-weight: 600; opacity: 0.8; }
+  .dealer-btn {
+    position: absolute; width: 18px; height: 18px; border-radius: 50%; background: var(--cream);
+    color: #1A1508; font-size: 5px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+    text-align: center; line-height: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.4); border: 1px solid rgba(0,0,0,0.2);
+    pointer-events: none;
+  }
 
   .row-header { display: flex; align-items: center; justify-content: space-between; margin: 14px 0 8px; }
   .row-header h2.section { margin: 0; }
@@ -301,7 +318,7 @@
 
   <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
   <button class="info-toggle" id="presetBtn">📁 Presets</button>
-  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional. A mesa é de 9-max (UTG, UTG+1, UTG+2, LJ, HJ, CO, BTN, SB, BB).</div>
+  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional. A mesa é de 9-max (UTG, UTG+1, MP1, MP2, HJ, CO, BTN, SB, BB).</div>
 
   <!-- PRESETS (mais enxuto) -->
   <div class="io-panel" id="presetPanel">
@@ -347,13 +364,14 @@
         <div class="seat-preview-head" id="seatPreviewHead"></div>
         <div class="seat-preview-grid" id="seatPreviewGrid"></div>
       </div>
+      <div class="dealer-btn" style="left:50%; top:68%; margin-left:-9px; margin-top:-9px;">D</div>
       <div class="seat" data-pos="BTN" style="left:50%; top:90%;">BTN</div>
       <div class="seat" data-pos="SB" style="left:21.7%; top:80.6%;">SB</div>
       <div class="seat" data-pos="BB" style="left:6.7%; top:57%;">BB</div>
       <div class="seat" data-pos="UTG" style="left:11.9%; top:30%;">UTG</div>
       <div class="seat" data-pos="UTG1" style="left:35%; top:12.4%;">UTG+1</div>
-      <div class="seat" data-pos="UTG2" style="left:65%; top:12.4%;">UTG+2</div>
-      <div class="seat" data-pos="LJ" style="left:88.1%; top:30%;">LJ</div>
+      <div class="seat" data-pos="MP1" style="left:65%; top:12.4%;">MP1</div>
+      <div class="seat" data-pos="MP2" style="left:88.1%; top:30%;">MP2</div>
       <div class="seat" data-pos="HJ" style="left:93.3%; top:57%;">HJ</div>
       <div class="seat active" data-pos="CO" style="left:78.3%; top:80.6%;">CO</div>
     </div>
@@ -398,8 +416,8 @@
       <span class="label-inline">Quem abriu a mão?</span>
       <button data-opener="UTG">UTG</button>
       <button data-opener="UTG1">UTG+1</button>
-      <button data-opener="UTG2">UTG+2</button>
-      <button data-opener="LJ">LJ</button>
+      <button data-opener="MP1">MP1</button>
+      <button data-opener="MP2">MP2</button>
       <button data-opener="HJ">HJ</button>
       <button data-opener="CO" class="active">CO</button>
       <button data-opener="BTN">BTN</button>
@@ -436,7 +454,11 @@
     <div class="palette" id="palette"></div>
 
     <h2 class="section">Grade de mãos (169 combinações)</h2>
-    <span class="active-preset-badge" id="activePresetBadge" style="display:none;"></span>
+    <div class="active-preset-row" id="activePresetRow" style="display:none;">
+      <span class="active-preset-badge" id="activePresetBadge"></span>
+      <button class="preset-mini-btn" id="presetUpdateBtn" title="Sobrescrever o preset com as alterações atuais">💾 Salvar</button>
+      <button class="preset-mini-btn" id="presetRevertBtn" title="Descartar alterações e voltar ao que foi salvo">↺ Reverter</button>
+    </div>
     <div class="legend" id="legend"></div>
     <div id="grid" class="grid"></div>
   </div>
@@ -462,34 +484,34 @@
   var CHEN_PTS = { A:10, K:8, Q:7, J:6, T:5, '9':4.5, '8':4, '7':3.5, '6':3, '5':2.5, '4':2, '3':1.5, '2':1 };
 
   // 9-max: 8 posições que abrem + BB que defende
-  var POSITIONS = ['UTG','UTG1','UTG2','LJ','HJ','CO','BTN','SB','BB'];
-  var OPENERS = ['UTG','UTG1','UTG2','LJ','HJ','CO','BTN','SB'];
-  var posNames = { UTG:'UTG', UTG1:'UTG+1', UTG2:'UTG+2', LJ:'Lojack', HJ:'Hijack', CO:'Cutoff', BTN:'Botão', SB:'Small blind', BB:'Big blind' };
-  var posShort = { UTG:'UTG', UTG1:'UTG+1', UTG2:'UTG+2', LJ:'LJ', HJ:'HJ', CO:'CO', BTN:'BTN', SB:'SB', BB:'BB' };
+  var POSITIONS = ['UTG','UTG1','MP1','MP2','HJ','CO','BTN','SB','BB'];
+  var OPENERS = ['UTG','UTG1','MP1','MP2','HJ','CO','BTN','SB'];
+  var posNames = { UTG:'UTG', UTG1:'UTG+1', MP1:'MP1', MP2:'MP2', HJ:'Hijack', CO:'Cutoff', BTN:'Botão', SB:'Small blind', BB:'Big blind' };
+  var posShort = { UTG:'UTG', UTG1:'UTG+1', MP1:'MP1', MP2:'MP2', HJ:'HJ', CO:'CO', BTN:'BTN', SB:'SB', BB:'BB' };
 
   var positionPercents = {
-    100: { UTG:10, UTG1:13, UTG2:16, LJ:20, HJ:23, CO:26, BTN:44, SB:38 },
-    70:  { UTG:11, UTG1:14, UTG2:18, LJ:21, HJ:25, CO:28, BTN:46, SB:39 },
-    40:  { UTG:12, UTG1:15, UTG2:19, LJ:22, HJ:26, CO:29, BTN:47, SB:40 },
-    25:  { UTG:8,  UTG1:11, UTG2:14, LJ:18, HJ:21, CO:24, BTN:40, SB:34 },
-    15:  { UTG:6,  UTG1:9,  UTG2:12, LJ:14, HJ:17, CO:20, BTN:32, SB:45 },
-    10:  { UTG:12, UTG1:15, UTG2:18, LJ:22, HJ:25, CO:28, BTN:42, SB:55 }
+    100: { UTG:10, UTG1:13, MP1:16, MP2:20, HJ:23, CO:26, BTN:44, SB:38 },
+    70:  { UTG:11, UTG1:14, MP1:18, MP2:21, HJ:25, CO:28, BTN:46, SB:39 },
+    40:  { UTG:12, UTG1:15, MP1:19, MP2:22, HJ:26, CO:29, BTN:47, SB:40 },
+    25:  { UTG:8,  UTG1:11, MP1:14, MP2:18, HJ:21, CO:24, BTN:40, SB:34 },
+    15:  { UTG:6,  UTG1:9,  MP1:12, MP2:14, HJ:17, CO:20, BTN:32, SB:45 },
+    10:  { UTG:12, UTG1:15, MP1:18, MP2:22, HJ:25, CO:28, BTN:42, SB:55 }
   };
   var actionType = { 100:'raise', 70:'raise', 40:'raise', 25:'raise', 15:'allin', 10:'allin' };
 
   var bbDefenseDeep = {
     UTG:  { threeBet:6,  call:24 },
     UTG1: { threeBet:6,  call:25 },
-    UTG2: { threeBet:7,  call:27 },
-    LJ:   { threeBet:8,  call:29 },
+    MP1: { threeBet:7,  call:27 },
+    MP2:   { threeBet:8,  call:29 },
     HJ:   { threeBet:9,  call:31 },
     CO:   { threeBet:10, call:34 },
     BTN:  { threeBet:12, call:40 },
     SB:   { threeBet:14, call:44 }
   };
   var bbDefenseShort = {
-    15: { UTG:{call:10}, UTG1:{call:11}, UTG2:{call:13}, LJ:{call:15}, HJ:{call:18}, CO:{call:22}, BTN:{call:34}, SB:{call:40} },
-    10: { UTG:{call:14}, UTG1:{call:15}, UTG2:{call:17}, LJ:{call:19}, HJ:{call:22}, CO:{call:26}, BTN:{call:38}, SB:{call:46} }
+    15: { UTG:{call:10}, UTG1:{call:11}, MP1:{call:13}, MP2:{call:15}, HJ:{call:18}, CO:{call:22}, BTN:{call:34}, SB:{call:40} },
+    10: { UTG:{call:14}, UTG1:{call:15}, MP1:{call:17}, MP2:{call:19}, HJ:{call:22}, CO:{call:26}, BTN:{call:38}, SB:{call:46} }
   };
 
   var hands = [];
@@ -610,12 +632,13 @@
   }
 
   function updateActivePresetBadge() {
+    var row = document.getElementById('activePresetRow');
     var el = document.getElementById('activePresetBadge');
     if (!activePresetName || !presets[activePresetName]) {
-      el.style.display = 'none';
+      row.style.display = 'none';
       return;
     }
-    el.style.display = 'inline-block';
+    row.style.display = 'flex';
     el.innerHTML = '📌 Preset: <b>' + activePresetName + '</b><span class="x">✕</span>';
   }
 
@@ -1344,6 +1367,28 @@
     }
     openPanel(presetPanel, presetBtn);
     renderPresetList();
+  });
+
+  document.getElementById('presetUpdateBtn').addEventListener('click', function() {
+    if (!activePresetName) return;
+    presets[activePresetName] = {
+      overrides: JSON.parse(JSON.stringify(customOverrides)),
+      marks: JSON.parse(JSON.stringify(customMarks))
+    };
+    persistPresets();
+    var badge = document.getElementById('activePresetBadge');
+    badge.innerHTML = '✅ Salvo em "' + activePresetName + '"';
+    setTimeout(updateActivePresetBadge, 1400);
+  });
+
+  document.getElementById('presetRevertBtn').addEventListener('click', function() {
+    if (!activePresetName || !presets[activePresetName]) return;
+    if (!confirm('Descartar suas alterações e voltar pro que foi salvo em "' + activePresetName + '"?')) return;
+    customOverrides = JSON.parse(JSON.stringify(presets[activePresetName].overrides || {}));
+    customMarks = JSON.parse(JSON.stringify(presets[activePresetName].marks || {}));
+    persistOverrides();
+    persistMarks();
+    render();
   });
 
   render();
