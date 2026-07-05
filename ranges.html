@@ -36,7 +36,7 @@
   .active-preset-badge {
     display: inline-block; background: rgba(232,132,58,0.15); border: 1px solid rgba(232,132,58,0.4);
     color: var(--success); font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 999px;
-    margin-bottom: 12px; margin-right: 8px; cursor: pointer; vertical-align: middle;
+    margin: 0 0 10px; cursor: pointer;
   }
   .active-preset-badge .x { opacity: 0.7; margin-left: 6px; font-weight: 400; }
   .source-note {
@@ -239,12 +239,14 @@
   .io-status { font-size: 11px; margin-top: 8px; color: var(--muted); min-height: 14px; }
 
   .preset-row { display: flex; align-items: center; justify-content: space-between; gap: 6px;
-    background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; }
+    background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px 7px 12px; margin-bottom: 5px;
+    font-size: 12px; cursor: pointer; }
+  .preset-row:hover { border-color: var(--gold-dim); }
   .preset-row.active { border-color: var(--success); background: rgba(232,132,58,0.1); }
   .preset-name { flex: 1; color: var(--cream); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .preset-row button { flex: 0 0 auto; background: var(--panel-2); border: 1px solid var(--line); color: var(--cream);
-    font-size: 11px; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-  .preset-row button.danger { border-color: rgba(210,86,74,0.4); color: var(--danger); }
+  .preset-del { flex: 0 0 auto; background: transparent; border: none; color: var(--muted);
+    font-size: 13px; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; }
+  .preset-del:hover { background: var(--danger-bg); color: var(--danger); }
   .preset-empty { font-size: 12px; color: var(--muted); margin: 0 0 4px; }
 
   footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
@@ -270,23 +272,18 @@
 
   <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
   <button class="info-toggle" id="presetBtn">📁 Presets</button>
-  <span class="active-preset-badge" id="activePresetBadge" style="display:none;"></span>
   <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional. A mesa é de 9-max (UTG, UTG+1, UTG+2, LJ, HJ, CO, BTN, SB, BB).</div>
 
-  <!-- PRESETS -->
+  <!-- PRESETS (mais enxuto) -->
   <div class="io-panel" id="presetPanel">
     <div class="panel-head">
-      <h3 style="margin:0;">Salvar preset atual</h3>
+      <h3 style="margin:0;">Presets</h3>
       <button class="panel-close" id="presetCloseBtn">✕</button>
     </div>
-    <p style="font-size:12px; color:var(--muted); line-height:1.6; margin:10px 0 10px;">
-      Um preset guarda <b style="color:var(--cream);">todos os seus ranges de todas as posições, profundidades e openers de uma vez</b> — não só a mesa/mão que está na tela agora.
-    </p>
     <div class="io-row">
-      <input type="text" id="presetName" placeholder="Nome do preset (ex: Torneio, Cash 100bb...)">
+      <input type="text" id="presetName" placeholder="Nome do novo preset">
       <button id="presetSaveBtn">💾 Salvar</button>
     </div>
-    <h3 style="margin-top:16px;">Meus presets</h3>
     <div id="presetList"></div>
     <p class="io-status" id="presetStatus"></p>
   </div>
@@ -410,6 +407,7 @@
     </div>
 
     <h2 class="section">Grade de mãos (169 combinações)</h2>
+    <span class="active-preset-badge" id="activePresetBadge" style="display:none;"></span>
     <div id="grid" class="grid"></div>
   </div>
 
@@ -1057,29 +1055,19 @@
     names.forEach(function(name) {
       var row = document.createElement('div');
       row.className = 'preset-row' + (name === activePresetName ? ' active' : '');
+
       var nameSpan = document.createElement('span');
       nameSpan.className = 'preset-name';
-      nameSpan.textContent = name + (name === activePresetName ? ' ✓' : '');
+      nameSpan.textContent = (name === activePresetName ? '✓ ' : '') + name;
       row.appendChild(nameSpan);
 
-      var loadBtn = document.createElement('button');
-      loadBtn.textContent = 'Carregar';
-      loadBtn.addEventListener('click', function() {
-        customOverrides = JSON.parse(JSON.stringify(presets[name].overrides || {}));
-        customMarks = JSON.parse(JSON.stringify(presets[name].marks || {}));
-        persistOverrides();
-        persistMarks();
-        setActivePreset(name);
-        render();
-        renderPresetList();
-        document.getElementById('presetStatus').textContent = 'Preset "' + name + '" carregado em todas as mesas.';
-      });
-
       var delBtn = document.createElement('button');
-      delBtn.className = 'danger';
-      delBtn.textContent = 'Excluir';
-      delBtn.addEventListener('click', function() {
-        if (confirm('Excluir o preset "' + name + '"? Essa ação não pode ser desfeita.')) {
+      delBtn.className = 'preset-del';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Excluir preset';
+      delBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (confirm('Excluir o preset "' + name + '"?')) {
           delete presets[name];
           persistPresets();
           if (activePresetName === name) setActivePreset(null);
@@ -1087,9 +1075,19 @@
           document.getElementById('presetStatus').textContent = 'Preset "' + name + '" excluído.';
         }
       });
-
-      row.appendChild(loadBtn);
       row.appendChild(delBtn);
+
+      row.addEventListener('click', function() {
+        customOverrides = JSON.parse(JSON.stringify(presets[name].overrides || {}));
+        customMarks = JSON.parse(JSON.stringify(presets[name].marks || {}));
+        persistOverrides();
+        persistMarks();
+        setActivePreset(name);
+        render();
+        renderPresetList();
+        document.getElementById('presetStatus').textContent = 'Preset "' + name + '" carregado.';
+      });
+
       box.appendChild(row);
     });
   }
