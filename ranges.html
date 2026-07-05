@@ -202,11 +202,6 @@
     padding: 7px; font-size: 11px;
   }
   .palette-mode button.active { background: var(--gold); color: #1A1508; border-color: var(--gold); }
-  .cell.mark-yellow { box-shadow: inset 0 -3px 0 #E8C547; }
-  .cell.mark-blue { box-shadow: inset 0 -3px 0 #5B9BD5; }
-  .cell.mark-purple { box-shadow: inset 0 -3px 0 #9B6FD1; }
-  .cell.mark-pink { box-shadow: inset 0 -3px 0 #E2789A; }
-  .cell.mark-white { box-shadow: inset 0 -3px 0 #EFE7D2; }
 
   .grid {
     display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-bottom: 10px;
@@ -221,10 +216,13 @@
   .cell.allin { background: var(--allin); color: #2A0D08; }
   .cell.added { background: var(--added); color: #0C2E29; }
   .cell.selected { outline: 2px solid var(--gold); outline-offset: -2px; }
-  .cell.edited::after {
-    content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px;
-    border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
-  }
+
+  /* marcadores livres pintam a célula por completo, por cima da cor de ação */
+  .cell.mark-yellow { background: #E8C547; color: #2E2007; }
+  .cell.mark-blue { background: #5B9BD5; color: #0D2A41; }
+  .cell.mark-purple { background: #9B6FD1; color: #241536; }
+  .cell.mark-pink { background: #E2789A; color: #3A0F1F; }
+  .cell.mark-white { background: #EFE7D2; color: #1A1508; }
 
   .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; font-size: 11px; color: var(--muted); }
   .legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 5px; vertical-align: -1px; }
@@ -769,11 +767,17 @@
   function paintCell(label) {
     if (!paintColor) return;
     var key = ctxKey();
-    if (!customOverrides[key]) customOverrides[key] = {};
-    if (customOverrides[key][label] === paintColor) {
+    var baseAction = computeBase()[label];
+    var existing = customOverrides[key] ? customOverrides[key][label] : undefined;
+
+    if (existing === paintColor) {
       // tocar de novo na mesma cor desfaz a pintura (volta pro range base)
       delete customOverrides[key][label];
+    } else if (existing === undefined && baseAction === paintColor) {
+      // a mão já é dessa cor por padrão — não há nada pra pintar/alternar
+      return;
     } else {
+      if (!customOverrides[key]) customOverrides[key] = {};
       customOverrides[key][label] = paintColor;
     }
     persistOverrides();
