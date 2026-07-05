@@ -260,11 +260,25 @@
     font-size: 12px; cursor: pointer; }
   .preset-row:hover { border-color: var(--gold-dim); }
   .preset-row.active { border-color: var(--success); background: rgba(232,132,58,0.1); }
+  .preset-row.preset-new { border: 1.5px dashed var(--gold-dim); background: transparent; }
+  .preset-row.preset-new:hover { border-color: var(--gold); }
+  .preset-row.preset-new .preset-name { color: var(--gold); font-weight: 700; }
   .preset-name { flex: 1; color: var(--cream); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .preset-del { flex: 0 0 auto; background: transparent; border: none; color: var(--muted);
     font-size: 13px; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; }
   .preset-del:hover { background: var(--danger-bg); color: var(--danger); }
   .preset-empty { font-size: 12px; color: var(--muted); margin: 0 0 4px; }
+  .preset-explain { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 8px 0 10px; }
+  .preset-new-form { background: var(--felt-2); border: 1.5px solid var(--gold-dim); border-radius: 8px;
+    padding: 10px; margin-bottom: 8px; }
+  .preset-new-form input {
+    width: 100%; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 13px; padding: 8px 10px; border-radius: 7px; margin-bottom: 8px;
+  }
+  .preset-new-actions { display: flex; gap: 8px; }
+  .preset-new-actions button { flex: 1; padding: 7px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .preset-new-actions button:first-child { background: var(--gold); border: 1px solid var(--gold); color: #1A1508; }
+  .preset-new-actions button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
 
   footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
 
@@ -297,10 +311,7 @@
       <h3 style="margin:0;">Presets</h3>
       <button class="panel-close" id="presetCloseBtn">✕</button>
     </div>
-    <div class="io-row">
-      <input type="text" id="presetName" placeholder="Nome do novo preset">
-      <button id="presetSaveBtn">💾 Salvar</button>
-    </div>
+    <p class="preset-explain">Um preset guarda todos os seus ranges (todas as posições e profundidades) de uma vez. Toque num preset da lista pra carregar.</p>
     <div id="presetList"></div>
     <p class="io-status" id="presetStatus"></p>
   </div>
@@ -1093,18 +1104,87 @@
   // ---------- Presets ----------
   presetBtn.addEventListener('click', function() {
     if (presetPanel.classList.contains('show')) { closePanels(); return; }
+    showingNewPresetForm = false;
     openPanel(presetPanel, presetBtn);
     renderPresetList();
   });
 
+  var showingNewPresetForm = false;
+
   function renderPresetList() {
     var box = document.getElementById('presetList');
+    box.innerHTML = '';
+
+    // ---- item "+ Novo preset" (topo da lista) ----
+    if (!showingNewPresetForm) {
+      var newRow = document.createElement('div');
+      newRow.className = 'preset-row preset-new';
+      newRow.innerHTML = '<span class="preset-name">+ Novo preset</span>';
+      newRow.addEventListener('click', function() {
+        showingNewPresetForm = true;
+        renderPresetList();
+      });
+      box.appendChild(newRow);
+    } else {
+      var form = document.createElement('div');
+      form.className = 'preset-new-form';
+
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.id = 'presetName';
+      input.placeholder = 'Nome do preset (ex: Torneio, Cash 100bb...)';
+      form.appendChild(input);
+
+      var actionsRow = document.createElement('div');
+      actionsRow.className = 'preset-new-actions';
+
+      function doSaveNewPreset() {
+        var name = input.value.trim();
+        var statusEl = document.getElementById('presetStatus');
+        if (!name) { statusEl.textContent = 'Digite um nome pra esse preset.'; input.focus(); return; }
+        presets[name] = {
+          overrides: JSON.parse(JSON.stringify(customOverrides)),
+          marks: JSON.parse(JSON.stringify(customMarks))
+        };
+        persistPresets();
+        setActivePreset(name);
+        showingNewPresetForm = false;
+        renderPresetList();
+        statusEl.textContent = 'Preset "' + name + '" salvo.';
+      }
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') doSaveNewPreset();
+      });
+
+      var saveBtn = document.createElement('button');
+      saveBtn.textContent = '💾 Salvar';
+      saveBtn.addEventListener('click', doSaveNewPreset);
+
+      var cancelBtn = document.createElement('button');
+      cancelBtn.className = 'ghost';
+      cancelBtn.textContent = 'Cancelar';
+      cancelBtn.addEventListener('click', function() {
+        showingNewPresetForm = false;
+        renderPresetList();
+      });
+
+      actionsRow.appendChild(saveBtn);
+      actionsRow.appendChild(cancelBtn);
+      form.appendChild(actionsRow);
+      box.appendChild(form);
+      input.focus();
+    }
+
+    // ---- lista de presets salvos ----
     var names = Object.keys(presets);
     if (!names.length) {
-      box.innerHTML = '<p class="preset-empty">Nenhum preset salvo ainda.</p>';
+      var empty = document.createElement('p');
+      empty.className = 'preset-empty';
+      empty.textContent = 'Nenhum preset salvo ainda.';
+      box.appendChild(empty);
       return;
     }
-    box.innerHTML = '';
     names.forEach(function(name) {
       var row = document.createElement('div');
       row.className = 'preset-row' + (name === activePresetName ? ' active' : '');
@@ -1144,22 +1224,6 @@
       box.appendChild(row);
     });
   }
-
-  document.getElementById('presetSaveBtn').addEventListener('click', function() {
-    var input = document.getElementById('presetName');
-    var name = input.value.trim();
-    var statusEl = document.getElementById('presetStatus');
-    if (!name) { statusEl.textContent = 'Digite um nome pra esse preset antes de salvar.'; return; }
-    presets[name] = {
-      overrides: JSON.parse(JSON.stringify(customOverrides)),
-      marks: JSON.parse(JSON.stringify(customMarks))
-    };
-    persistPresets();
-    setActivePreset(name);
-    renderPresetList();
-    input.value = '';
-    statusEl.textContent = 'Preset "' + name + '" salvo com os ranges de todas as mesas.';
-  });
 
   // ---------- Backup manual (texto) ----------
   ioBtn.addEventListener('click', function() {
