@@ -106,16 +106,20 @@
     font-size: 10px; letter-spacing: 0.12em; color: var(--gold-dim); font-weight: 700; text-transform: uppercase; opacity: 0.7; transition: opacity .12s; }
   .seat-preview {
     display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-    width: 148px; background: var(--panel); border: 1.5px solid var(--gold); border-radius: 10px;
+    width: 190px; background: var(--panel); border: 1.5px solid var(--gold); border-radius: 10px;
     padding: 7px; box-shadow: 0 10px 28px rgba(0,0,0,0.6); z-index: 30; pointer-events: none;
   }
   .seat-preview.show { display: block; }
   .seat-preview-head { font-size: 10px; font-weight: 800; color: var(--gold); text-align: center; margin-bottom: 5px; letter-spacing: 0.02em; }
   .seat-preview-grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 1px; }
-  .seat-preview-grid .mc { aspect-ratio: 1 / 1; background: var(--fold-cell); border-radius: 1px; }
-  .seat-preview-grid .mc.raise { background: var(--success); }
-  .seat-preview-grid .mc.allin { background: var(--allin); }
-  .seat-preview-grid .mc.added { background: var(--added); }
+  .seat-preview-grid .mc {
+    aspect-ratio: 1 / 1; background: var(--fold-cell); border-radius: 1px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 5px; font-weight: 700; color: rgba(239,231,210,0.55); line-height: 1; overflow: hidden;
+  }
+  .seat-preview-grid .mc.raise { background: var(--success); color: #2E1607; }
+  .seat-preview-grid .mc.allin { background: var(--allin); color: #2A0D08; }
+  .seat-preview-grid .mc.added { background: var(--added); color: #0C2E29; }
   .seat {
     position: absolute; width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
     border-radius: 50%; background: var(--felt-2); border: 1.5px solid var(--line);
@@ -725,6 +729,7 @@
   hands.forEach(function(h) {
     var mc = document.createElement('div');
     mc.className = 'mc';
+    mc.textContent = h.label;
     seatPreviewGrid.appendChild(mc);
     miniCellsByLabel[h.label] = mc;
   });
