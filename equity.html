@@ -8,8 +8,8 @@
   :root {
     --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
     --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
-    --danger: #D2564A; --danger-bg: #3A211D; --success: #5FAE7C; --success-bg: #163A28;
-    --allin: #C9622A; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.12);
+    --danger: #D2564A; --danger-bg: #3A211D; --success: #E8843A; --success-bg: #3A2712;
+    --allin: #B33B2E; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.12);
     --red-suit: #E2564C;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -62,7 +62,7 @@
     border: 1px solid var(--line); padding: 3px; border-radius: 10px; background: var(--felt-2); }
   .cell { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 9px;
     border-radius: 3px; cursor: pointer; background: var(--fold-cell); color: var(--muted); font-weight: 600; user-select: none; position: relative; }
-  .cell.in { background: var(--success); color: #0E2416; }
+  .cell.in { background: var(--success); color: #2E1607; }
   .cell.edited::after { content: ''; position: absolute; top: 2px; right: 2px; width: 4px; height: 4px;
     border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
 
