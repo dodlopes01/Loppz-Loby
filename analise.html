@@ -106,6 +106,18 @@
   .card-face-mini .suit { font-size: 11px; margin-top: 1px; }
 
   .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  .hist-item { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--felt-2);
+    margin-bottom: 8px; flex-wrap: wrap; }
+  .hist-info { font-size: 12.5px; line-height: 1.5; }
+  .hist-info .hist-date { color: var(--gold); font-weight: 700; }
+  .hist-info .hist-stats { color: var(--muted); }
+  .hist-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .hist-actions button { background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 11.5px; font-weight: 700; padding: 6px 10px; border-radius: 7px; cursor: pointer; }
+  .hist-actions button.danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+  .hist-actions button:hover { border-color: var(--gold); }
 </style>
 </head>
 <body>
@@ -133,8 +145,13 @@
   </div>
 
   <div class="card">
-    <h2 class="section">1. Cole o hand history</h2>
-    <textarea id="hh" placeholder="Cole aqui uma ou várias mãos no formato PokerStars Hand #..."></textarea>
+    <h2 class="section">1. Cole o hand history (ou importe do PC)</h2>
+    <div class="row" style="margin-top:0;">
+      <button class="btn secondary" id="importBtn" type="button">📂 Importar arquivo(s) .txt do PC</button>
+      <input type="file" id="fileInput" accept=".txt" multiple style="display:none;">
+      <span class="status" id="importStatus" style="margin:0;"></span>
+    </div>
+    <textarea id="hh" placeholder="Cole aqui uma ou várias mãos no formato PokerStars Hand #..." style="margin-top:10px;"></textarea>
 
     <div class="row">
       <div class="field">
@@ -176,6 +193,12 @@
       <button class="btn secondary" id="clearBtn">Limpar</button>
     </div>
     <div class="status" id="status"></div>
+  </div>
+
+  <div class="card" id="historyCard">
+    <h2 class="section">Histórico de importações</h2>
+    <p class="empty-note" style="text-align:left; padding:0 0 10px;">Salvo só neste navegador (localStorage) — não sincroniza entre dispositivos e some se limpar os dados do site.</p>
+    <div id="historyList"><p class="empty-note">Nenhuma análise salva ainda.</p></div>
   </div>
 
   <div id="resultsFilterBar" style="display:none;" class="row">
@@ -676,6 +699,97 @@
   }
   function RANKS_CHAR(v) { for (var k in RANK_VAL) if (RANK_VAL[k] === v) return k; return '?'; }
 
+  // ================= file import =================
+  var importBtn = document.getElementById('importBtn');
+  var fileInput = document.getElementById('fileInput');
+  var importStatusEl = document.getElementById('importStatus');
+
+  importBtn.addEventListener('click', function () { fileInput.click(); });
+
+  fileInput.addEventListener('change', function () {
+    var files = Array.from(fileInput.files || []);
+    if (!files.length) return;
+    importStatusEl.textContent = 'Lendo ' + files.length + ' arquivo(s)…';
+    var readers = files.map(function (file) {
+      return new Promise(function (resolve) {
+        var reader = new FileReader();
+        reader.onload = function () { resolve(reader.result); };
+        reader.onerror = function () { resolve(''); };
+        reader.readAsText(file);
+      });
+    });
+    Promise.all(readers).then(function (contents) {
+      var combined = contents.filter(Boolean).join('\n\n');
+      var current = hhEl.value.trim();
+      hhEl.value = current ? current + '\n\n' + combined : combined;
+      importStatusEl.textContent = files.length + ' arquivo(s) importado(s) — ' + files.map(function (f) { return f.name; }).join(', ');
+      fileInput.value = '';
+    });
+  });
+
+  // ================= history (persisted in this browser via localStorage) =================
+  var HISTORY_KEY = 'loppzloby_analise_history_v1';
+  var MAX_HISTORY_ENTRIES = 30;
+
+  function loadHistory() {
+    try {
+      var raw = localStorage.getItem(HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+  function saveHistory(list) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch (e) { /* storage full or unavailable, ignore */ }
+  }
+  function addHistoryEntry(entry) {
+    var list = loadHistory();
+    list.unshift(entry);
+    if (list.length > MAX_HISTORY_ENTRIES) list = list.slice(0, MAX_HISTORY_ENTRIES);
+    saveHistory(list);
+    renderHistoryList();
+  }
+  function deleteHistoryEntry(id) {
+    var list = loadHistory().filter(function (e) { return e.id !== id; });
+    saveHistory(list);
+    renderHistoryList();
+  }
+  function fmtDate(ts) {
+    var d = new Date(ts);
+    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  }
+  function renderHistoryList() {
+    var list = loadHistory();
+    var box = document.getElementById('historyList');
+    if (!list.length) { box.innerHTML = '<p class="empty-note">Nenhuma análise salva ainda.</p>'; return; }
+    box.innerHTML = list.map(function (e) {
+      return '<div class="hist-item">' +
+        '<div class="hist-info"><span class="hist-date">' + fmtDate(e.ts) + '</span><br>' +
+        '<span class="hist-stats">' + e.handCount + ' mão(s) · ' + e.mistakeCount + ' erro(s) · ' + (e.model === 'chip' ? 'Chip EV' : 'ICM') + '</span></div>' +
+        '<div class="hist-actions">' +
+          '<button data-action="load" data-id="' + e.id + '">Carregar</button>' +
+          '<button data-action="remove" data-id="' + e.id + '" class="danger">Remover</button>' +
+        '</div></div>';
+    }).join('');
+  }
+  document.getElementById('historyList').addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-action]');
+    if (!btn) return;
+    var id = btn.getAttribute('data-id');
+    var action = btn.getAttribute('data-action');
+    var list = loadHistory();
+    var entry = list.find(function (e) { return e.id === id; });
+    if (!entry) return;
+    if (action === 'remove') { deleteHistoryEntry(id); return; }
+    if (action === 'load') {
+      hhEl.value = entry.rawText || '';
+      thresholdEl.value = entry.threshold; modelEl.value = entry.model;
+      villainRangeEl.value = entry.villainRange; payoutsEl.value = entry.payouts || '';
+      document.getElementById('payoutRow').style.display = entry.model === 'chip' ? 'none' : 'flex';
+      setStatus('Mão(s) carregada(s) do histórico — clique em "Analisar mãos" para recalcular.', 'ok');
+      window.scrollTo({ top: hhEl.getBoundingClientRect().top + window.scrollY - 20, behavior: 'smooth' });
+    }
+  });
+  renderHistoryList();
+
   document.getElementById('presetSngBtn').addEventListener('click', function () {
     thresholdEl.value = 15;
     modelEl.value = 'icm';
@@ -714,6 +828,17 @@
       renderResults(evaluated, parsed.length, skipped);
       setStatus(parsed.length + ' mão(s) lida(s)' + (skipped ? ', ' + skipped + ' ignorada(s) (formato não reconhecido ou sem cartas do Hero)' : '') + '.', 'ok');
       btn.disabled = false; btn.textContent = 'Analisar mãos';
+
+      if (parsed.length) {
+        addHistoryEntry({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+          ts: Date.now(),
+          rawText: raw,
+          handCount: parsed.length,
+          mistakeCount: evaluated.filter(function (e) { return e.mistake; }).length,
+          model: model, threshold: threshold, villainRange: villainRangeEl.value, payouts: payoutsStr
+        });
+      }
     }, 30);
   });
 
