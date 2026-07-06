@@ -92,6 +92,28 @@
   .severity-bar { height: 100%; background: var(--danger); }
 
   .empty-note { font-size: 12.5px; color: var(--muted); text-align: center; padding: 20px 10px; }
+
+  /* playing-card visuals (reused look from Equity vs Range) */
+  .red-suit { color: #E2564C; }
+  .hi-card-row { display: flex; gap: 5px; align-items: center; }
+  .card-face-mini {
+    width: 32px; height: 44px; border-radius: 6px; background: var(--cream);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; line-height: 1.05; box-shadow: 0 2px 0 rgba(0,0,0,0.25);
+    flex-shrink: 0; color: #1A1508;
+  }
+  .card-face-mini.red { color: #E2564C; }
+  .card-face-mini .suit { font-size: 11px; margin-top: 1px; }
+
+  .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .preset-btn { background: var(--felt-2); border: 1px solid var(--gold-dim); color: var(--gold);
+    font-size: 11.5px; font-weight: 700; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+  .preset-btn:hover { border-color: var(--gold); }
+
+  .filter-row { display: flex; gap: 6px; margin-bottom: 14px; }
+  .filter-btn { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12.5px; font-weight: 700; padding: 8px; border-radius: 8px; cursor: pointer; }
+  .filter-btn.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
 </style>
 </head>
 <body>
@@ -152,6 +174,9 @@
         <label>Simulações por mão</label>
         <input type="number" id="iterations" value="4000" min="500" max="20000" step="500">
       </div>
+    </div>
+    <div class="preset-row">
+      <button class="preset-btn" id="presetSng1">SNG 9-max $1 (paga top 3, 50/30/20)</button>
     </div>
 
     <div class="row">
@@ -614,6 +639,17 @@
   var iterationsEl = document.getElementById('iterations');
   var statusEl = document.getElementById('status');
   var resultsEl = document.getElementById('results');
+  var lastEvaluated = null, lastTotalParsed = 0, lastSkipped = 0;
+  var currentFilter = 'all';
+
+  var SUIT_SYMBOL = { s: '♠', h: '♥', d: '♦', c: '♣' };
+  var SUIT_COLOR = { s: 'black', h: 'red', d: 'red', c: 'black' };
+  function cardFaceHTML(card) {
+    var symbol = SUIT_SYMBOL[card.suit];
+    var color = SUIT_COLOR[card.suit];
+    return '<div class="card-face-mini' + (color === 'red' ? ' red' : '') + '">' +
+      RANKS_CHAR(card.rank) + '<span class="suit">' + symbol + '</span></div>';
+  }
 
   function handKey(cards) {
     var order = 'AKQJT98765432';
@@ -650,6 +686,8 @@
         .filter(Boolean);
 
       evaluated.sort(function (a, b) { return b.severity - a.severity; });
+      lastEvaluated = evaluated; lastTotalParsed = parsed.length; lastSkipped = skipped;
+      currentFilter = 'all';
       renderResults(evaluated, parsed.length, skipped);
       setStatus(parsed.length + ' mão(s) lida(s)' + (skipped ? ', ' + skipped + ' ignorada(s) (formato não reconhecido ou sem cartas do Hero)' : '') + '.', 'ok');
       btn.disabled = false; btn.textContent = 'Analisar mãos';
@@ -657,11 +695,25 @@
   });
 
   document.getElementById('clearBtn').addEventListener('click', function () {
-    hhEl.value = ''; resultsEl.innerHTML = ''; setStatus('');
+    hhEl.value = ''; resultsEl.innerHTML = ''; setStatus(''); lastEvaluated = null;
+  });
+
+  document.getElementById('presetSng1').addEventListener('click', function () {
+    modelEl.value = 'icm';
+    document.getElementById('payoutRow').style.display = 'flex';
+    payoutsEl.value = '4.50,2.70,1.80';
+    setStatus('Preset aplicado: SNG 9-max $1, prêmios 4.50/2.70/1.80 (50/30/20 de um pool de $9).', 'ok');
   });
 
   modelEl.addEventListener('change', function () {
     document.getElementById('payoutRow').style.display = modelEl.value === 'chip' ? 'none' : 'flex';
+  });
+
+  resultsEl.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('.filter-btn');
+    if (!btn || !lastEvaluated) return;
+    currentFilter = btn.getAttribute('data-filter');
+    renderResults(lastEvaluated, lastTotalParsed, lastSkipped);
   });
 
   function setStatus(msg, cls) {
@@ -690,6 +742,7 @@
     }
     var model = modelEl.value;
     var mistakes = evaluated.filter(function (e) { return e.mistake; });
+    var visible = currentFilter === 'mistakes' ? mistakes : (currentFilter === 'ok' ? evaluated.filter(function (e) { return !e.mistake; }) : evaluated);
     var maxSeverity = Math.max.apply(null, evaluated.map(function (e) { return e.severity; })) || 1;
 
     var html = '';
@@ -699,15 +752,25 @@
       statChip(evaluated.length - mistakes.length, 'ok') +
       '</div>';
 
+    html += '<div class="filter-row">' +
+      '<button class="filter-btn' + (currentFilter === 'all' ? ' active' : '') + '" data-filter="all">Todos (' + evaluated.length + ')</button>' +
+      '<button class="filter-btn' + (currentFilter === 'mistakes' ? ' active' : '') + '" data-filter="mistakes">Erros (' + mistakes.length + ')</button>' +
+      '<button class="filter-btn' + (currentFilter === 'ok' ? ' active' : '') + '" data-filter="ok">OK (' + (evaluated.length - mistakes.length) + ')</button>' +
+      '</div>';
+
     html += '<div class="card"><h2 class="section">Resultado (do erro maior pro menor)</h2>';
-    evaluated.forEach(function (e) {
+    if (!visible.length) {
+      html += '<p class="empty-note">Nenhum resultado nesse filtro.</p>';
+    }
+    visible.forEach(function (e) {
       var h = e.hand;
       var cardsLabel = handKey(h.heroExactCards);
       var recommended = e.isCallDecision ? (e.shouldPlay ? 'Call' : 'Fold') : (e.shouldPlay ? 'Push' : 'Fold');
       var pctBar = Math.round((e.severity / maxSeverity) * 100);
       html += '<div class="hand-item ' + (e.mistake ? 'mistake' : 'ok') + '">' +
         '<div class="hi-top">' +
-          '<span class="hi-cards">' + cardsLabel + '</span>' +
+          '<div class="hi-card-row">' + h.heroExactCards.map(cardFaceHTML).join('') +
+            '<span class="hi-cards">' + cardsLabel + '</span></div>' +
           '<span class="hi-badge ' + (e.mistake ? 'mistake' : 'ok') + '">' + (e.mistake ? 'Erro' : 'OK') + '</span>' +
         '</div>' +
         '<div class="hi-meta">' + h.position + ' · ' + h.effBB.toFixed(1) + ' BB efetivo · mão #' + h.id +
