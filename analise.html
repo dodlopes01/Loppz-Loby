@@ -32,6 +32,8 @@
     padding: 12px 14px; font-size: 12px; line-height: 1.6; color: var(--cream); margin-bottom: 18px;
   }
   .disclaimer b { color: var(--gold); }
+  .disclaimer ul { margin: 6px 0 0; padding-left: 18px; }
+  .disclaimer li { margin-bottom: 3px; }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     padding: 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); }
@@ -42,13 +44,15 @@
   }
   textarea#hh::placeholder { color: var(--muted); }
 
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 12px; }
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-  .field input[type=number] {
-    width: 90px; background: var(--felt-2); border: 1px solid var(--line); border-radius: 7px;
+  .field input[type=number], .field input[type=text] {
+    background: var(--felt-2); border: 1px solid var(--line); border-radius: 7px;
     color: var(--cream); padding: 7px 8px; font-size: 13px;
   }
+  .field input[type=number] { width: 90px; }
+  .field input[type=text] { width: 220px; }
   .field select {
     background: var(--felt-2); border: 1px solid var(--line); border-radius: 7px;
     color: var(--cream); padding: 7px 8px; font-size: 13px;
@@ -82,6 +86,8 @@
   .hi-meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
   .hi-detail { font-size: 12.5px; margin-top: 8px; line-height: 1.5; }
   .hi-detail b { color: var(--gold); }
+  .hi-ev { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; }
+  .hi-ev span b { display: block; font-size: 14px; }
   .severity-bar-bg { height: 5px; border-radius: 3px; background: var(--felt); margin-top: 8px; overflow: hidden; }
   .severity-bar { height: 100%; background: var(--danger); }
 
@@ -93,16 +99,23 @@
 
   <header>
     <h1>Análise de Mãos</h1>
-    <span>auto-análise push/fold</span>
+    <span>equity real + ICM real</span>
   </header>
 
   <div class="disclaimer">
-    <b>V1 — estimativa, não solver Nash.</b> Este auto-analisador compara suas mãos contra uma
-    faixa de push/fold <b>aproximada</b> (calculada por força da mão + profundidade de stack + posição),
-    não contra um equilíbrio de Nash/ICM exato como o de ferramentas dedicadas. Serve pra apontar
-    tendências e erros grosseiros — trate os resultados como direção, não como verdade absoluta.
-    Formato aceito no momento: <b>hand history estilo PokerStars</b> (texto puro). Se seu site usa
-    outro formato, exporte via um tracker (Hand2Note, HM3, PT4) no formato "PokerStars puro".
+    <b>V2 — motor de equity Monte Carlo + ICM real.</b> Diferente da v1 (que usava só a força
+    aproximada da mão), esta versão calcula:
+    <ul>
+      <li><b>Equity exata (via simulação):</b> sua mão real vs. a faixa assumida do(s) oponente(s), usando o mesmo avaliador de 7 cartas do "Equity vs Range".</li>
+      <li><b>ICM de verdade:</b> valor em prêmio ($) de cada resultado, via fórmula recursiva de finish-probability — não é mais só uma estimativa por percentil.</li>
+    </ul>
+    O que ainda é simplificado (e será refinado nas próximas fases):
+    <ul>
+      <li>A faixa de call/push assumida para os oponentes ainda é heurística (ajustável no dropdown "faixa do vilão"), não um equilíbrio de Nash resolvido.</li>
+      <li>Em mãos com vários jogadores atrás de você, o modelo considera no máximo <b>um</b> chamador por vez (ignora a chance de dois ou mais pagarem juntos) e renormaliza a probabilidade pra não distorcer o EV — isso tende a <b>superestimar levemente</b> sua vantagem em potes bem multi-way.</li>
+      <li>O ICM aqui é calculado com os jogadores <b>desta mesa</b> e os prêmios que você informar — é exato para mesa final, e uma aproximação em estágios anteriores de MTT (o ICM "de campo completo" exigiria o total de fichas e jogadores do torneio inteiro, como o próprio ICMIZER pede no modo MTT).</li>
+    </ul>
+    Formato aceito: hand history estilo PokerStars (texto puro).
   </div>
 
   <div class="card">
@@ -115,11 +128,29 @@
         <input type="number" id="threshold" value="20" min="2" max="40">
       </div>
       <div class="field">
+        <label>Faixa assumida do vilão</label>
+        <select id="villainRange">
+          <option value="tight">Apertada (~10-15%)</option>
+          <option value="medium" selected>Média (~20-30%)</option>
+          <option value="loose">Larga (~35-45%)</option>
+        </select>
+      </div>
+      <div class="field">
         <label>Modelo</label>
         <select id="model">
-          <option value="icm">ICM (bolha/final table)</option>
+          <option value="icm">ICM ($ / bolha / final table)</option>
           <option value="chip">Chip EV (torneio cedo / cash)</option>
         </select>
+      </div>
+    </div>
+    <div class="row" id="payoutRow">
+      <div class="field" style="flex:1;">
+        <label>Prêmios em ordem (1º,2º,3º... — só p/ ICM)</label>
+        <input type="text" id="payouts" placeholder="ex: 5000,3000,1800,1200,900">
+      </div>
+      <div class="field">
+        <label>Simulações por mão</label>
+        <input type="number" id="iterations" value="4000" min="500" max="20000" step="500">
       </div>
     </div>
 
@@ -136,106 +167,209 @@
 
 <script>
 (function () {
-  // ---------- 169-hand strength model (Chen formula, public-domain heuristic) ----------
+  // ================= reused engine (same math as equity.html) =================
+  var RANK_VAL = { A:14, K:13, Q:12, J:11, T:10, '9':9, '8':8, '7':7, '6':6, '5':5, '4':4, '3':3, '2':2 };
+  var CHEN_PTS = { A:10, K:8, Q:7, J:6, T:5, '9':4.5, '8':4, '7':3.5, '6':3, '5':2.5, '4':2, '3':1.5, '2':1 };
+  var SUITS = ['s','h','d','c'];
   var RANKS = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
-  function rankValue(r) {
-    if (r === 'A') return 10;
-    if (r === 'K') return 8;
-    if (r === 'Q') return 7;
-    if (r === 'J') return 6;
-    if (r === 'T') return 5;
-    return parseInt(r, 10) / 2;
-  }
-  function rankIndex(r) { return RANKS.indexOf(r); }
 
-  // hand string like "AKs", "AA", "72o" -> Chen score
-  function chenScore(hand) {
-    var r1 = hand[0], r2 = hand[1];
-    var suited = hand.length > 2 && hand[2] === 's';
-    if (r1 === r2) {
-      var pairScore = rankValue(r1) * 2;
-      return Math.max(pairScore, 5);
+  function chenScore(label, type) {
+    var r1, r2;
+    if (type === 'pair') { r1 = r2 = label[0]; } else { r1 = label[0]; r2 = label[1]; }
+    var v1 = RANK_VAL[r1], v2 = RANK_VAL[r2];
+    var hi = v1 >= v2 ? r1 : r2, lo = v1 >= v2 ? r2 : r1;
+    var hiVal = RANK_VAL[hi], loVal = RANK_VAL[lo];
+    var score;
+    if (type === 'pair') { score = Math.max(CHEN_PTS[r1]*2, 5); }
+    else {
+      score = CHEN_PTS[hi];
+      if (type === 'suited') score += 2;
+      var gap = hiVal - loVal - 1;
+      if (gap===0) score+=0; else if (gap===1) score-=1; else if (gap===2) score-=2; else if (gap===3) score-=4; else score-=5;
+      if (gap<=1 && hiVal<=12) score+=1;
     }
-    var hi = rankValue(r1) >= rankValue(r2) ? r1 : r2;
-    var lo = rankValue(r1) >= rankValue(r2) ? r2 : r1;
-    var score = rankValue(hi);
-    if (suited) score += 2;
-    var gap = Math.abs(rankIndex(r1) - rankIndex(r2)) - 1;
-    var gapPenalty = 0;
-    if (gap === 1) gapPenalty = 1;
-    else if (gap === 2) gapPenalty = 2;
-    else if (gap === 3) gapPenalty = 4;
-    else if (gap >= 4) gapPenalty = 5;
-    score -= gapPenalty;
-    // bonus: both cards below Q and 0-1 gap (straight potential), rounds up
-    if (rankValue(hi) <= 8 && gap <= 1) score += 1;
-    return Math.round(score * 2) / 2; // round to .5
+    return score;
   }
 
-  // Build all 169 hands with scores, sorted strongest -> weakest
-  var ALL_HANDS = [];
-  (function build() {
+  var HAND_TYPES = [];
+  (function buildHandTypes() {
     for (var i = 0; i < 13; i++) {
       for (var j = 0; j < 13; j++) {
-        if (i === j) {
-          ALL_HANDS.push(RANKS[i] + RANKS[j]);
-        } else if (i > j) {
-          // offsuit, i is higher rank index than j is wrong: build both suited/offsuit once per pair
-        }
+        var label, type, combos;
+        if (i === j) { label = RANKS[i] + RANKS[i]; type = 'pair'; combos = 6; }
+        else if (i < j) { label = RANKS[i] + RANKS[j] + 's'; type = 'suited'; combos = 4; }
+        else { label = RANKS[j] + RANKS[i] + 'o'; type = 'offsuit'; combos = 12; }
+        var score = chenScore(label, type);
+        HAND_TYPES.push({ label: label, type: type, combos: combos, score: score });
       }
     }
-    for (var a = 12; a >= 0; a--) {
-      for (var b = a - 1; b >= 0; b--) {
-        ALL_HANDS.push(RANKS[a] + RANKS[b] + 's');
-        ALL_HANDS.push(RANKS[a] + RANKS[b] + 'o');
+  })();
+  var SORTED_HAND_TYPES = HAND_TYPES.slice().sort(function (a, b) { return b.score - a.score; });
+
+  function topNCombos(pct) {
+    var target = (pct / 100) * 1326, acc = 0, set = [];
+    for (var k = 0; k < SORTED_HAND_TYPES.length; k++) {
+      if (acc >= target) break;
+      set.push(SORTED_HAND_TYPES[k].label);
+      acc += SORTED_HAND_TYPES[k].combos;
+    }
+    return set;
+  }
+
+  function expandHandToCombos(label) {
+    var out = [];
+    if (label.length === 2) {
+      var v = RANK_VAL[label[0]];
+      for (var a = 0; a < 4; a++) for (var b = a + 1; b < 4; b++) out.push([{ rank: v, suit: SUITS[a] }, { rank: v, suit: SUITS[b] }]);
+    } else {
+      var v1 = RANK_VAL[label[0]], v2 = RANK_VAL[label[1]], suited = label[2] === 's';
+      if (suited) {
+        for (var s = 0; s < 4; s++) out.push([{ rank: v1, suit: SUITS[s] }, { rank: v2, suit: SUITS[s] }]);
+      } else {
+        for (var s1 = 0; s1 < 4; s1++) for (var s2 = 0; s2 < 4; s2++) if (s1 !== s2) out.push([{ rank: v1, suit: SUITS[s1] }, { rank: v2, suit: SUITS[s2] }]);
       }
     }
-    ALL_HANDS = ALL_HANDS.map(function (h) { return { hand: h, score: chenScore(h) }; });
-    ALL_HANDS.sort(function (x, y) { return y.score - x.score; });
-    ALL_HANDS.forEach(function (h, idx) { h.pct = (idx + 1) / ALL_HANDS.length; }); // top pct
+    return out;
+  }
+  function cardKey(c) { return c.rank + c.suit; }
+
+  var FULL_DECK = (function () {
+    var out = [];
+    for (var r = 2; r <= 14; r++) for (var s = 0; s < 4; s++) out.push({ rank: r, suit: SUITS[s] });
+    return out;
   })();
 
-  function handToKey(r1, r2, suited) {
-    var order = 'AKQJT98765432';
-    var i1 = order.indexOf(r1), i2 = order.indexOf(r2);
-    var hi = i1 <= i2 ? r1 : r2, lo = i1 <= i2 ? r2 : r1;
-    if (hi === lo) return hi + lo;
-    return hi + lo + (suited ? 's' : 'o');
+  // ---------- hand evaluator (identical logic to equity.html) ----------
+  function evaluate5(cards) {
+    var ranks = cards.map(function (c) { return c.rank; }).sort(function (a, b) { return b - a; });
+    var suits = cards.map(function (c) { return c.suit; });
+    var isFlush = suits.every(function (s) { return s === suits[0]; });
+    var uniq = [];
+    ranks.forEach(function (r) { if (uniq.indexOf(r) === -1) uniq.push(r); });
+    var isStraight = false, straightHigh = 0;
+    if (uniq.length === 5) {
+      if (uniq[0] - uniq[4] === 4) { isStraight = true; straightHigh = uniq[0]; }
+      else if (uniq.join(',') === '14,5,4,3,2') { isStraight = true; straightHigh = 5; }
+    }
+    var freq = {};
+    ranks.forEach(function (r) { freq[r] = (freq[r] || 0) + 1; });
+    var groups = Object.keys(freq).map(function (r) { return { rank: +r, count: freq[r] }; })
+      .sort(function (a, b) { return b.count - a.count || b.rank - a.rank; });
+    var category, tiebreak;
+    if (isStraight && isFlush) { category = 8; tiebreak = [straightHigh]; }
+    else if (groups[0].count === 4) { category = 7; tiebreak = [groups[0].rank, groups[1].rank]; }
+    else if (groups[0].count === 3 && groups[1] && groups[1].count === 2) { category = 6; tiebreak = [groups[0].rank, groups[1].rank]; }
+    else if (isFlush) { category = 5; tiebreak = ranks; }
+    else if (isStraight) { category = 4; tiebreak = [straightHigh]; }
+    else if (groups[0].count === 3) { category = 3; tiebreak = [groups[0].rank].concat(groups.slice(1).map(function (g) { return g.rank; })); }
+    else if (groups[0].count === 2 && groups[1] && groups[1].count === 2) { category = 2; tiebreak = [groups[0].rank, groups[1].rank, groups[2].rank]; }
+    else if (groups[0].count === 2) { category = 1; tiebreak = [groups[0].rank].concat(groups.slice(1).map(function (g) { return g.rank; })); }
+    else { category = 0; tiebreak = ranks; }
+    var score = category;
+    var tb = tiebreak.slice(0, 5);
+    tb.forEach(function (v) { score = score * 15 + v; });
+    for (var p = tb.length; p < 5; p++) score = score * 15;
+    return score;
+  }
+  var COMBOS7C5 = (function () {
+    var out = [];
+    function rec(start, chosen) {
+      if (chosen.length === 5) { out.push(chosen.slice()); return; }
+      for (var i = start; i < 7; i++) { chosen.push(i); rec(i + 1, chosen); chosen.pop(); }
+    }
+    rec(0, []);
+    return out;
+  })();
+  function evaluate7(cards7) {
+    var best = -1;
+    for (var k = 0; k < COMBOS7C5.length; k++) {
+      var idxs = COMBOS7C5[k];
+      var five = [cards7[idxs[0]], cards7[idxs[1]], cards7[idxs[2]], cards7[idxs[3]], cards7[idxs[4]]];
+      var s = evaluate5(five);
+      if (s > best) best = s;
+    }
+    return best;
   }
 
-  function scoreOf(key) {
-    for (var i = 0; i < ALL_HANDS.length; i++) if (ALL_HANDS[i].hand === key) return ALL_HANDS[i];
-    return null;
+  // ---------- Monte Carlo equity: hero's exact 2 cards vs a range (list of hand labels) ----------
+  function equityVsRange(heroCards, rangeLabels, iterations) {
+    var pool = [];
+    rangeLabels.forEach(function (label) {
+      expandHandToCombos(label).forEach(function (combo) { pool.push(combo); });
+    });
+    var heroKeys = { };
+    heroKeys[cardKey(heroCards[0])] = true; heroKeys[cardKey(heroCards[1])] = true;
+    pool = pool.filter(function (combo) { return !heroKeys[cardKey(combo[0])] && !heroKeys[cardKey(combo[1])]; });
+    if (!pool.length) return null;
+
+    var wins = 0, ties = 0, valid = 0;
+    var maxAttempts = iterations * 3;
+    var attempts = 0;
+    while (valid < iterations && attempts < maxAttempts) {
+      attempts++;
+      var vc = pool[(Math.random() * pool.length) | 0];
+      var used = {};
+      used[cardKey(heroCards[0])] = true; used[cardKey(heroCards[1])] = true;
+      used[cardKey(vc[0])] = true; used[cardKey(vc[1])] = true;
+
+      var candidates = [];
+      for (var i = 0; i < FULL_DECK.length; i++) {
+        var c = FULL_DECK[i];
+        if (!used[cardKey(c)]) candidates.push(c);
+      }
+      var board = [];
+      for (var b = 0; b < 5; b++) {
+        var pick = (Math.random() * candidates.length) | 0;
+        board.push(candidates[pick]);
+        candidates.splice(pick, 1);
+      }
+      var heroScore = evaluate7(heroCards.concat(board));
+      var villainScore = evaluate7(vc.concat(board));
+      if (heroScore > villainScore) wins++;
+      else if (heroScore === villainScore) ties++;
+      valid++;
+    }
+    if (!valid) return null;
+    return (wins + ties * 0.5) / valid;
   }
 
-  // ---------- Heuristic push/fold & call range (NOT a true Nash/ICM solver) ----------
-  // Returns the top-% of hands that should be pushed/called at a given effective stack (BB)
-  // and position. This is a smooth heuristic approximation, tuned to widen with shorter
-  // stacks and later position, narrow near the bubble under ICM.
-  var POSITION_MULT = {
-    'UTG': 0.45, 'UTG+1': 0.5, 'MP': 0.6, 'MP+1': 0.7, 'HJ': 0.8,
-    'CO': 0.9, 'BTN': 1.15, 'SB': 1.3, 'BB': 1.0
-  };
+  // ================= real ICM (recursive finish-probability formula) =================
+  // Returns $ EV per player given chip stacks (array) and payouts (array, index 0 = 1st place).
+  function icmEquity(stacks, payouts) {
+    var n = stacks.length;
+    if (n === 0) return [];
+    if (n === 1) return [payouts[0] || 0];
+    var total = 0;
+    for (var i = 0; i < n; i++) total += stacks[i];
+    if (total <= 0) return stacks.map(function () { return 0; });
 
-  function pushRangePct(effBB, position, model) {
-    var base = clamp(0.95 - effBB * 0.032, 0.04, 0.95);
-    var mult = POSITION_MULT[position] || 0.7;
-    var pct = clamp(base * mult, 0.02, 0.97);
-    if (model === 'icm') pct *= 0.85; // ICM makes pushing lighter ranges costlier -> tighten
-    return pct;
+    var result = new Array(n).fill(0);
+    for (var i = 0; i < n; i++) {
+      var pFirst = stacks[i] / total;
+      var remStacks = stacks.slice(0, i).concat(stacks.slice(i + 1));
+      var remPayouts = payouts.slice(1);
+      var sub = icmEquity(remStacks, remPayouts);
+      result[i] += pFirst * (payouts[0] || 0);
+      for (var j = 0; j < n; j++) {
+        if (j === i) continue;
+        var subIdx = j < i ? j : j - 1;
+        result[j] += pFirst * (sub[subIdx] || 0);
+      }
+    }
+    return result;
   }
 
-  function callRangePct(effBB, position, model) {
-    // Calling an all-in is inherently tighter than pushing one (facing a range, not opening)
-    return pushRangePct(effBB, position, model) * 0.6;
+  // ---------- Villain range presets (heuristic — adjustable, not a solved equilibrium) ----------
+  var VILLAIN_RANGE_PCT = { tight: 12, medium: 25, loose: 40 };
+  // widen a bit further for very short stacks (their real jamming/calling range grows)
+  function villainRangePct(basePct, effBB) {
+    var widen = effBB <= 8 ? 1.3 : (effBB <= 12 ? 1.15 : 1.0);
+    return Math.min(basePct * widen, 85);
   }
 
-  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-
-  // ---------- PokerStars-format hand history parser ----------
+  // ================= PokerStars-format hand history parser =================
   function splitHands(raw) {
-    var parts = raw.split(/(?=PokerStars Hand #)/g).map(function (s) { return s.trim(); }).filter(Boolean);
-    return parts;
+    return raw.split(/(?=PokerStars Hand #)/g).map(function (s) { return s.trim(); }).filter(Boolean);
   }
 
   function parseHand(block) {
@@ -243,7 +377,7 @@
       var idMatch = block.match(/PokerStars Hand #(\d+)/);
       var blindsMatch = block.match(/Level\s+\S+\s*\((\d+)\/(\d+)\)/) || block.match(/\((\d+)\/(\d+)\)/);
       if (!blindsMatch) return null;
-      var sb = parseInt(blindsMatch[1], 10), bb = parseInt(blindsMatch[2], 10);
+      var bb = parseInt(blindsMatch[2], 10);
 
       var buttonMatch = block.match(/Seat #(\d+) is the button/);
       if (!buttonMatch) return null;
@@ -258,13 +392,12 @@
       if (seats.length < 2) return null;
 
       var heroCardsMatch = block.match(/Dealt to Hero \[(.+?)\]/);
-      if (!heroCardsMatch) return null; // only analyze hands where we can see Hero's cards
-      var cardsRaw = heroCardsMatch[1].split(' '); // e.g. ["Ah","Kd"]
+      if (!heroCardsMatch) return null;
+      var cardsRaw = heroCardsMatch[1].split(' ');
 
       var heroSeatObj = seats.find(function (s) { return s.name === 'Hero'; });
       if (!heroSeatObj) return null;
 
-      // position relative to button
       seats.sort(function (a, b) { return a.seat - b.seat; });
       var n = seats.length;
       var btnIdx = seats.findIndex(function (s) { return s.seat === buttonSeat; });
@@ -272,60 +405,74 @@
       var offset = (heroIdx - btnIdx + n) % n;
       var position = positionFromOffset(offset, n);
 
-      // preflop action section
       var preflopMatch = block.match(/\*\*\* HOLE CARDS \*\*\*([\s\S]*?)(\*\*\* FLOP \*\*\*|\*\*\* SUMMARY \*\*\*|$)/);
       var preflopText = preflopMatch ? preflopMatch[1] : '';
       var actionLines = preflopText.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
 
-      var heroActedFirstIn = true; // no raise before hero
-      var facedAllIn = false;
-      var heroAction = null; // 'push' | 'fold' | 'call' | 'raise-small' | 'check'
+      var facedAllIn = false, allInBySeatName = null;
+      var heroAction = null;
       var raisesBeforeHero = 0;
+      var playersFoldedBeforeHero = {};
 
       for (var i = 0; i < actionLines.length; i++) {
         var line = actionLines[i];
         var isHero = /^Hero:/.test(line);
         if (!isHero) {
-          if (/: raises .* to .* and is all-in/.test(line) || /: bets .* and is all-in/.test(line)) {
-            facedAllIn = true; raisesBeforeHero++;
-          } else if (/: raises .* to/.test(line)) {
+          var nameMatch = line.match(/^([^:]+):/);
+          var actorName = nameMatch ? nameMatch[1].trim() : null;
+          if (/folds/.test(line) && actorName) playersFoldedBeforeHero[actorName] = true;
+          if (/raises .* to .* and is all-in/.test(line) || /bets .* and is all-in/.test(line)) {
+            facedAllIn = true; allInBySeatName = actorName; raisesBeforeHero++;
+          } else if (/raises .* to/.test(line)) {
             raisesBeforeHero++;
           }
           continue;
         }
-        // Hero's line
         if (/folds/.test(line)) heroAction = 'fold';
         else if (/raises .* to .* and is all-in/.test(line)) heroAction = 'push';
         else if (/raises .* to/.test(line)) heroAction = raisesBeforeHero > 0 ? 'raise-over' : 'raise-small';
         else if (/calls .* and is all-in/.test(line)) heroAction = 'call-allin';
         else if (/calls/.test(line)) heroAction = 'call';
         else if (/checks/.test(line)) heroAction = 'check';
-        break; // only hero's first preflop decision matters for push/fold classification
+        break;
       }
-
       if (!heroAction) return null;
 
-      // effective stack: hero's stack vs the 2nd largest live stack (rough approximation
-      // using chip counts at hand start, in BB)
+      // players still live and acting after Hero when Hero pushes (folded-to-hero scenario)
+      var behindPlayers = [];
+      if (!facedAllIn) {
+        // seats between hero and the end of the preflop action order that haven't folded
+        var orderFromHero = [];
+        for (var k = 1; k < n; k++) orderFromHero.push(seats[(heroIdx + k) % n]);
+        orderFromHero.forEach(function (s) {
+          if (s.name !== 'Hero' && !playersFoldedBeforeHero[s.name]) behindPlayers.push(s);
+        });
+      }
+
       var otherStacks = seats.filter(function (s) { return s.name !== 'Hero'; }).map(function (s) { return s.chips; });
       otherStacks.sort(function (a, b) { return b - a; });
       var effChips = Math.min(heroSeatObj.chips, otherStacks[0] || heroSeatObj.chips);
       var effBB = effChips / bb;
 
       var r1 = cardsRaw[0][0].toUpperCase(), r2 = cardsRaw[1][0].toUpperCase();
-      var suited = cardsRaw[0][1] === cardsRaw[1][1];
-      var key = handToKey(r1, r2, suited);
-      var strength = scoreOf(key);
+      var s1 = cardsRaw[0][1], s2 = cardsRaw[1][1];
+      var heroExactCards = [{ rank: RANK_VAL[r1], suit: s1 }, { rank: RANK_VAL[r2], suit: s2 }];
+
+      var allInSeatObj = allInBySeatName ? seats.find(function (s) { return s.name === allInBySeatName; }) : null;
 
       return {
         id: idMatch ? idMatch[1] : '?',
         position: position,
+        bb: bb,
         effBB: effBB,
-        cards: key,
-        strength: strength,
+        heroExactCards: heroExactCards,
         heroAction: heroAction,
         facedAllInBeforeHero: facedAllIn,
-        raisesBeforeHero: raisesBeforeHero
+        allInSeatObj: allInSeatObj,
+        raisesBeforeHero: raisesBeforeHero,
+        heroChips: heroSeatObj.chips,
+        allSeats: seats, // full seat list w/ chips, for table-level ICM
+        behindPlayers: behindPlayers
       };
     } catch (e) {
       return null;
@@ -333,83 +480,186 @@
   }
 
   function positionFromOffset(offset, n) {
-    // offset 0 = button
     var names9 = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO'];
     var names6 = ['BTN', 'SB', 'BB', 'UTG', 'MP', 'CO'];
-    var names2 = ['BTN', 'BB']; // heads-up: button = SB
     if (n <= 2) return offset === 0 ? 'SB' : 'BB';
     if (n <= 6) return names6[offset] || 'MP';
     return names9[offset] || 'MP';
   }
 
-  // ---------- Evaluate a parsed hand against the heuristic reference range ----------
-  function evaluate(hand, thresholdBB, model) {
-    if (hand.effBB > thresholdBB) return null; // not a push/fold-depth spot
-    if (hand.raisesBeforeHero > 1) return null; // skip multi-way re-raise spots (out of scope for v1)
-    if (!hand.strength) return null;
+  // ================= evaluate a parsed hand with real equity + real ICM =================
+  function buildPayouts(model, payoutsStr, numPlayers) {
+    if (model === 'chip') return null; // signals chip-EV mode
+    var parsed = (payoutsStr || '').split(',').map(function (s) { return parseFloat(s.trim()); }).filter(function (v) { return !isNaN(v) && v > 0; });
+    if (parsed.length) return parsed;
+    // fallback illustrative structure if user left it blank
+    var fallback = [];
+    var base = 100;
+    for (var i = 0; i < numPlayers; i++) fallback.push(Math.round(base / Math.pow(1.5, i)));
+    return fallback;
+  }
 
-    var isCallDecision = hand.facedAllInBeforeHero;
-    var refPct = isCallDecision
-      ? callRangePct(hand.effBB, hand.position, model)
-      : pushRangePct(hand.effBB, hand.position, model);
+  function evaluateHand(hand, thresholdBB, model, payoutsStr, villainPct, iterations) {
+    if (hand.effBB > thresholdBB) return null;
+    if (hand.raisesBeforeHero > 1) return null; // multi-way re-raise pots out of v2 scope too
 
-    var shouldPlay = hand.strength.pct <= refPct; // top X% -> pct is small for strong hands
-    var didPlay = isCallDecision
-      ? (hand.heroAction === 'call' || hand.heroAction === 'call-allin')
-      : (hand.heroAction === 'push');
-    var didFold = hand.heroAction === 'fold';
+    var stacks = hand.allSeats.map(function (s) { return s.chips; });
+    var heroIdxInSeats = hand.allSeats.findIndex(function (s) { return s.name === 'Hero'; });
+    var payouts = buildPayouts(model, payoutsStr, hand.allSeats.length);
 
-    var mistake = (shouldPlay && didFold) || (!shouldPlay && didPlay);
-    // severity: how far the hand's percentile is from the reference cutoff
-    var severity = Math.abs(hand.strength.pct - refPct);
+    function tableEV(modStacks) {
+      if (model === 'chip') return modStacks[heroIdxInSeats]; // chip EV: value = hero's own chip count
+      var evs = icmEquity(modStacks, payouts);
+      return evs[heroIdxInSeats];
+    }
+
+    var currentEV = tableEV(stacks);
+
+    if (hand.facedAllInBeforeHero) {
+      // heads-up decision: call vs fold against the specific all-in villain
+      if (!hand.allInSeatObj) return null;
+      var villainIdxInSeats = hand.allSeats.findIndex(function (s) { return s.name === hand.allInSeatObj.name; });
+      var vPct = villainRangePct(villainPct, Math.min(hand.effBB, hand.allInSeatObj.chips / hand.bb));
+      var range = topNCombos(vPct);
+      var equity = equityVsRange(hand.heroExactCards, range, iterations);
+      if (equity === null) return null;
+
+      var effChips = Math.min(hand.heroChips, hand.allInSeatObj.chips);
+      var winStacks = stacks.slice();
+      winStacks[heroIdxInSeats] += effChips;
+      winStacks[villainIdxInSeats] -= effChips;
+      var loseStacks = stacks.slice();
+      loseStacks[heroIdxInSeats] -= effChips;
+      loseStacks[villainIdxInSeats] += effChips;
+
+      var evCall = equity * tableEV(winStacks) + (1 - equity) * tableEV(loseStacks);
+      var evFold = currentEV;
+      var shouldCall = evCall > evFold;
+      var didCall = (hand.heroAction === 'call' || hand.heroAction === 'call-allin');
+      var mistake = shouldCall !== didCall;
+
+      return {
+        hand: hand, isCallDecision: true, equity: equity,
+        evPush: evCall, evFold: evFold, shouldPlay: shouldCall, didPlay: didCall,
+        mistake: mistake, severity: Math.abs(evCall - evFold)
+      };
+    }
+
+    // push decision: at-most-one-caller approximation across players still behind Hero
+    var behind = hand.behindPlayers;
+    if (!behind.length) return null;
+
+    var callInfos = behind.map(function (p) {
+      var idx = hand.allSeats.findIndex(function (s) { return s.name === p.name; });
+      var pStackBB = p.chips / hand.bb;
+      var pct = villainRangePct(villainPct, Math.min(hand.effBB, pStackBB));
+      return { idx: idx, chips: p.chips, pct: pct / 100 };
+    });
+
+    var pNobodyCalls = callInfos.reduce(function (acc, c) { return acc * (1 - c.pct); }, 1);
+
+    // Note (approximation limitation): we model "nobody calls" + "exactly one caller"
+    // scenarios and explicitly drop the "two or more callers at once" scenario. To avoid
+    // silently under-weighting the EV (which would bias the result toward "fold"), we
+    // renormalize by the probability mass we actually modeled. This likely slightly
+    // *overstates* Hero's edge in heavy multi-way spots, since beating two live ranges
+    // at once is harder than beating one — a real limitation, not a hidden math error.
+    var evPushRaw = pNobodyCalls * currentEV;
+    var equitySum = 0, weightSum = 0;
+    var probMassModeled = pNobodyCalls;
+    callInfos.forEach(function (c) {
+      var pOnlyThis = c.pct;
+      callInfos.forEach(function (other) { if (other !== c) pOnlyThis *= (1 - other.pct); });
+      if (pOnlyThis <= 0) return;
+      probMassModeled += pOnlyThis;
+      var vPct = villainRangePct(villainPct, Math.min(hand.effBB, c.chips / hand.bb));
+      var range = topNCombos(vPct);
+      var equity = equityVsRange(hand.heroExactCards, range, Math.max(500, Math.round(iterations / Math.max(1, callInfos.length))));
+      if (equity === null) return;
+      equitySum += equity * pOnlyThis; weightSum += pOnlyThis;
+
+      var effChips = Math.min(hand.heroChips, c.chips);
+      var winStacks = stacks.slice();
+      winStacks[heroIdxInSeats] += effChips;
+      winStacks[c.idx] -= effChips;
+      var loseStacks = stacks.slice();
+      loseStacks[heroIdxInSeats] -= effChips;
+      loseStacks[c.idx] += effChips;
+
+      evPushRaw += pOnlyThis * (equity * tableEV(winStacks) + (1 - equity) * tableEV(loseStacks));
+    });
+
+    var evPush = probMassModeled > 0 ? evPushRaw / probMassModeled : evPushRaw;
+    var avgEquity = weightSum > 0 ? equitySum / weightSum : null;
+    var evFoldPush = currentEV;
+    var shouldPush = evPush > evFoldPush;
+    var didPush = hand.heroAction === 'push';
+    var mistake = shouldPush !== didPush;
 
     return {
-      hand: hand,
-      isCallDecision: isCallDecision,
-      refPct: refPct,
-      shouldPlay: shouldPlay,
-      didPlay: didPlay,
-      didFold: didFold,
-      mistake: mistake,
-      severity: severity
+      hand: hand, isCallDecision: false, equity: avgEquity,
+      evPush: evPush, evFold: evFoldPush, shouldPlay: shouldPush, didPlay: didPush,
+      mistake: mistake, severity: Math.abs(evPush - evFoldPush)
     };
   }
 
-  // ---------- UI wiring ----------
+  // ================= UI wiring =================
   var hhEl = document.getElementById('hh');
   var thresholdEl = document.getElementById('threshold');
   var modelEl = document.getElementById('model');
+  var villainRangeEl = document.getElementById('villainRange');
+  var payoutsEl = document.getElementById('payouts');
+  var iterationsEl = document.getElementById('iterations');
   var statusEl = document.getElementById('status');
   var resultsEl = document.getElementById('results');
+
+  function handKey(cards) {
+    var order = 'AKQJT98765432';
+    var r1 = RANKS_CHAR(cards[0].rank), r2 = RANKS_CHAR(cards[1].rank);
+    var i1 = order.indexOf(r1), i2 = order.indexOf(r2);
+    var hi = i1 <= i2 ? r1 : r2, lo = i1 <= i2 ? r2 : r1;
+    if (hi === lo) return hi + lo;
+    return hi + lo + (cards[0].suit === cards[1].suit ? 's' : 'o');
+  }
+  function RANKS_CHAR(v) { for (var k in RANK_VAL) if (RANK_VAL[k] === v) return k; return '?'; }
 
   document.getElementById('analyzeBtn').addEventListener('click', function () {
     var raw = hhEl.value.trim();
     if (!raw) { setStatus('Cole pelo menos uma mão antes de analisar.', 'err'); return; }
-
     var blocks = splitHands(raw);
     if (!blocks.length) { setStatus('Não encontrei nenhuma mão nesse texto (formato esperado: "PokerStars Hand #...").', 'err'); return; }
 
     var threshold = parseFloat(thresholdEl.value) || 20;
     var model = modelEl.value;
+    var villainPct = VILLAIN_RANGE_PCT[villainRangeEl.value];
+    var iterations = parseInt(iterationsEl.value, 10) || 4000;
+    var payoutsStr = payoutsEl.value;
 
-    var parsed = [], skipped = 0;
-    blocks.forEach(function (b) {
-      var h = parseHand(b);
-      if (h) parsed.push(h); else skipped++;
-    });
+    var btn = document.getElementById('analyzeBtn');
+    btn.disabled = true; btn.textContent = 'Calculando…';
+    setStatus('Rodando simulações de equity, pode levar alguns segundos…', '');
 
-    var evaluated = parsed
-      .map(function (h) { return evaluate(h, threshold, model); })
-      .filter(Boolean);
+    setTimeout(function () {
+      var parsed = [], skipped = 0;
+      blocks.forEach(function (b) { var h = parseHand(b); if (h) parsed.push(h); else skipped++; });
 
-    evaluated.sort(function (a, b) { return b.severity - a.severity; });
+      var evaluated = parsed
+        .map(function (h) { return evaluateHand(h, threshold, model, payoutsStr, villainPct, iterations); })
+        .filter(Boolean);
 
-    renderResults(evaluated, parsed.length, skipped);
-    setStatus(parsed.length + ' mão(s) lida(s)' + (skipped ? ', ' + skipped + ' ignorada(s) (formato não reconhecido ou sem cartas do Hero)' : '') + '.', 'ok');
+      evaluated.sort(function (a, b) { return b.severity - a.severity; });
+      renderResults(evaluated, parsed.length, skipped);
+      setStatus(parsed.length + ' mão(s) lida(s)' + (skipped ? ', ' + skipped + ' ignorada(s) (formato não reconhecido ou sem cartas do Hero)' : '') + '.', 'ok');
+      btn.disabled = false; btn.textContent = 'Analisar mãos';
+    }, 30);
   });
 
   document.getElementById('clearBtn').addEventListener('click', function () {
     hhEl.value = ''; resultsEl.innerHTML = ''; setStatus('');
+  });
+
+  modelEl.addEventListener('change', function () {
+    document.getElementById('payoutRow').style.display = modelEl.value === 'chip' ? 'none' : 'flex';
   });
 
   function setStatus(msg, cls) {
@@ -424,13 +674,19 @@
     }[a] || a;
   }
 
+  function fmtEV(v, model) {
+    if (model === 'chip') return v.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' fichas';
+    return '$' + v.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+  }
+
   function renderResults(evaluated, totalParsed, skipped) {
     if (!totalParsed) { resultsEl.innerHTML = ''; return; }
     if (!evaluated.length) {
       resultsEl.innerHTML = '<div class="card"><p class="empty-note">Nenhuma das mãos lidas caiu numa profundidade de push/fold (≤ ' +
-        thresholdEl.value + ' BB) com decisão de push/fold/call clara. Cole mãos mais curtas de stack, ou aumente o limite de BB acima.</p></div>';
+        thresholdEl.value + ' BB) com decisão clara e jogadores atrás pra modelar. Cole mãos com stacks mais curtos, ou aumente o limite de BB acima.</p></div>';
       return;
     }
+    var model = modelEl.value;
     var mistakes = evaluated.filter(function (e) { return e.mistake; });
     var maxSeverity = Math.max.apply(null, evaluated.map(function (e) { return e.severity; })) || 1;
 
@@ -444,18 +700,20 @@
     html += '<div class="card"><h2 class="section">Resultado (do erro maior pro menor)</h2>';
     evaluated.forEach(function (e) {
       var h = e.hand;
-      var recommended = e.isCallDecision
-        ? (e.shouldPlay ? 'Call' : 'Fold')
-        : (e.shouldPlay ? 'Push' : 'Fold');
+      var cardsLabel = handKey(h.heroExactCards);
+      var recommended = e.isCallDecision ? (e.shouldPlay ? 'Call' : 'Fold') : (e.shouldPlay ? 'Push' : 'Fold');
       var pctBar = Math.round((e.severity / maxSeverity) * 100);
       html += '<div class="hand-item ' + (e.mistake ? 'mistake' : 'ok') + '">' +
         '<div class="hi-top">' +
-          '<span class="hi-cards">' + h.cards + '</span>' +
+          '<span class="hi-cards">' + cardsLabel + '</span>' +
           '<span class="hi-badge ' + (e.mistake ? 'mistake' : 'ok') + '">' + (e.mistake ? 'Erro' : 'OK') + '</span>' +
         '</div>' +
-        '<div class="hi-meta">' + h.position + ' · ' + h.effBB.toFixed(1) + ' BB efetivo · mão #' + h.id + '</div>' +
-        '<div class="hi-detail">Você fez <b>' + actionLabel(h.heroAction) + '</b>. Recomendado (estimativa): <b>' + recommended + '</b>' +
-        (e.mistake ? ' — essa mão está aproximadamente no percentil top ' + Math.round(h.strength.pct * 100) + '% e o corte de referência aqui é ' + Math.round(e.refPct * 100) + '%.' : '.') +
+        '<div class="hi-meta">' + h.position + ' · ' + h.effBB.toFixed(1) + ' BB efetivo · mão #' + h.id +
+        (e.equity !== null ? ' · equity vs faixa assumida: ' + (e.equity * 100).toFixed(1) + '%' : '') + '</div>' +
+        '<div class="hi-detail">Você fez <b>' + actionLabel(h.heroAction) + '</b>. Recomendado: <b>' + recommended + '</b></div>' +
+        '<div class="hi-ev">' +
+          '<span>EV ' + (e.isCallDecision ? 'call' : 'push') + '<b>' + fmtEV(e.evPush, model) + '</b></span>' +
+          '<span>EV fold<b>' + fmtEV(e.evFold, model) + '</b></span>' +
         '</div>' +
         (e.mistake ? '<div class="severity-bar-bg"><div class="severity-bar" style="width:' + pctBar + '%"></div></div>' : '') +
         '</div>';
