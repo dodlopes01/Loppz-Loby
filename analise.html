@@ -10,7 +10,7 @@
     --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
     --danger: #D2564A; --danger-bg: #3A211D; --success: #E8843A; --success-bg: #3A2712;
     --allin: #B33B2E; --allin-bg: #35190F; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.14);
-    --added: #3FB7A8; --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    --added: #3FB7A8; --card-shadow: 0 8px 28px rgba(0,0,0,0.35); --red-suit: #E2564C;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -106,14 +106,6 @@
   .card-face-mini .suit { font-size: 11px; margin-top: 1px; }
 
   .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  .preset-btn { background: var(--felt-2); border: 1px solid var(--gold-dim); color: var(--gold);
-    font-size: 11.5px; font-weight: 700; padding: 6px 10px; border-radius: 999px; cursor: pointer; }
-  .preset-btn:hover { border-color: var(--gold); }
-
-  .filter-row { display: flex; gap: 6px; margin-bottom: 14px; }
-  .filter-btn { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
-    font-size: 12.5px; font-weight: 700; padding: 8px; border-radius: 8px; cursor: pointer; }
-  .filter-btn.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
 </style>
 </head>
 <body>
@@ -160,7 +152,7 @@
       <div class="field">
         <label>Modelo</label>
         <select id="model">
-          <option value="icm">ICM ($ / bolha / final table)</option>
+          <option value="icm" selected>ICM ($ / bolha / final table)</option>
           <option value="chip">Chip EV (torneio cedo / cash)</option>
         </select>
       </div>
@@ -168,15 +160,15 @@
     <div class="row" id="payoutRow">
       <div class="field" style="flex:1;">
         <label>Prêmios em ordem (1º,2º,3º... — só p/ ICM)</label>
-        <input type="text" id="payouts" placeholder="ex: 5000,3000,1800,1200,900">
+        <input type="text" id="payouts" placeholder="ex: 5000,3000,1800,1200,900" value="4.50,2.70,1.80">
       </div>
       <div class="field">
         <label>Simulações por mão</label>
         <input type="number" id="iterations" value="4000" min="500" max="20000" step="500">
       </div>
     </div>
-    <div class="preset-row">
-      <button class="preset-btn" id="presetSng1">SNG 9-max $1 (paga top 3, 50/30/20)</button>
+    <div class="row">
+      <button class="btn secondary" id="presetSngBtn" type="button">Preset: SNG 9-max $1 (mesa única, paga top 3, 50/30/20)</button>
     </div>
 
     <div class="row">
@@ -186,6 +178,30 @@
     <div class="status" id="status"></div>
   </div>
 
+  <div id="resultsFilterBar" style="display:none;" class="row">
+    <div class="field">
+      <label>Mostrar</label>
+      <select id="filterMode">
+        <option value="all">Todas as mãos</option>
+        <option value="mistakes">Só erros</option>
+        <option value="ok">Só corretas</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Decisão</label>
+      <select id="filterDecision">
+        <option value="all">Push e Call</option>
+        <option value="push">Só push/fold</option>
+        <option value="call">Só call/fold</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Posição</label>
+      <select id="filterPosition">
+        <option value="all">Todas</option>
+      </select>
+    </div>
+  </div>
   <div id="results"></div>
 
 </div>
@@ -640,7 +656,6 @@
   var statusEl = document.getElementById('status');
   var resultsEl = document.getElementById('results');
   var lastEvaluated = null, lastTotalParsed = 0, lastSkipped = 0;
-  var currentFilter = 'all';
 
   var SUIT_SYMBOL = { s: '♠', h: '♥', d: '♦', c: '♣' };
   var SUIT_COLOR = { s: 'black', h: 'red', d: 'red', c: 'black' };
@@ -660,6 +675,15 @@
     return hi + lo + (cards[0].suit === cards[1].suit ? 's' : 'o');
   }
   function RANKS_CHAR(v) { for (var k in RANK_VAL) if (RANK_VAL[k] === v) return k; return '?'; }
+
+  document.getElementById('presetSngBtn').addEventListener('click', function () {
+    thresholdEl.value = 15;
+    modelEl.value = 'icm';
+    document.getElementById('payoutRow').style.display = 'flex';
+    payoutsEl.value = '4.50,2.70,1.80';
+    villainRangeEl.value = 'medium';
+    setStatus('Preset aplicado: SNG 9-max $1, mesa única, prêmios 50/30/20 (top 3 de 9 pagos). Ajuste os prêmios se o seu buy-in/rake for diferente.', 'ok');
+  });
 
   document.getElementById('analyzeBtn').addEventListener('click', function () {
     var raw = hhEl.value.trim();
@@ -687,7 +711,6 @@
 
       evaluated.sort(function (a, b) { return b.severity - a.severity; });
       lastEvaluated = evaluated; lastTotalParsed = parsed.length; lastSkipped = skipped;
-      currentFilter = 'all';
       renderResults(evaluated, parsed.length, skipped);
       setStatus(parsed.length + ' mão(s) lida(s)' + (skipped ? ', ' + skipped + ' ignorada(s) (formato não reconhecido ou sem cartas do Hero)' : '') + '.', 'ok');
       btn.disabled = false; btn.textContent = 'Analisar mãos';
@@ -698,22 +721,14 @@
     hhEl.value = ''; resultsEl.innerHTML = ''; setStatus(''); lastEvaluated = null;
   });
 
-  document.getElementById('presetSng1').addEventListener('click', function () {
-    modelEl.value = 'icm';
-    document.getElementById('payoutRow').style.display = 'flex';
-    payoutsEl.value = '4.50,2.70,1.80';
-    setStatus('Preset aplicado: SNG 9-max $1, prêmios 4.50/2.70/1.80 (50/30/20 de um pool de $9).', 'ok');
-  });
-
   modelEl.addEventListener('change', function () {
     document.getElementById('payoutRow').style.display = modelEl.value === 'chip' ? 'none' : 'flex';
   });
 
-  resultsEl.addEventListener('click', function (ev) {
-    var btn = ev.target.closest('.filter-btn');
-    if (!btn || !lastEvaluated) return;
-    currentFilter = btn.getAttribute('data-filter');
-    renderResults(lastEvaluated, lastTotalParsed, lastSkipped);
+  ['filterMode', 'filterDecision', 'filterPosition'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () {
+      if (lastEvaluated) renderResultsList(applyFilters(lastEvaluated), lastEvaluated.length);
+    });
   });
 
   function setStatus(msg, cls) {
@@ -733,36 +748,60 @@
     return '$' + v.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
   }
 
+  function populatePositionFilter(evaluated) {
+    var sel = document.getElementById('filterPosition');
+    var current = sel.value;
+    var positions = [];
+    evaluated.forEach(function (e) { if (positions.indexOf(e.hand.position) === -1) positions.push(e.hand.position); });
+    sel.innerHTML = '<option value="all">Todas</option>' + positions.map(function (p) { return '<option value="' + p + '">' + p + '</option>'; }).join('');
+    if (positions.indexOf(current) !== -1) sel.value = current;
+  }
+
+  function applyFilters(evaluated) {
+    var mode = document.getElementById('filterMode').value;
+    var decision = document.getElementById('filterDecision').value;
+    var position = document.getElementById('filterPosition').value;
+    return evaluated.filter(function (e) {
+      if (mode === 'mistakes' && !e.mistake) return false;
+      if (mode === 'ok' && e.mistake) return false;
+      if (decision === 'push' && e.isCallDecision) return false;
+      if (decision === 'call' && !e.isCallDecision) return false;
+      if (position !== 'all' && e.hand.position !== position) return false;
+      return true;
+    });
+  }
+
   function renderResults(evaluated, totalParsed, skipped) {
-    if (!totalParsed) { resultsEl.innerHTML = ''; return; }
+    var filterBar = document.getElementById('resultsFilterBar');
+    if (!totalParsed) { resultsEl.innerHTML = ''; filterBar.style.display = 'none'; return; }
     if (!evaluated.length) {
+      filterBar.style.display = 'none';
       resultsEl.innerHTML = '<div class="card"><p class="empty-note">Nenhuma das mãos lidas caiu numa profundidade de push/fold (≤ ' +
         thresholdEl.value + ' BB) com decisão clara e jogadores atrás pra modelar. Cole mãos com stacks mais curtos, ou aumente o limite de BB acima.</p></div>';
       return;
     }
+    filterBar.style.display = 'flex';
+    populatePositionFilter(evaluated);
+    renderResultsList(applyFilters(evaluated), evaluated.length);
+  }
+
+  function renderResultsList(filtered, totalEvaluated) {
     var model = modelEl.value;
-    var mistakes = evaluated.filter(function (e) { return e.mistake; });
-    var visible = currentFilter === 'mistakes' ? mistakes : (currentFilter === 'ok' ? evaluated.filter(function (e) { return !e.mistake; }) : evaluated);
-    var maxSeverity = Math.max.apply(null, evaluated.map(function (e) { return e.severity; })) || 1;
+    var mistakes = lastEvaluated.filter(function (e) { return e.mistake; });
+    var maxSeverity = Math.max.apply(null, lastEvaluated.map(function (e) { return e.severity; })) || 1;
 
     var html = '';
     html += '<div class="summary-bar">' +
-      statChip(evaluated.length, 'mãos avaliadas') +
+      statChip(totalEvaluated, 'mãos avaliadas') +
       statChip(mistakes.length, 'erros apontados') +
-      statChip(evaluated.length - mistakes.length, 'ok') +
+      statChip(totalEvaluated - mistakes.length, 'ok') +
       '</div>';
 
-    html += '<div class="filter-row">' +
-      '<button class="filter-btn' + (currentFilter === 'all' ? ' active' : '') + '" data-filter="all">Todos (' + evaluated.length + ')</button>' +
-      '<button class="filter-btn' + (currentFilter === 'mistakes' ? ' active' : '') + '" data-filter="mistakes">Erros (' + mistakes.length + ')</button>' +
-      '<button class="filter-btn' + (currentFilter === 'ok' ? ' active' : '') + '" data-filter="ok">OK (' + (evaluated.length - mistakes.length) + ')</button>' +
-      '</div>';
-
-    html += '<div class="card"><h2 class="section">Resultado (do erro maior pro menor)</h2>';
-    if (!visible.length) {
-      html += '<p class="empty-note">Nenhum resultado nesse filtro.</p>';
+    html += '<div class="card"><h2 class="section">Resultado (do erro maior pro menor) — mostrando ' + filtered.length + ' de ' + totalEvaluated + '</h2>';
+    if (!filtered.length) {
+      html += '<p class="empty-note">Nenhuma mão bate com esse filtro.</p>';
     }
-    visible.forEach(function (e) {
+    filtered.forEach(function (e) {
       var h = e.hand;
       var cardsLabel = handKey(h.heroExactCards);
       var recommended = e.isCallDecision ? (e.shouldPlay ? 'Call' : 'Fold') : (e.shouldPlay ? 'Push' : 'Fold');
