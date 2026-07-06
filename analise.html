@@ -391,11 +391,12 @@
       }
       if (seats.length < 2) return null;
 
-      var heroCardsMatch = block.match(/Dealt to Hero \[(.+?)\]/);
+      var heroCardsMatch = block.match(/Dealt to (\S+) \[(.+?)\]/);
       if (!heroCardsMatch) return null;
-      var cardsRaw = heroCardsMatch[1].split(' ');
+      var heroName = heroCardsMatch[1];
+      var cardsRaw = heroCardsMatch[2].split(' ');
 
-      var heroSeatObj = seats.find(function (s) { return s.name === 'Hero'; });
+      var heroSeatObj = seats.find(function (s) { return s.name === heroName; });
       if (!heroSeatObj) return null;
 
       seats.sort(function (a, b) { return a.seat - b.seat; });
@@ -416,7 +417,7 @@
 
       for (var i = 0; i < actionLines.length; i++) {
         var line = actionLines[i];
-        var isHero = /^Hero:/.test(line);
+        var isHero = new RegExp('^' + heroName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':').test(line);
         if (!isHero) {
           var nameMatch = line.match(/^([^:]+):/);
           var actorName = nameMatch ? nameMatch[1].trim() : null;
@@ -445,11 +446,11 @@
         var orderFromHero = [];
         for (var k = 1; k < n; k++) orderFromHero.push(seats[(heroIdx + k) % n]);
         orderFromHero.forEach(function (s) {
-          if (s.name !== 'Hero' && !playersFoldedBeforeHero[s.name]) behindPlayers.push(s);
+          if (s.name !== heroName && !playersFoldedBeforeHero[s.name]) behindPlayers.push(s);
         });
       }
 
-      var otherStacks = seats.filter(function (s) { return s.name !== 'Hero'; }).map(function (s) { return s.chips; });
+      var otherStacks = seats.filter(function (s) { return s.name !== heroName; }).map(function (s) { return s.chips; });
       otherStacks.sort(function (a, b) { return b - a; });
       var effChips = Math.min(heroSeatObj.chips, otherStacks[0] || heroSeatObj.chips);
       var effBB = effChips / bb;
@@ -462,6 +463,7 @@
 
       return {
         id: idMatch ? idMatch[1] : '?',
+        heroName: heroName,
         position: position,
         bb: bb,
         effBB: effBB,
@@ -504,7 +506,7 @@
     if (hand.raisesBeforeHero > 1) return null; // multi-way re-raise pots out of v2 scope too
 
     var stacks = hand.allSeats.map(function (s) { return s.chips; });
-    var heroIdxInSeats = hand.allSeats.findIndex(function (s) { return s.name === 'Hero'; });
+    var heroIdxInSeats = hand.allSeats.findIndex(function (s) { return s.name === hand.heroName; });
     var payouts = buildPayouts(model, payoutsStr, hand.allSeats.length);
 
     function tableEV(modStacks) {
