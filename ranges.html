@@ -6,15 +6,15 @@
 <title>Range Pré-Flop</title>
 <style>
   :root {
-    --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
-    --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
+    --felt: #141212; --felt-2: #1C1918; --panel: #211D1C; --panel-2: #29231F;
+    --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15); --cream: #EFE7D2; --muted: #9C9490;
     --danger: #D2564A; --danger-bg: #3A211D; --success: #E8843A; --success-bg: #3A2712;
-    --allin: #B33B2E; --allin-bg: #35190F; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.14);
+    --allin: #B33B2E; --allin-bg: #35190F; --fold-cell: #1A1716; --line: rgba(239, 231, 210, 0.14);
     --added: #3FB7A8; --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    margin: 0; padding: 0; background: radial-gradient(ellipse at top, #10352A 0%, #0A2018 100%);
+    margin: 0; padding: 0; background: radial-gradient(ellipse at top, #1C1918 0%, #0A0908 100%);
     color: var(--cream);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     min-height: 100vh;
@@ -32,7 +32,7 @@
     font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 8px; cursor: pointer;
     margin-bottom: 12px; margin-right: 8px; display: inline-block;
   }
-  .info-toggle.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .info-toggle.active { background: var(--red); border-color: var(--red); color: var(--cream); }
   .active-preset-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
   .active-preset-badge {
     display: inline-block; background: rgba(232,132,58,0.15); border: 1px solid rgba(232,132,58,0.4);
@@ -81,7 +81,7 @@
   .seg { display: flex; gap: 6px; }
   .seg button { flex: 1; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
     font-size: 12px; padding: 9px 8px; border-radius: 8px; cursor: pointer; font-weight: 700; }
-  .seg button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .seg button.active { background: var(--red); border-color: var(--red); color: var(--cream); }
 
   .result {
     border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; font-size: 14px; font-weight: 700;
@@ -106,7 +106,7 @@
   .table-oval {
     position: relative; width: 100%; max-width: 300px; height: 230px; margin: 0 auto 14px;
     background: radial-gradient(ellipse at center, var(--panel-2) 0%, var(--panel) 65%, var(--felt-2) 100%);
-    border: 6px solid #0A251C; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line), inset 0 10px 30px rgba(0,0,0,0.3);
+    border: 6px solid #0A0908; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line), inset 0 10px 30px rgba(0,0,0,0.3);
   }
   .table-oval .felt-label { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
     font-size: 10px; letter-spacing: 0.12em; color: var(--gold-dim); font-weight: 700; text-transform: uppercase; opacity: 0.7; transition: opacity .12s; }
@@ -139,7 +139,7 @@
   .seat[data-pos="MP1"], .seat[data-pos="MP2"] { border-color: #4FB3D9; }
   .seat[data-pos="HJ"], .seat[data-pos="CO"], .seat[data-pos="BTN"] { border-color: #4CAF6D; }
   .seat[data-pos="SB"], .seat[data-pos="BB"] { border-color: #D2564A; }
-  .seat.active { background: var(--gold); border-color: var(--gold); color: #1A1508; box-shadow: 0 0 0 4px rgba(201,162,39,0.2), 0 2px 6px rgba(0,0,0,0.3); }
+  .seat.active { background: var(--red); border-color: var(--red); color: var(--cream); box-shadow: 0 0 0 4px rgba(166,45,36,0.28), 0 2px 6px rgba(0,0,0,0.3); }
   .seat small { display: block; font-size: 6.5px; font-weight: 600; opacity: 0.8; }
   .dealer-btn {
     position: absolute; width: 18px; height: 18px; border-radius: 50%; background: var(--cream);
@@ -158,7 +158,7 @@
   .switch .knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
   .switch.on { color: var(--gold); }
   .switch.on .knob { background: var(--gold-dim); }
-  .switch.on .knob::after { background: var(--gold); transform: translateX(12px); }
+  .switch.on .knob::after { background: var(--red); transform: translateX(12px); }
 
   .stacks { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .stacks.hidden { display: none; }
@@ -166,7 +166,7 @@
     flex: 1; min-width: 60px; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
     font-size: 12px; padding: 9px 6px; border-radius: 10px; cursor: pointer; font-weight: 700;
   }
-  .stacks button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+  .stacks button.active { background: var(--panel-2); border-color: var(--red); color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
 
   /* ---- BB calculator ---- */
   .bb-calc { background: var(--felt-2); border: 1px dashed var(--gold-dim); border-radius: 12px; padding: 12px 14px; margin-top: 10px; margin-bottom: 12px; }
@@ -191,7 +191,7 @@
     flex: 1; min-width: 50px; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
     font-size: 11.5px; padding: 9px 4px; border-radius: 10px; cursor: pointer; font-weight: 700;
   }
-  .opener-row button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); }
+  .opener-row button.active { background: var(--panel-2); border-color: var(--red); color: var(--red); }
 
   .stat { font-size: 12px; color: var(--muted); margin-bottom: 10px; text-align: center; }
   .stat b { color: var(--cream); }
@@ -201,7 +201,7 @@
     flex: 1 1 calc(50% - 4px); background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
     font-size: 12px; padding: 9px; border-radius: 10px; cursor: pointer; font-weight: 700;
   }
-  .toolbar button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .toolbar button.active { background: var(--red); border-color: var(--red); color: var(--cream); }
 
   .palette { display: none; gap: 8px; margin-bottom: 10px; background: var(--felt-2); border: 1px dashed var(--gold-dim);
     border-radius: 10px; padding: 10px; flex-wrap: wrap; align-items: center; }
@@ -212,13 +212,13 @@
     color: var(--cream); font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer;
   }
   .palette button .sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-  .palette button.selected { border-color: var(--gold); }
+  .palette button.selected { border-color: var(--red); }
   .palette-mode { display: flex; gap: 6px; width: 100%; margin-bottom: 6px; }
   .palette-mode button {
     flex: 1; justify-content: center; background: var(--panel); border: 1px solid var(--line);
     padding: 7px; font-size: 11px;
   }
-  .palette-mode button.active { background: var(--gold); color: #1A1508; border-color: var(--gold); }
+  .palette-mode button.active { background: var(--red); color: var(--cream); border-color: var(--red); }
 
   .grid {
     display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-bottom: 10px;
@@ -292,7 +292,7 @@
   }
   .preset-new-actions { display: flex; gap: 8px; }
   .preset-new-actions button { flex: 1; padding: 7px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; }
-  .preset-new-actions button:first-child { background: var(--gold); border: 1px solid var(--gold); color: #1A1508; }
+  .preset-new-actions button:first-child { background: var(--red); border: 1px solid var(--red); color: var(--cream); }
   .preset-new-actions button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
 
   footer { margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.6; text-align: center; }
