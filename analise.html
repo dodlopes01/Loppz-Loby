@@ -129,11 +129,13 @@
   </header>
 
   <div class="disclaimer">
-    <b>V2 — motor de equity Monte Carlo + ICM real.</b> Diferente da v1 (que usava só a força
+    <b>V2.1 — motor de equity Monte Carlo + ICM real.</b> Diferente da v1 (que usava só a força
     aproximada da mão), esta versão calcula:
     <ul>
       <li><b>Equity exata (via simulação):</b> sua mão real vs. a faixa assumida do(s) oponente(s), usando o mesmo avaliador de 7 cartas do "Equity vs Range".</li>
       <li><b>ICM de verdade:</b> valor em prêmio ($) de cada resultado, via fórmula recursiva de finish-probability — não é mais só uma estimativa por percentil.</li>
+      <li><b>Stacks descontando blind/ante já postados:</b> o EV de dar fold agora usa o stack no momento real da decisão (já descontando SB/BB/ante que você já colocou no pote), não o stack "cheio" do início da mão — isso deixa o limite push/fold mais preciso, principalmente com stack curto.</li>
+      <li><b>Detecção de erro corrigida:</b> qualquer ação sua que não seja fold (call, call-allin, raise) agora é comparada corretamente com a recomendação — antes só a ação literal "push"/"call" era reconhecida, e outras ações ficavam escondidas como se fossem fold.</li>
     </ul>
     O que ainda é simplificado (e será refinado nas próximas fases):
     <ul>
@@ -454,6 +456,19 @@
         seats.push({ seat: parseInt(m[1], 10), name: m[2].trim(), chips: parseInt(m[3].replace(/,/g, ''), 10) });
       }
       if (seats.length < 2) return null;
+
+      // Descontar blinds/antes já postados: os stacks acima ("Seat X: nome (N in chips)")
+      // são o stack ANTES de postar qualquer coisa. Pra calcular o EV corretamente (o quanto
+      // cada jogador realmente arrisca/perde ao dar fold), precisamos do stack no momento em
+      // que a decisão é tomada — ou seja, já descontando SB/BB/ante postados.
+      var postedRe = /^(\S.*?): posts (?:the ante|small blind|big blind|small & big blinds) ([\d,]+)/gm;
+      var pm;
+      while ((pm = postedRe.exec(block)) !== null) {
+        var pname = pm[1].trim();
+        var pamt = parseInt(pm[2].replace(/,/g, ''), 10);
+        var seatObj = seats.find(function (s) { return s.name === pname; });
+        if (seatObj) seatObj.chips = Math.max(0, seatObj.chips - pamt);
+      }
 
       var heroCardsMatch = block.match(/Dealt to (\S+) \[(.+?)\]/);
       if (!heroCardsMatch) return null;
