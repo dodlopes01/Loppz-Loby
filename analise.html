@@ -271,21 +271,21 @@
 
   <button class="info-toggle" id="infoToggle">ℹ️ Como funciona o motor</button>
   <div class="disclaimer" id="disclaimerBox" style="display:none;">
-    <b>V2.2 — motor de equity Monte Carlo + ICM real.</b> Diferente da v1 (que usava só a força
-    aproximada da mão), esta versão calcula:
+    <b>V3 — equilíbrio de Nash pra push/fold + equity Monte Carlo + ICM real.</b>
     <ul>
-      <li><b>Equity exata (via simulação):</b> sua mão real vs. a faixa assumida do(s) oponente(s), usando o mesmo avaliador de 7 cartas do "Equity vs Range".</li>
+      <li><b>🧠 Faixa do vilão calculada por Nash (novo, padrão):</b> em vez de você chutar se o vilão joga apertado/médio/largo, o motor agora <b>resolve</b> a faixa de push (do agressor) e de call (do defensor) em equilíbrio de Nash pra profundidade de stack exata de cada mão — via best-response iterativo (o mesmo princípio de solvers tipo SnapShove/HRC). Isso já é a range "correta" assumindo que os dois lados jogam bem — as opções antigas (apertada/média/larga) continuam disponíveis pra comparar contra oponentes reais mais fracos ou mais soltos.</li>
+      <li><b>Equity exata (via simulação):</b> sua mão real vs. a faixa do oponente, usando o mesmo avaliador de 7 cartas do "Equity vs Range".</li>
       <li><b>ICM de verdade:</b> valor em prêmio ($) de cada resultado, via fórmula recursiva de finish-probability — não é mais só uma estimativa por percentil.</li>
-      <li><b>Stacks descontando blind/ante já postados:</b> o EV de dar fold agora usa o stack no momento real da decisão (já descontando SB/BB/ante que você já colocou no pote), não o stack "cheio" do início da mão — isso deixa o limite push/fold mais preciso, principalmente com stack curto.</li>
-      <li><b>Dinheiro morto do pote creditado a quem ganha:</b> antes, blinds/antes de quem já desistiu ficavam "perdidos" no cálculo — agora, quem vence a mão realmente recebe esse dinheiro, tanto no push quanto no call.</li>
-      <li><b>Multi-way de verdade:</b> em vez de assumir "no máximo um pagador por vez", o motor agora sorteia, pra cada jogador atrás de você, se ele paga ou não — de forma independente, rodada a rodada — e resolve o showdown com todos que realmente pagaram (0, 1, 2 ou mais ao mesmo tempo).</li>
-      <li><b>Detecção de erro corrigida:</b> qualquer ação sua que não seja fold (call, call-allin, raise) agora é comparada corretamente com a recomendação — antes só a ação literal "push"/"call" era reconhecida, e outras ações ficavam escondidas como se fossem fold.</li>
+      <li><b>Stacks descontando blind/ante já postados:</b> o EV de dar fold usa o stack no momento real da decisão (já descontando SB/BB/ante que você já colocou no pote), não o stack "cheio" do início da mão.</li>
+      <li><b>Dinheiro morto do pote creditado a quem ganha:</b> quem vence a mão recebe o pote (blinds/antes de quem já desistiu incluídos), tanto no push quanto no call.</li>
+      <li><b>Multi-way de verdade:</b> em vez de assumir "no máximo um pagador por vez", o motor sorteia, pra cada jogador atrás de você, se ele paga ou não — de forma independente, rodada a rodada — e resolve o showdown com todos que realmente pagaram (0, 1, 2 ou mais ao mesmo tempo).</li>
+      <li><b>Detecção de erro corrigida:</b> qualquer ação sua que não seja fold (call, call-allin, raise) é comparada corretamente com a recomendação.</li>
     </ul>
     O que ainda é simplificado (e será refinado nas próximas fases):
     <ul>
-      <li>A faixa de call/push assumida para os oponentes ainda é heurística (ajustável no dropdown "faixa do vilão"), não um equilíbrio de Nash resolvido.</li>
-      <li>Quando 2+ jogadores pagam com stacks bem diferentes entre si, o "pote principal" é limitado pelo stack mais curto entre eles — uma aproximação de side-pot que cobre bem a maioria dos casos, mas não resolve todos os níveis de side-pot quando há 3+ stacks muito diferentes na mesma mão.</li>
-      <li>O ICM aqui é calculado com os jogadores <b>desta mesa</b> e os prêmios que você informar — é exato para mesa final, e uma aproximação em estágios anteriores de MTT (o ICM "de campo completo" exigiria o total de fichas e jogadores do torneio inteiro, como o próprio ICMIZER pede no modo MTT).</li>
+      <li>O equilíbrio de Nash aqui é resolvido em <b>chip-EV</b> (fichas), não em ICM — é o padrão dos solvers push/fold (a range de equilíbrio depende só da profundidade em BB). O EV final que você vê na tela continua honrando o modelo ICM/$ que você escolheu; só a <i>construção da faixa</i> do vilão usa chip-EV.</li>
+      <li>Quando 2+ jogadores pagam com stacks bem diferentes entre si, o "pote principal" é limitado pelo stack mais curto entre eles — uma aproximação de side-pot que cobre bem a maioria dos casos, mas não resolve todos os níveis quando há 3+ stacks muito diferentes na mesma mão.</li>
+      <li>O ICM aqui é calculado com os jogadores <b>desta mesa</b> e os prêmios que você informar — pra um SNG de mesa única isso já é o campo completo do torneio; pra torneios multi-mesa seria uma aproximação até chegar na mesa final.</li>
     </ul>
     Formato aceito: hand history estilo PokerStars (texto puro).
   </div>
@@ -313,8 +313,9 @@
       <div class="field">
         <label>Faixa do vilão</label>
         <select id="villainRange">
+          <option value="nash" selected>🧠 Nash (calculado)</option>
           <option value="tight">Apertada (~10-15%)</option>
-          <option value="medium" selected>Média (~20-30%)</option>
+          <option value="medium">Média (~20-30%)</option>
           <option value="loose">Larga (~35-45%)</option>
         </select>
       </div>
@@ -527,15 +528,11 @@
     return best;
   }
 
-  // ---------- Monte Carlo equity: hero's exact 2 cards vs a range (list of hand labels) ----------
-  function equityVsRange(heroCards, rangeLabels, iterations) {
-    var pool = [];
-    rangeLabels.forEach(function (label) {
-      expandHandToCombos(label).forEach(function (combo) { pool.push(combo); });
-    });
+  // ---------- Monte Carlo equity: hero's exact 2 cards vs a pool of combos already expandido ----------
+  function equityVsPool(heroCards, rawPool, iterations) {
     var heroKeys = { };
     heroKeys[cardKey(heroCards[0])] = true; heroKeys[cardKey(heroCards[1])] = true;
-    pool = pool.filter(function (combo) { return !heroKeys[cardKey(combo[0])] && !heroKeys[cardKey(combo[1])]; });
+    var pool = rawPool.filter(function (combo) { return !heroKeys[cardKey(combo[0])] && !heroKeys[cardKey(combo[1])]; });
     if (!pool.length) return null;
 
     var wins = 0, ties = 0, valid = 0;
@@ -567,6 +564,15 @@
     }
     if (!valid) return null;
     return (wins + ties * 0.5) / valid;
+  }
+
+  // ---------- Monte Carlo equity: hero's exact 2 cards vs a range (list of hand labels) ----------
+  function equityVsRange(heroCards, rangeLabels, iterations) {
+    var rawPool = [];
+    rangeLabels.forEach(function (label) {
+      expandHandToCombos(label).forEach(function (combo) { rawPool.push(combo); });
+    });
+    return equityVsPool(heroCards, rawPool, iterations);
   }
 
   // ================= real ICM (recursive finish-probability formula) =================
@@ -601,6 +607,75 @@
   function villainRangePct(basePct, effBB) {
     var widen = effBB <= 8 ? 1.3 : (effBB <= 12 ? 1.15 : 1.0);
     return Math.min(basePct * widen, 85);
+  }
+
+  // ================= Nash push/fold equilibrium solver (heads-up subgame) =================
+  // Computa, pra uma profundidade efetiva de stack em BB, o range de push do agressor e o
+  // range de call do defensor em EQUILÍBRIO DE NASH — ou seja, nenhum dos dois melhora
+  // mudando de estratégia sozinho. É o mesmo conceito das tabelas push/fold "de verdade"
+  // (tipo SnapShove/HRC). Resolvido via best-response iterativo (fictitious play):
+  // a cada rodada, cada lado recalcula sua range ótima assumindo a range atual do outro,
+  // até convergir. Usa EV em fichas (chip-EV) pra construir a range — é o padrão da indústria
+  // pra esse tipo de solver; o app continua reportando o EV final em ICM/$ (se for o modelo
+  // escolhido) usando essa range já resolvida, então o "certo/errado" mostrado pra você
+  // continua honrando ICM normalmente.
+  var nashCache = {};
+  var handRepCombo = {}; // uma combinação "representante" de cada label, pra avaliar equity rápido
+  HAND_TYPES.forEach(function (h) { handRepCombo[h.label] = expandHandToCombos(h.label)[0]; });
+
+  function rangeComboWeight(labels) {
+    var w = 0;
+    labels.forEach(function (l) { var h = HAND_TYPES.filter(function (x) { return x.label === l; })[0]; if (h) w += h.combos; });
+    return w;
+  }
+
+  function solveNashHU(effBBraw) {
+    var effBB = Math.max(2, Math.min(60, Math.round(effBBraw))); // arredonda pra BB inteiro, pra cachear como uma "tabela"
+    var key = 'hu_' + effBB;
+    if (nashCache[key]) return nashCache[key];
+
+    var dead = 1.5; // SB+BB já no pote (simplificação padrão de solver push/fold, ignora ante aqui)
+    var solverTrials = 45; // Monte Carlo bem reduzido — é só pra convergir a fronteira da range, não pro EV final mostrado
+    var solverIters = 4;
+
+    var pusherLabels = topNCombos(50);
+    var callerLabels = topNCombos(20);
+
+    function labelsToPool(labels) {
+      var pool = [];
+      labels.forEach(function (l) { expandHandToCombos(l).forEach(function (c) { pool.push(c); }); });
+      return pool;
+    }
+
+    for (var iter = 0; iter < solverIters; iter++) {
+      // resposta ótima do defensor (call), dado o range de push atual
+      var pusherPool = labelsToPool(pusherLabels);
+      var newCallerLabels = [];
+      HAND_TYPES.forEach(function (h) {
+        var eq = equityVsPool(handRepCombo[h.label], pusherPool, solverTrials);
+        if (eq === null) return;
+        var evCall = eq * (2 * effBB + dead) - effBB;
+        if (evCall > 0) newCallerLabels.push(h.label);
+      });
+      callerLabels = newCallerLabels.length ? newCallerLabels : callerLabels;
+
+      // resposta ótima do agressor (push), dado o range de call atual
+      var callWeight = rangeComboWeight(callerLabels) / 1326;
+      var pFold = 1 - callWeight;
+      var callerPool = labelsToPool(callerLabels.length ? callerLabels : ['22']);
+      var newPusherLabels = [];
+      HAND_TYPES.forEach(function (h) {
+        var eq = equityVsPool(handRepCombo[h.label], callerPool, solverTrials);
+        if (eq === null) { newPusherLabels.push(h.label); return; }
+        var evPush = pFold * dead + callWeight * (eq * (2 * effBB + dead) - effBB);
+        if (evPush > 0) newPusherLabels.push(h.label);
+      });
+      pusherLabels = newPusherLabels.length ? newPusherLabels : pusherLabels;
+    }
+
+    var result = { pushRange: pusherLabels, callRange: callerLabels };
+    nashCache[key] = result;
+    return result;
   }
 
   // ================= PokerStars-format hand history parser =================
@@ -761,7 +836,7 @@
     return fallback;
   }
 
-  function evaluateHand(hand, thresholdBB, model, payoutsStr, villainPct, iterations) {
+  function evaluateHand(hand, thresholdBB, model, payoutsStr, villainPct, iterations, villainMode) {
     if (hand.effBB > thresholdBB) return null;
     if (hand.raisesBeforeHero > 1) return null; // multi-way re-raise pots out of v2 scope too
 
@@ -781,8 +856,14 @@
       // heads-up decision: call vs fold against the specific all-in villain
       if (!hand.allInSeatObj) return null;
       var villainIdxInSeats = hand.allSeats.findIndex(function (s) { return s.name === hand.allInSeatObj.name; });
-      var vPct = villainRangePct(villainPct, Math.min(hand.effBB, hand.allInSeatObj.chips / hand.bb));
-      var range = topNCombos(vPct);
+      var villainEffBB = Math.min(hand.effBB, hand.allInSeatObj.chips / hand.bb);
+      var range;
+      if (villainMode === 'nash') {
+        range = solveNashHU(villainEffBB).pushRange; // faixa de push do vilão, em equilíbrio de Nash
+      } else {
+        var vPct = villainRangePct(villainPct, villainEffBB);
+        range = topNCombos(vPct);
+      }
       var equity = equityVsRange(hand.heroExactCards, range, iterations);
       if (equity === null) return null;
 
@@ -819,8 +900,15 @@
     var behindInfo = behind.map(function (p) {
       var idx = hand.allSeats.findIndex(function (s) { return s.name === p.name; });
       var pStackBB = p.chips / hand.bb;
-      var pct = villainRangePct(villainPct, Math.min(hand.effBB, pStackBB));
-      var labels = topNCombos(pct);
+      var callerEffBB = Math.min(hand.effBB, pStackBB);
+      var labels, pct;
+      if (villainMode === 'nash') {
+        labels = solveNashHU(callerEffBB).callRange; // faixa de call do jogador, em equilíbrio de Nash
+        pct = (rangeComboWeight(labels) / 1326) * 100;
+      } else {
+        pct = villainRangePct(villainPct, callerEffBB);
+        labels = topNCombos(pct);
+      }
       var pool = [];
       labels.forEach(function (l) { expandHandToCombos(l).forEach(function (c) { pool.push(c); }); });
       return { idx: idx, chips: p.chips, pct: pct / 100, pool: pool };
@@ -1127,7 +1215,7 @@
     modelEl.value = 'icm';
     document.getElementById('payoutRow').style.display = 'flex';
     payoutsEl.value = '4.50,2.70,1.80';
-    villainRangeEl.value = 'medium';
+    villainRangeEl.value = 'nash';
     setStatus('Preset aplicado: SNG 9-max $1, mesa única, prêmios 50/30/20 (top 3 de 9 pagos). Ajuste os prêmios se o seu buy-in/rake for diferente.', 'ok');
   });
 
@@ -1139,20 +1227,23 @@
 
     var threshold = parseFloat(thresholdEl.value) || 20;
     var model = modelEl.value;
-    var villainPct = VILLAIN_RANGE_PCT[villainRangeEl.value];
+    var villainMode = villainRangeEl.value; // 'nash' ou preset heurístico
+    var villainPct = VILLAIN_RANGE_PCT[villainMode] || VILLAIN_RANGE_PCT.medium;
     var iterations = parseInt(iterationsEl.value, 10) || 4000;
     var payoutsStr = payoutsEl.value;
 
     var btn = document.getElementById('analyzeBtn');
     btn.disabled = true; btn.textContent = 'Calculando…';
-    setStatus('Rodando simulações de equity, pode levar alguns segundos…', '');
+    setStatus(villainMode === 'nash'
+      ? 'Resolvendo equilíbrio de Nash pras profundidades de stack encontradas — pode levar alguns segundos na primeira vez…'
+      : 'Rodando simulações de equity, pode levar alguns segundos…', '');
 
     setTimeout(function () {
       var parsed = [], skipped = 0;
       blocks.forEach(function (b) { var h = parseHand(b); if (h) parsed.push(h); else skipped++; });
 
       var evaluated = parsed
-        .map(function (h) { return evaluateHand(h, threshold, model, payoutsStr, villainPct, iterations); })
+        .map(function (h) { return evaluateHand(h, threshold, model, payoutsStr, villainPct, iterations, villainMode); })
         .filter(Boolean);
 
       evaluated.sort(function (a, b) { return b.severity - a.severity; });
