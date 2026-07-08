@@ -6,14 +6,14 @@
 <title>Pot Odds</title>
 <style>
   :root {
-    --felt: #0E2E24;
-    --felt-2: #123A2C;
-    --panel: #163F30;
-    --panel-2: #1B4939;
+    --felt: #141212;
+    --felt-2: #1C1918;
+    --panel: #211D1C;
+    --panel-2: #29231F;
     --gold: #C9A227;
-    --gold-dim: #8F7620;
+    --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15);
     --cream: #EFE7D2;
-    --muted: #85A597;
+    --muted: #9C9490;
     --danger: #D2564A;
     --danger-bg: #3A211D;
     --success: #E8843A;
@@ -106,7 +106,7 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--gold);
+    background: var(--red);
     cursor: pointer;
     border: none;
   }
@@ -114,7 +114,7 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--gold);
+    background: var(--red);
     cursor: pointer;
     border: none;
   }
@@ -141,9 +141,9 @@
     cursor: pointer;
   }
   .chip.active {
-    background: var(--gold);
-    border-color: var(--gold);
-    color: #1A1508;
+    background: var(--red);
+    border-color: var(--red);
+    color: var(--cream);
     font-weight: 700;
   }
   .toggle {
@@ -163,8 +163,8 @@
   }
   .toggle button.active {
     background: var(--panel-2);
-    border-color: var(--gold);
-    color: var(--gold);
+    border-color: var(--red);
+    color: var(--red);
     font-weight: 700;
   }
   .meter {
