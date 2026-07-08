@@ -6,10 +6,10 @@
 <title>Equity vs Range</title>
 <style>
   :root {
-    --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
-    --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
+    --felt: #141212; --felt-2: #1C1918; --panel: #211D1C; --panel-2: #29231F;
+    --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15); --cream: #EFE7D2; --muted: #9C9490;
     --danger: #D2564A; --danger-bg: #3A211D; --success: #E8843A; --success-bg: #3A2712;
-    --allin: #B33B2E; --fold-cell: #17352A; --line: rgba(239, 231, 210, 0.12);
+    --allin: #B33B2E; --fold-cell: #1A1716; --line: rgba(239, 231, 210, 0.12);
     --red-suit: #E2564C;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -26,13 +26,13 @@
   .seg { display: flex; gap: 6px; margin-bottom: 14px; }
   .seg button { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
     font-size: 13px; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 700; }
-  .seg button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .seg button.active { background: var(--red); border-color: var(--red); color: var(--cream); }
 
   .mini-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
   .mini-row.hidden { display: none; }
   .mini-row button { flex: 1; min-width: 44px; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
     font-size: 12px; padding: 8px 4px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-  .mini-row button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); }
+  .mini-row button.active { background: var(--panel-2); border-color: var(--red); color: var(--red); }
 
   /* playing-card visuals */
   .card-face {
@@ -56,7 +56,7 @@
   .toolbar { display: flex; gap: 8px; margin-bottom: 10px; margin-top: 12px; flex-wrap: wrap; }
   .toolbar button { flex: 1; min-width: 90px; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
     font-size: 11px; padding: 9px 6px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-  .toolbar button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .toolbar button.active { background: var(--red); border-color: var(--red); color: var(--cream); }
 
   .grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; margin-bottom: 8px;
     border: 1px solid var(--line); padding: 3px; border-radius: 10px; background: var(--felt-2); }
@@ -75,9 +75,9 @@
   .iters { display: flex; gap: 6px; margin-bottom: 16px; }
   .iters button { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
     font-size: 12px; padding: 10px 4px; border-radius: 10px; cursor: pointer; font-weight: 600; }
-  .iters button.active { background: var(--panel-2); border-color: var(--gold); color: var(--gold); }
+  .iters button.active { background: var(--panel-2); border-color: var(--red); color: var(--red); }
 
-  .calc-btn { width: 100%; background: var(--gold); border: none; color: #1A1508; font-size: 15px; font-weight: 800;
+  .calc-btn { width: 100%; background: var(--red); border: none; color: var(--cream); font-size: 15px; font-weight: 800;
     padding: 14px; border-radius: 12px; cursor: pointer; margin-bottom: 18px; }
   .calc-btn:disabled { opacity: 0.5; cursor: default; }
 
