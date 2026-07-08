@@ -138,10 +138,18 @@
   .mini-seat.hero .mini-seat-name { color: var(--gold); }
   .mini-seat-cards { display: flex; gap: 3px; justify-content: center; margin: 4px 0; transform: scale(0.78); transform-origin: center; }
   .mini-seat-hidden { font-size: 17px; opacity: 0.5; }
+  .chip-icon {
+    display: inline-block; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+    background: conic-gradient(var(--red) 0deg 40deg, var(--gold) 40deg 80deg, var(--red) 80deg 120deg,
+      var(--gold) 120deg 160deg, var(--red) 160deg 200deg, var(--gold) 200deg 240deg,
+      var(--red) 240deg 280deg, var(--gold) 280deg 320deg, var(--red) 320deg 360deg);
+    box-shadow: inset 0 0 0 2px #1A1716, 0 1px 2px rgba(0,0,0,0.4);
+    vertical-align: middle; margin-right: 4px; position: relative; top: -1px;
+  }
   .mini-seat-chips {
-    display: inline-block; font-size: 11px; font-weight: 700; color: var(--gold);
+    display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; color: var(--gold);
     font-family: ui-monospace, SFMono-Regular, monospace; background: rgba(0,0,0,0.35);
-    border: 1px solid rgba(201,162,39,0.3); border-radius: 999px; padding: 1px 8px; margin-top: 2px;
+    border: 1px solid rgba(201,162,39,0.3); border-radius: 999px; padding: 2px 9px 2px 6px; margin-top: 2px;
   }
   .hd-board {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -151,6 +159,8 @@
   .hd-board-cards { display: flex; gap: 4px; justify-content: center; transform: scale(0.85); transform-origin: center; }
   .hd-no-board { font-size: 11px; color: var(--muted); max-width: 180px; display: inline-block; line-height: 1.4; }
   .hd-pot { text-align: center; font-size: 12px; color: var(--muted); }
+  .hd-pot .chip-icon { margin-right: 0; margin-left: -6px; }
+  .hd-pot .chip-icon:nth-of-type(1) { margin-left: 0; }
 
   .empty-note { font-size: 12.5px; color: var(--muted); text-align: center; padding: 20px 10px; }
 
@@ -979,7 +989,7 @@
       return '<div class="mini-seat' + (isHero ? ' hero' : '') + '" style="left:' + pos.left + '%; top:' + pos.top + '%;">' +
         '<div class="mini-seat-name">' + escapeHtml(s.name) + (isHero ? ' (você)' : '') + '</div>' +
         '<div class="mini-seat-cards">' + cardsHtml + '</div>' +
-        '<div class="mini-seat-chips">' + s.chips.toLocaleString('pt-BR') + '</div>' +
+        '<div class="mini-seat-chips"><span class="chip-icon"></span>' + s.chips.toLocaleString('pt-BR') + '</div>' +
       '</div>';
     }).join('');
 
@@ -991,7 +1001,7 @@
       '<div class="hd-table">' + seatsHtml +
         '<div class="hd-board"><div class="hd-board-label">Mesa</div><div class="hd-board-cards">' + boardHtml + '</div></div>' +
       '</div>' +
-      (info.potLine ? '<div class="hd-pot">' + escapeHtml(info.potLine) + '</div>' : '') +
+      (info.potLine ? '<div class="hd-pot"><span class="chip-icon"></span><span class="chip-icon"></span><span class="chip-icon"></span> ' + escapeHtml(info.potLine) + '</div>' : '') +
     '</div>';
   }
 
