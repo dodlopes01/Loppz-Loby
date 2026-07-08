@@ -61,8 +61,8 @@
   .vw-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
   .vw-cards { display: flex; align-items: center; gap: 8px; }
   .vw-cards .lbl { font-size: 18px; font-weight: 800; color: var(--cream); }
-  .vw-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
-  .vw-decision { font-size: 13.5px; margin-bottom: 12px; line-height: 1.5; }
+  .vw-meta { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .vw-decision { font-size: 14.5px; margin-bottom: 12px; line-height: 1.55; }
   .vw-decision b { color: var(--gold); }
   .vw-ev { display: flex; gap: 18px; margin-bottom: 14px; font-size: 12.5px; }
   .vw-ev span b { display: block; font-size: 16px; }
@@ -78,7 +78,7 @@
 
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-top: 12px; }
   .field { display: flex; flex-direction: column; gap: 4px; max-width: 220px; }
-  .field label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .field label { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
   .field-hint { font-size: 10.5px; color: var(--muted); line-height: 1.4; font-style: italic; }
   .field input[type=number], .field input[type=text] {
     background: var(--felt-2); border: 1px solid var(--line); border-radius: 7px;
@@ -111,12 +111,12 @@
   .hand-item.mistake { border-color: var(--danger); background: var(--danger-bg); }
   .hand-item.ok { border-color: rgba(63,183,168,0.35); }
   .hi-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-  .hi-cards { font-weight: 800; font-size: 15px; color: var(--cream); }
-  .hi-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+  .hi-cards { font-weight: 800; font-size: 16.5px; color: var(--cream); }
+  .hi-badge { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
     padding: 3px 8px; border-radius: 999px; }
   .hi-badge.mistake { background: var(--danger); color: #2A0E0B; }
   .hi-badge.ok { background: var(--added); color: #06231F; }
-  .hi-meta { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .hi-meta { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
   .hi-detail { font-size: 12.5px; margin-top: 8px; line-height: 1.5; }
   .hi-detail b { color: var(--gold); }
   .hi-ev { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; }
@@ -127,18 +127,22 @@
   .hand-detail { margin-top: 0; }
   .hd-table {
     position: relative; width: 100%; max-width: 400px; height: 320px; margin: 0 auto 10px;
-    background: radial-gradient(ellipse at center, var(--panel-2) 0%, var(--panel) 65%, var(--felt-2) 100%);
-    border: 6px solid #0A0908; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line);
+    background: radial-gradient(ellipse at center, #1B4939 0%, #163F30 65%, #123A2C 100%);
+    border: 6px solid #0A251C; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(239,231,210,0.14);
   }
   .mini-seat {
-    position: absolute; transform: translate(-50%, -50%); width: 92px; text-align: center;
+    position: absolute; transform: translate(-50%, -50%); width: 100px; text-align: center;
   }
-  .mini-seat-name { font-size: 10px; font-weight: 700; color: var(--cream); white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis; }
+  .mini-seat-name { display: block; font-size: 12px; font-weight: 800; color: var(--cream); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.01em; }
   .mini-seat.hero .mini-seat-name { color: var(--gold); }
-  .mini-seat-cards { display: flex; gap: 3px; justify-content: center; margin: 3px 0; transform: scale(0.72); transform-origin: center; }
-  .mini-seat-hidden { font-size: 16px; opacity: 0.5; }
-  .mini-seat-chips { font-size: 10px; color: var(--muted); font-family: ui-monospace, monospace; }
+  .mini-seat-cards { display: flex; gap: 3px; justify-content: center; margin: 4px 0; transform: scale(0.78); transform-origin: center; }
+  .mini-seat-hidden { font-size: 17px; opacity: 0.5; }
+  .mini-seat-chips {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--gold);
+    font-family: ui-monospace, SFMono-Regular, monospace; background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(201,162,39,0.3); border-radius: 999px; padding: 1px 8px; margin-top: 2px;
+  }
   .hd-board {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     text-align: center;
@@ -181,6 +185,14 @@
   .hand-item:hover { border-color: var(--gold-dim); }
   .hand-item.selected { border-color: var(--gold); background: rgba(201,162,39,0.08); box-shadow: 0 0 0 1px var(--gold); }
 
+  .filter-bar {
+    gap: 8px; margin-top: 0 0 12px 0; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; box-shadow: var(--card-shadow);
+  }
+  .filter-bar .field { flex: 1; min-width: 100px; gap: 3px; }
+  .filter-bar .field label { font-size: 10px; }
+  .filter-bar .field select { padding: 6px 8px; font-size: 12px; }
+
   /* ---- layout mais amplo para desktop/tablet ---- */
   @media (min-width: 760px) {
     .wrap { max-width: 900px; padding: 30px 20px 60px; }
@@ -200,11 +212,23 @@
     .col-config .card, .col-viewer .card { margin-bottom: 16px; }
 
     .hd-table { max-width: 480px; height: 380px; }
-    .mini-seat { width: 106px; }
-    .mini-seat-name { font-size: 11px; }
-    .mini-seat-chips { font-size: 10.5px; }
+    .mini-seat { width: 118px; }
+    .mini-seat-name { font-size: 13px; }
+    .mini-seat-chips { font-size: 12px; }
     .hd-board-cards { transform: scale(1); }
     .mini-seat-cards { transform: scale(0.85); }
+
+    .col-list .results-list {
+      max-height: calc(100vh - 90px); overflow-y: auto; scrollbar-width: thin;
+      scrollbar-color: var(--gold-dim) var(--felt-2);
+    }
+    .col-list .results-list::-webkit-scrollbar { width: 8px; }
+    .col-list .results-list::-webkit-scrollbar-track { background: var(--felt-2); border-radius: 8px; }
+    .col-list .results-list::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 8px; }
+    .col-list .results-list h2.section {
+      position: sticky; top: 0; background: var(--panel); padding-top: 2px; padding-bottom: 8px;
+      margin-bottom: 8px; z-index: 2;
+    }
   }
 </style>
 </head>
@@ -312,7 +336,7 @@
   </div>
   <div class="col-list">
 
-  <div id="resultsFilterBar" style="display:none;" class="row">
+  <div id="resultsFilterBar" style="display:none;" class="row filter-bar">
     <div class="field">
       <label>Mostrar</label>
       <select id="filterMode">
