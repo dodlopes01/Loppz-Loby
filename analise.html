@@ -130,6 +130,19 @@
     font-size: 11.5px; font-weight: 700; padding: 6px 10px; border-radius: 7px; cursor: pointer; }
   .hist-actions button.danger { color: var(--danger); border-color: var(--danger); background: transparent; }
   .hist-actions button:hover { border-color: var(--gold); }
+
+  /* ---- layout mais amplo para desktop/tablet ---- */
+  @media (min-width: 900px) {
+    .wrap { max-width: 980px; padding: 40px 24px 70px; }
+    header h1 { font-size: 22px; }
+    .row { align-items: flex-end; }
+    .field input[type=text] { width: 260px; }
+    .results-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+    .results-list h2.section, .results-list > p.empty-note { grid-column: 1 / -1; }
+    .results-list .hand-item { margin-bottom: 0; }
+    #historyList { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+    .hist-item { margin-bottom: 0; }
+  }
 </style>
 </head>
 <body>
@@ -1028,7 +1041,7 @@
       statChip(totalEvaluated - mistakes.length, 'ok') +
       '</div>';
 
-    html += '<div class="card"><h2 class="section">Resultado (do erro maior pro menor) — mostrando ' + filtered.length + ' de ' + totalEvaluated + '</h2>';
+    html += '<div class="card results-list"><h2 class="section">Resultado (do erro maior pro menor) — mostrando ' + filtered.length + ' de ' + totalEvaluated + '</h2>';
     if (!filtered.length) {
       html += '<p class="empty-note">Nenhuma mão bate com esse filtro.</p>';
     }
