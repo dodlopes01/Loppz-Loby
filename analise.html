@@ -42,9 +42,30 @@
 
   .config-explain {
     background: rgba(232,132,58,0.1); border: 1px solid rgba(232,132,58,0.35); border-radius: 8px;
-    padding: 10px 12px; font-size: 12px; line-height: 1.6; color: var(--cream); margin-top: 12px;
+    padding: 8px 10px; font-size: 11px; line-height: 1.5; color: var(--muted); margin: 6px 0 10px;
   }
-  .config-explain b { color: var(--success); }
+  .config-row { gap: 8px; }
+  .config-row .field { flex: 1; min-width: 110px; }
+
+  .page-layout { display: block; }
+  .col-config, .col-viewer, .col-list { min-width: 0; }
+
+  .viewer-card { position: relative; min-height: 200px; padding: 18px; }
+  .viewer-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 30px 14px; color: var(--muted);
+  }
+  .viewer-placeholder .vp-ic { font-size: 34px; margin-bottom: 10px; opacity: 0.6; }
+  .viewer-placeholder p { font-size: 12.5px; max-width: 260px; margin: 0; line-height: 1.6; }
+
+  .vw-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .vw-cards { display: flex; align-items: center; gap: 8px; }
+  .vw-cards .lbl { font-size: 18px; font-weight: 800; color: var(--cream); }
+  .vw-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .vw-decision { font-size: 13.5px; margin-bottom: 12px; line-height: 1.5; }
+  .vw-decision b { color: var(--gold); }
+  .vw-ev { display: flex; gap: 18px; margin-bottom: 14px; font-size: 12.5px; }
+  .vw-ev span b { display: block; font-size: 16px; }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     padding: 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); }
@@ -103,34 +124,29 @@
   .severity-bar-bg { height: 5px; border-radius: 3px; background: var(--felt); margin-top: 8px; overflow: hidden; }
   .severity-bar { height: 100%; background: var(--danger); }
 
-  .hd-toggle {
-    display: inline-block; margin-top: 8px; font-size: 11.5px; font-weight: 700; color: var(--gold);
-    cursor: pointer; user-select: none;
-  }
-  .hd-toggle:hover { text-decoration: underline; }
-  .hand-detail { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .hand-detail { margin-top: 0; }
   .hd-table {
-    position: relative; width: 100%; max-width: 320px; height: 260px; margin: 0 auto 8px;
+    position: relative; width: 100%; max-width: 400px; height: 320px; margin: 0 auto 10px;
     background: radial-gradient(ellipse at center, var(--panel-2) 0%, var(--panel) 65%, var(--felt-2) 100%);
-    border: 5px solid #0A0908; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line);
+    border: 6px solid #0A0908; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line);
   }
   .mini-seat {
-    position: absolute; transform: translate(-50%, -50%); width: 78px; text-align: center;
+    position: absolute; transform: translate(-50%, -50%); width: 92px; text-align: center;
   }
-  .mini-seat-name { font-size: 9px; font-weight: 700; color: var(--cream); white-space: nowrap;
+  .mini-seat-name { font-size: 10px; font-weight: 700; color: var(--cream); white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; }
   .mini-seat.hero .mini-seat-name { color: var(--gold); }
-  .mini-seat-cards { display: flex; gap: 2px; justify-content: center; margin: 2px 0; transform: scale(0.6); transform-origin: center; }
-  .mini-seat-hidden { font-size: 14px; opacity: 0.5; }
-  .mini-seat-chips { font-size: 9px; color: var(--muted); font-family: ui-monospace, monospace; }
+  .mini-seat-cards { display: flex; gap: 3px; justify-content: center; margin: 3px 0; transform: scale(0.72); transform-origin: center; }
+  .mini-seat-hidden { font-size: 16px; opacity: 0.5; }
+  .mini-seat-chips { font-size: 10px; color: var(--muted); font-family: ui-monospace, monospace; }
   .hd-board {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     text-align: center;
   }
-  .hd-board-label { font-size: 9px; color: var(--gold-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
-  .hd-board-cards { display: flex; gap: 3px; justify-content: center; transform: scale(0.72); transform-origin: center; }
-  .hd-no-board { font-size: 10.5px; color: var(--muted); max-width: 160px; display: inline-block; line-height: 1.4; }
-  .hd-pot { text-align: center; font-size: 11.5px; color: var(--muted); }
+  .hd-board-label { font-size: 10px; color: var(--gold-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .hd-board-cards { display: flex; gap: 4px; justify-content: center; transform: scale(0.85); transform-origin: center; }
+  .hd-no-board { font-size: 11px; color: var(--muted); max-width: 180px; display: inline-block; line-height: 1.4; }
+  .hd-pot { text-align: center; font-size: 12px; color: var(--muted); }
 
   .empty-note { font-size: 12.5px; color: var(--muted); text-align: center; padding: 20px 10px; }
 
@@ -160,17 +176,35 @@
   .hist-actions button.danger { color: var(--danger); border-color: var(--danger); background: transparent; }
   .hist-actions button:hover { border-color: var(--red); }
 
+  /* ---- lista de resultados compacta (uma coluna, clicavel) ---- */
+  .hand-item { cursor: pointer; }
+  .hand-item:hover { border-color: var(--gold-dim); }
+  .hand-item.selected { border-color: var(--gold); background: rgba(201,162,39,0.08); box-shadow: 0 0 0 1px var(--gold); }
+
   /* ---- layout mais amplo para desktop/tablet ---- */
-  @media (min-width: 900px) {
-    .wrap { max-width: 980px; padding: 40px 24px 70px; }
+  @media (min-width: 760px) {
+    .wrap { max-width: 900px; padding: 30px 20px 60px; }
     header h1 { font-size: 22px; }
     .row { align-items: flex-end; }
-    .field input[type=text] { width: 260px; }
-    .results-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
-    .results-list h2.section, .results-list > p.empty-note { grid-column: 1 / -1; }
-    .results-list .hand-item { margin-bottom: 0; }
-    #historyList { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
-    .hist-item { margin-bottom: 0; }
+    .field input[type=text] { width: 220px; }
+  }
+
+  @media (min-width: 1180px) {
+    .wrap { max-width: 1320px; }
+    .page-layout {
+      display: grid; grid-template-columns: 300px 1fr 360px; gap: 20px; align-items: start;
+    }
+    .col-config { grid-column: 1; }
+    .col-viewer { grid-column: 2; position: sticky; top: 24px; }
+    .col-list { grid-column: 3; }
+    .col-config .card, .col-viewer .card { margin-bottom: 16px; }
+
+    .hd-table { max-width: 480px; height: 380px; }
+    .mini-seat { width: 106px; }
+    .mini-seat-name { font-size: 11px; }
+    .mini-seat-chips { font-size: 10.5px; }
+    .hd-board-cards { transform: scale(1); }
+    .mini-seat-cards { transform: scale(0.85); }
   }
 </style>
 </head>
@@ -203,59 +237,54 @@
     Formato aceito: hand history estilo PokerStars (texto puro).
   </div>
 
+  <div class="page-layout">
+  <div class="col-config">
+
   <div class="card">
-    <h2 class="section">1. Cole o hand history (ou importe do PC)</h2>
+    <h2 class="section">1. Cole o hand history</h2>
     <div class="row" style="margin-top:0;">
-      <button class="btn secondary" id="importBtn" type="button">📂 Importar arquivo(s) .txt do PC</button>
+      <button class="btn secondary" id="importBtn" type="button">📂 Importar .txt</button>
       <input type="file" id="fileInput" accept=".txt" multiple style="display:none;">
       <span class="status" id="importStatus" style="margin:0;"></span>
     </div>
     <textarea id="hh" placeholder="Cole aqui uma ou várias mãos no formato PokerStars Hand #..." style="margin-top:10px;"></textarea>
 
-    <p class="config-explain">
-      👇 <b>O que já vem automático do arquivo:</b> seu stack, posição, cartas e ação em cada mão.
-      <b>O que você define abaixo</b> são só configurações gerais da análise — coisas que <b>o hand
-      history não tem como te dizer</b> (o range do vilão, se é ICM ou chip EV, os prêmios do torneio).
-    </p>
+    <h2 class="section" style="margin-top:16px;">2. Configurações</h2>
+    <p class="config-explain">Stack, posição, cartas e ação vêm do arquivo. O resto abaixo é algo que só você sabe.</p>
 
-    <div class="row">
+    <div class="row config-row">
       <div class="field">
-        <label>Filtro: só analisar mãos com stack ≤ (BB)</label>
+        <label>Stack ≤ (BB)</label>
         <input type="number" id="threshold" value="20" min="2" max="40">
-        <span class="field-hint">Não vem do arquivo — é o limite pra decidir quais mãos entram na análise.</span>
       </div>
       <div class="field">
-        <label>Sua suposição sobre o vilão</label>
+        <label>Faixa do vilão</label>
         <select id="villainRange">
           <option value="tight">Apertada (~10-15%)</option>
           <option value="medium" selected>Média (~20-30%)</option>
           <option value="loose">Larga (~35-45%)</option>
         </select>
-        <span class="field-hint">O arquivo não diz como o vilão joga — isso é uma estimativa sua.</span>
       </div>
       <div class="field">
-        <label>Modelo de EV</label>
+        <label>Modelo</label>
         <select id="model">
-          <option value="icm" selected>ICM ($ / bolha / final table)</option>
-          <option value="chip">Chip EV (torneio cedo / cash)</option>
+          <option value="icm" selected>ICM ($)</option>
+          <option value="chip">Chip EV</option>
         </select>
-        <span class="field-hint">Depende do momento do torneio — escolha sua, o arquivo não informa.</span>
       </div>
     </div>
-    <div class="row" id="payoutRow">
+    <div class="row config-row" id="payoutRow">
       <div class="field" style="flex:1;">
-        <label>Prêmios em ordem (1º,2º,3º... — só p/ ICM)</label>
-        <input type="text" id="payouts" placeholder="ex: 5000,3000,1800,1200,900" value="4.50,2.70,1.80">
-        <span class="field-hint">Os prêmios do seu torneio — o hand history nunca traz essa informação.</span>
+        <label>Prêmios (1º,2º,3º...)</label>
+        <input type="text" id="payouts" placeholder="ex: 5000,3000,1800" value="4.50,2.70,1.80">
       </div>
       <div class="field">
-        <label>Simulações por mão</label>
+        <label>Simulações/mão</label>
         <input type="number" id="iterations" value="4000" min="500" max="20000" step="500">
-        <span class="field-hint">Precisão da simulação — mais alto = mais preciso e mais lento.</span>
       </div>
     </div>
     <div class="row">
-      <button class="btn secondary" id="presetSngBtn" type="button">Preset: SNG 9-max $1 (mesa única, paga top 3, 50/30/20)</button>
+      <button class="btn secondary" id="presetSngBtn" type="button">Preset: SNG 9-max $1 (50/30/20)</button>
     </div>
 
     <div class="row">
@@ -266,10 +295,22 @@
   </div>
 
   <div class="card" id="historyCard">
-    <h2 class="section">Histórico de importações</h2>
-    <p class="empty-note" style="text-align:left; padding:0 0 10px;">Salvo só neste navegador (localStorage) — não sincroniza entre dispositivos e some se limpar os dados do site.</p>
+    <h2 class="section">Histórico</h2>
+    <p class="empty-note" style="text-align:left; padding:0 0 10px;">Salvo só neste navegador.</p>
     <div id="historyList"><p class="empty-note">Nenhuma análise salva ainda.</p></div>
   </div>
+
+  </div>
+  <div class="col-viewer">
+  <div class="card viewer-card" id="viewerCard">
+    <div class="viewer-placeholder" id="viewerPlaceholder">
+      <span class="vp-ic">🃏</span>
+      <p>Selecione uma mão na lista pra ver a mesa, o board e a análise completa aqui.</p>
+    </div>
+    <div id="viewerContent" style="display:none;"></div>
+  </div>
+  </div>
+  <div class="col-list">
 
   <div id="resultsFilterBar" style="display:none;" class="row">
     <div class="field">
@@ -296,6 +337,9 @@
     </div>
   </div>
   <div id="results"></div>
+
+  </div>
+  </div>
 
 </div>
 
@@ -1122,6 +1166,9 @@
 
   function renderResults(evaluated, totalParsed, skipped) {
     var filterBar = document.getElementById('resultsFilterBar');
+    evalById = {}; selectedHandId = null;
+    viewerContent.style.display = 'none';
+    viewerPlaceholder.style.display = 'flex';
     if (!totalParsed) { resultsEl.innerHTML = ''; filterBar.style.display = 'none'; return; }
     if (!evaluated.length) {
       filterBar.style.display = 'none';
@@ -1132,12 +1179,11 @@
     filterBar.style.display = 'flex';
     populatePositionFilter(evaluated);
     renderResultsList(applyFilters(evaluated), evaluated.length);
+    if (evaluated.length) selectHand(evaluated[0].hand.id);
   }
 
   function renderResultsList(filtered, totalEvaluated) {
-    var model = modelEl.value;
     var mistakes = lastEvaluated.filter(function (e) { return e.mistake; });
-    var maxSeverity = Math.max.apply(null, lastEvaluated.map(function (e) { return e.severity; })) || 1;
 
     var html = '';
     html += '<div class="summary-bar">' +
@@ -1150,58 +1196,81 @@
     if (!filtered.length) {
       html += '<p class="empty-note">Nenhuma mão bate com esse filtro.</p>';
     }
-    filtered.forEach(function (e, i) {
+    filtered.forEach(function (e) {
       var h = e.hand;
       var cardsLabel = handKey(h.heroExactCards);
-      var recommended = e.isCallDecision ? (e.shouldPlay ? 'Call' : 'Fold') : (e.shouldPlay ? 'Push' : 'Fold');
-      var pctBar = Math.round((e.severity / maxSeverity) * 100);
-      var slotId = 'hd-' + i + '-' + h.id;
-      html += '<div class="hand-item ' + (e.mistake ? 'mistake' : 'ok') + '">' +
+      html += '<div class="hand-item ' + (e.mistake ? 'mistake' : 'ok') + '" data-hand-id="' + h.id + '">' +
         '<div class="hi-top">' +
           '<div class="hi-card-row">' + h.heroExactCards.map(cardFaceHTML).join('') +
             '<span class="hi-cards">' + cardsLabel + '</span></div>' +
           '<span class="hi-badge ' + (e.mistake ? 'mistake' : 'ok') + '">' + (e.mistake ? 'Erro' : 'OK') + '</span>' +
         '</div>' +
-        '<div class="hi-meta">' + h.position + ' · ' + h.effBB.toFixed(1) + ' BB efetivo · mão #' + h.id +
-        (e.equity !== null ? ' · equity vs faixa assumida: ' + (e.equity * 100).toFixed(1) + '%' : '') + '</div>' +
-        '<div class="hi-detail">Você fez <b>' + actionLabel(h.heroAction) + '</b>. Recomendado: <b>' + recommended + '</b></div>' +
-        '<div class="hi-ev">' +
-          '<span>EV ' + (e.isCallDecision ? 'call' : 'push') + '<b>' + fmtEV(e.evPush, model) + '</b></span>' +
-          '<span>EV fold<b>' + fmtEV(e.evFold, model) + '</b></span>' +
-        '</div>' +
-        (e.mistake ? '<div class="severity-bar-bg"><div class="severity-bar" style="width:' + pctBar + '%"></div></div>' : '') +
-        '<div class="hd-toggle" data-toggle-hand="' + slotId + '">🔍 Ver mesa (board, stacks e mãos)</div>' +
-        '<div class="hand-detail-slot" id="' + slotId + '" data-hand-id="' + h.id + '" style="display:none;"></div>' +
+        '<div class="hi-meta">' + h.position + ' · ' + h.effBB.toFixed(1) + ' BB efetivo</div>' +
         '</div>';
-      handLookup[slotId] = h;
+      evalById[h.id] = e;
     });
     html += '</div>';
     resultsEl.innerHTML = html;
+
+    // reaplica seleção se a mão selecionada ainda estiver na lista filtrada
+    if (selectedHandId && evalById[selectedHandId]) highlightSelected(selectedHandId);
   }
 
   function statChip(n, label) {
     return '<div class="stat-chip"><span class="n">' + n + '</span><span class="l">' + label + '</span></div>';
   }
 
-  var handLookup = {};
+  // ================= painel central (mesa + análise completa da mão selecionada) =================
+  var evalById = {};
+  var selectedHandId = null;
+  var viewerPlaceholder = document.getElementById('viewerPlaceholder');
+  var viewerContent = document.getElementById('viewerContent');
+
+  function highlightSelected(handId) {
+    Array.prototype.forEach.call(resultsEl.querySelectorAll('.hand-item'), function (el) {
+      el.classList.toggle('selected', el.getAttribute('data-hand-id') === handId);
+    });
+  }
+
+  function selectHand(handId) {
+    var e = evalById[handId];
+    if (!e) return;
+    selectedHandId = handId;
+    highlightSelected(handId);
+    renderViewer(e);
+    if (window.matchMedia('(max-width: 1179px)').matches) {
+      viewerPlaceholder.closest('.viewer-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function renderViewer(e) {
+    var model = modelEl.value;
+    var h = e.hand;
+    var cardsLabel = handKey(h.heroExactCards);
+    var recommended = e.isCallDecision ? (e.shouldPlay ? 'Call' : 'Fold') : (e.shouldPlay ? 'Push' : 'Fold');
+
+    var html = '<div class="vw-head">' +
+        '<div class="vw-cards">' + h.heroExactCards.map(cardFaceHTML).join('') + '<span class="lbl">' + cardsLabel + '</span></div>' +
+        '<span class="hi-badge ' + (e.mistake ? 'mistake' : 'ok') + '">' + (e.mistake ? 'Erro' : 'OK') + '</span>' +
+      '</div>' +
+      '<div class="vw-meta">' + h.position + ' · ' + h.effBB.toFixed(1) + ' BB efetivo · mão #' + h.id +
+        (e.equity !== null ? ' · equity vs faixa assumida: ' + (e.equity * 100).toFixed(1) + '%' : '') + '</div>' +
+      '<div class="vw-decision">Você fez <b>' + actionLabel(h.heroAction) + '</b>. Recomendado: <b>' + recommended + '</b></div>' +
+      '<div class="vw-ev">' +
+        '<span>EV ' + (e.isCallDecision ? 'call' : 'push') + '<b>' + fmtEV(e.evPush, model) + '</b></span>' +
+        '<span>EV fold<b>' + fmtEV(e.evFold, model) + '</b></span>' +
+      '</div>' +
+      renderHandDetail(h);
+
+    viewerContent.innerHTML = html;
+    viewerContent.style.display = 'block';
+    viewerPlaceholder.style.display = 'none';
+  }
+
   resultsEl.addEventListener('click', function (ev) {
-    var toggle = ev.target.closest('[data-toggle-hand]');
-    if (!toggle) return;
-    var slotId = toggle.getAttribute('data-toggle-hand');
-    var slot = document.getElementById(slotId);
-    if (!slot) return;
-    var isOpen = slot.style.display !== 'none';
-    if (isOpen) {
-      slot.style.display = 'none';
-      toggle.textContent = '🔍 Ver mesa (board, stacks e mãos)';
-      return;
-    }
-    if (!slot.dataset.built) {
-      slot.innerHTML = renderHandDetail(handLookup[slotId]);
-      slot.dataset.built = '1';
-    }
-    slot.style.display = 'block';
-    toggle.textContent = '🔼 Fechar mesa';
+    var row = ev.target.closest('.hand-item[data-hand-id]');
+    if (!row) return;
+    selectHand(row.getAttribute('data-hand-id'));
   });
 })();
 </script>
