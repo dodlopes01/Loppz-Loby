@@ -143,11 +143,12 @@
   .mini-seat.hero .mini-seat-name { color: var(--gold); }
   .mini-seat-cards { display: flex; gap: 4px; justify-content: center; margin: 5px 0; transform: scale(0.95); transform-origin: center; }
   .mini-seat-hidden { font-size: 17px; opacity: 0.5; }
+  .mini-seat { z-index: 1; }
   .dealer-btn {
-    position: absolute; transform: translate(-50%, -50%); width: 26px; height: 26px; border-radius: 50%;
-    background: var(--cream); color: #1A1508; font-size: 12px; font-weight: 900; display: flex;
-    align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.15);
-    z-index: 3;
+    position: absolute; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%;
+    background: var(--red); color: var(--cream); font-size: 11px; font-weight: 900; display: flex;
+    align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1.5px rgba(239,231,210,0.5);
+    z-index: 5;
   }
   .chip-icon {
     display: inline-block; width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
@@ -1020,8 +1021,8 @@
     var dealerHtml = '';
     if (btnSeatIdx !== -1) {
       var bp = positions[btnSeatIdx];
-      var dLeft = bp.left + (50 - bp.left) * 0.34;
-      var dTop = bp.top + (50 - bp.top) * 0.34;
+      var dLeft = bp.left + (50 - bp.left) * 0.18;
+      var dTop = bp.top + (50 - bp.top) * 0.18;
       dealerHtml = '<div class="dealer-btn" style="left:' + dLeft + '%; top:' + dTop + '%;">D</div>';
     }
 
