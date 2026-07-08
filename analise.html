@@ -133,11 +133,22 @@
   .mini-seat {
     position: absolute; transform: translate(-50%, -50%); width: 100px; text-align: center;
   }
+  .mini-seat-pos {
+    display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--felt); background: var(--gold-dim); border-radius: 4px; padding: 1px 5px; margin-bottom: 3px;
+  }
+  .mini-seat.hero .mini-seat-pos { background: var(--gold); }
   .mini-seat-name { display: block; font-size: 12px; font-weight: 800; color: var(--cream); white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.01em; }
   .mini-seat.hero .mini-seat-name { color: var(--gold); }
   .mini-seat-cards { display: flex; gap: 3px; justify-content: center; margin: 4px 0; transform: scale(0.78); transform-origin: center; }
   .mini-seat-hidden { font-size: 17px; opacity: 0.5; }
+  .dealer-btn {
+    position: absolute; transform: translate(-50%, -50%); width: 22px; height: 22px; border-radius: 50%;
+    background: var(--cream); color: #1A1508; font-size: 10px; font-weight: 900; display: flex;
+    align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.15);
+    z-index: 3;
+  }
   .chip-icon {
     display: inline-block; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
     background: conic-gradient(var(--red) 0deg 40deg, var(--gold) 40deg 80deg, var(--red) 80deg 120deg,
@@ -642,6 +653,12 @@
       var offset = (heroIdx - btnIdx + n) % n;
       var position = positionFromOffset(offset, n);
 
+      // posição de cada jogador da mesa (não só do Hero), pra mostrar na mesinha
+      seats.forEach(function (s, idx) {
+        var off = (idx - btnIdx + n) % n;
+        s.position = positionFromOffset(off, n);
+      });
+
       var preflopMatch = block.match(/\*\*\* HOLE CARDS \*\*\*([\s\S]*?)(\*\*\* FLOP \*\*\*|\*\*\* SUMMARY \*\*\*|$)/);
       var preflopText = preflopMatch ? preflopMatch[1] : '';
       var actionLines = preflopText.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
@@ -712,6 +729,7 @@
         allSeats: seats, // full seat list w/ chips, for table-level ICM
         behindPlayers: behindPlayers,
         deadMoney: deadMoney, // total de blinds/antes já no pote antes da decisão do Hero
+        buttonSeat: buttonSeat, // número do assento do dealer, pra marcar o botão na mesinha
         rawBlock: block // guardado pra poder montar a mesa (board/showdown) sob demanda
       };
     } catch (e) {
@@ -987,18 +1005,28 @@
       else cardsHtml = '<div class="card-face-mini back"></div><div class="card-face-mini back"></div>';
 
       return '<div class="mini-seat' + (isHero ? ' hero' : '') + '" style="left:' + pos.left + '%; top:' + pos.top + '%;">' +
+        '<div class="mini-seat-pos">' + s.position + '</div>' +
         '<div class="mini-seat-name">' + escapeHtml(s.name) + (isHero ? ' (você)' : '') + '</div>' +
         '<div class="mini-seat-cards">' + cardsHtml + '</div>' +
         '<div class="mini-seat-chips"><span class="chip-icon"></span>' + s.chips.toLocaleString('pt-BR') + '</div>' +
       '</div>';
     }).join('');
 
+    var btnSeatIdx = hand.allSeats.findIndex(function (s) { return s.seat === hand.buttonSeat; });
+    var dealerHtml = '';
+    if (btnSeatIdx !== -1) {
+      var bp = positions[btnSeatIdx];
+      var dLeft = bp.left + (50 - bp.left) * 0.34;
+      var dTop = bp.top + (50 - bp.top) * 0.34;
+      dealerHtml = '<div class="dealer-btn" style="left:' + dLeft + '%; top:' + dTop + '%;">D</div>';
+    }
+
     var boardHtml = info.board.length
       ? info.board.map(cardFaceHTML).join('')
       : '<span class="hd-no-board">Mão terminou no pré-flop — sem mesa comunitária revelada.</span>';
 
     return '<div class="hand-detail">' +
-      '<div class="hd-table">' + seatsHtml +
+      '<div class="hd-table">' + seatsHtml + dealerHtml +
         '<div class="hd-board"><div class="hd-board-label">Mesa</div><div class="hd-board-cards">' + boardHtml + '</div></div>' +
       '</div>' +
       (info.potLine ? '<div class="hd-pot"><span class="chip-icon"></span><span class="chip-icon"></span><span class="chip-icon"></span> ' + escapeHtml(info.potLine) + '</div>' : '') +
