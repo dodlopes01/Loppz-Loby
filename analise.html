@@ -149,12 +149,6 @@
   .mini-seat-cards { display: flex; gap: 4px; justify-content: center; margin: 5px 0; transform: scale(0.95); transform-origin: center; }
   .mini-seat-hidden { font-size: 17px; opacity: 0.5; }
   .mini-seat { z-index: 1; }
-  .dealer-btn {
-    position: absolute; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%;
-    background: var(--red); color: var(--cream); font-size: 11px; font-weight: 900; display: flex;
-    align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1.5px rgba(239,231,210,0.5);
-    z-index: 5;
-  }
   .chip-icon {
     display: inline-block; width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
     background: conic-gradient(var(--red) 0deg 40deg, var(--gold) 40deg 80deg, var(--red) 80deg 120deg,
@@ -170,13 +164,13 @@
   }
   .hd-board {
     position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    text-align: center;
+    text-align: center; width: 100%; max-width: 200px;
   }
   .hd-board-label { font-size: 11.5px; color: var(--gold-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
   .hd-board-cards { display: flex; gap: 5px; justify-content: center; transform: scale(1.05); transform-origin: center; }
   .hd-no-board { font-size: 12px; color: var(--muted); max-width: 190px; display: inline-block; line-height: 1.5; }
-  .hd-pot { text-align: center; font-size: 13.5px; color: var(--cream); font-weight: 600; margin-top: 4px; }
-  .hd-pot .chip-icon { margin-right: 0; margin-left: -7px; }
+  .hd-pot { text-align: center; font-size: 12px; color: var(--cream); font-weight: 600; margin-bottom: 8px; white-space: nowrap; }
+  .hd-pot .chip-icon { width: 12px; height: 12px; margin-right: 0; margin-left: -6px; }
   .hd-pot .chip-icon:nth-of-type(1) { margin-left: 0; }
 
   .empty-note { font-size: 12.5px; color: var(--muted); text-align: center; padding: 20px 10px; }
@@ -251,7 +245,7 @@
     .hd-board-cards { transform: scale(1.25); }
     .mini-seat-cards { transform: scale(1.1); }
     .hd-board-label { font-size: 13px; }
-    .hd-pot { font-size: 15px; }
+    .hd-pot { font-size: 13px; }
 
     .col-list .results-list {
       max-height: calc(100vh - 90px); overflow-y: auto; scrollbar-width: thin;
@@ -1022,26 +1016,18 @@
       '</div>';
     }).join('');
 
-    var btnSeatIdx = hand.allSeats.findIndex(function (s) { return s.seat === hand.buttonSeat; });
-    var dealerHtml = '';
-    if (btnSeatIdx !== -1) {
-      var isHeroButton = hand.allSeats[btnSeatIdx].name === hand.heroName;
-      var pull = isHeroButton ? 0.30 : 0.18; // se o Hero tá no botão, afasta mais (o assento dele é maior)
-      var bp = positions[btnSeatIdx];
-      var dLeft = bp.left + (50 - bp.left) * pull;
-      var dTop = bp.top + (50 - bp.top) * pull;
-      dealerHtml = '<div class="dealer-btn" style="left:' + dLeft + '%; top:' + dTop + '%;">D</div>';
-    }
-
     var boardHtml = info.board.length
       ? info.board.map(cardFaceHTML).join('')
       : '<span class="hd-no-board">Mão terminou no pré-flop — sem mesa comunitária revelada.</span>';
 
+    var potHtml = info.potLine
+      ? '<div class="hd-pot"><span class="chip-icon"></span><span class="chip-icon"></span><span class="chip-icon"></span> ' + escapeHtml(info.potLine) + '</div>'
+      : '';
+
     return '<div class="hand-detail">' +
-      '<div class="hd-table">' + seatsHtml + dealerHtml +
-        '<div class="hd-board"><div class="hd-board-label">Mesa</div><div class="hd-board-cards">' + boardHtml + '</div></div>' +
+      '<div class="hd-table">' + seatsHtml +
+        '<div class="hd-board">' + potHtml + '<div class="hd-board-label">Mesa</div><div class="hd-board-cards">' + boardHtml + '</div></div>' +
       '</div>' +
-      (info.potLine ? '<div class="hd-pot"><span class="chip-icon"></span><span class="chip-icon"></span><span class="chip-icon"></span> ' + escapeHtml(info.potLine) + '</div>' : '') +
     '</div>';
   }
 
