@@ -601,7 +601,9 @@
       var evCall = equity * tableEV(winStacks) + (1 - equity) * tableEV(loseStacks);
       var evFold = currentEV;
       var shouldCall = evCall > evFold;
-      var didCall = (hand.heroAction === 'call' || hand.heroAction === 'call-allin');
+      // "didCall" = Hero não deu fold (call, call-allin, ou até um raise-over sobre o all-in
+      // contam como "jogou a mão" — só fold conta como não jogar)
+      var didCall = (hand.heroAction !== 'fold');
       var mistake = shouldCall !== didCall;
 
       return {
@@ -659,7 +661,11 @@
     var avgEquity = weightSum > 0 ? equitySum / weightSum : null;
     var evFoldPush = currentEV;
     var shouldPush = evPush > evFoldPush;
-    var didPush = hand.heroAction === 'push';
+    // "didPush" = Hero não deu fold (nem check, que na prática é recusar investir fichas).
+    // Um call, call-allin, ou raise que não seja literalmente "push" ainda conta como
+    // "jogou a mão" — antes só "push" literal contava, e ações como "call-allin" ficavam
+    // sempre marcadas como se fossem fold, escondendo erros reais.
+    var didPush = (hand.heroAction !== 'fold' && hand.heroAction !== 'check');
     var mistake = shouldPush !== didPush;
 
     return {
