@@ -142,18 +142,20 @@
 
   <button class="info-toggle" id="infoToggle">ℹ️ Como funciona o motor</button>
   <div class="disclaimer" id="disclaimerBox" style="display:none;">
-    <b>V2.1 — motor de equity Monte Carlo + ICM real.</b> Diferente da v1 (que usava só a força
+    <b>V2.2 — motor de equity Monte Carlo + ICM real.</b> Diferente da v1 (que usava só a força
     aproximada da mão), esta versão calcula:
     <ul>
       <li><b>Equity exata (via simulação):</b> sua mão real vs. a faixa assumida do(s) oponente(s), usando o mesmo avaliador de 7 cartas do "Equity vs Range".</li>
       <li><b>ICM de verdade:</b> valor em prêmio ($) de cada resultado, via fórmula recursiva de finish-probability — não é mais só uma estimativa por percentil.</li>
       <li><b>Stacks descontando blind/ante já postados:</b> o EV de dar fold agora usa o stack no momento real da decisão (já descontando SB/BB/ante que você já colocou no pote), não o stack "cheio" do início da mão — isso deixa o limite push/fold mais preciso, principalmente com stack curto.</li>
+      <li><b>Dinheiro morto do pote creditado a quem ganha:</b> antes, blinds/antes de quem já desistiu ficavam "perdidos" no cálculo — agora, quem vence a mão realmente recebe esse dinheiro, tanto no push quanto no call.</li>
+      <li><b>Multi-way de verdade:</b> em vez de assumir "no máximo um pagador por vez", o motor agora sorteia, pra cada jogador atrás de você, se ele paga ou não — de forma independente, rodada a rodada — e resolve o showdown com todos que realmente pagaram (0, 1, 2 ou mais ao mesmo tempo).</li>
       <li><b>Detecção de erro corrigida:</b> qualquer ação sua que não seja fold (call, call-allin, raise) agora é comparada corretamente com a recomendação — antes só a ação literal "push"/"call" era reconhecida, e outras ações ficavam escondidas como se fossem fold.</li>
     </ul>
     O que ainda é simplificado (e será refinado nas próximas fases):
     <ul>
       <li>A faixa de call/push assumida para os oponentes ainda é heurística (ajustável no dropdown "faixa do vilão"), não um equilíbrio de Nash resolvido.</li>
-      <li>Em mãos com vários jogadores atrás de você, o modelo considera no máximo <b>um</b> chamador por vez (ignora a chance de dois ou mais pagarem juntos) e renormaliza a probabilidade pra não distorcer o EV — isso tende a <b>superestimar levemente</b> sua vantagem em potes bem multi-way.</li>
+      <li>Quando 2+ jogadores pagam com stacks bem diferentes entre si, o "pote principal" é limitado pelo stack mais curto entre eles — uma aproximação de side-pot que cobre bem a maioria dos casos, mas não resolve todos os níveis de side-pot quando há 3+ stacks muito diferentes na mesma mão.</li>
       <li>O ICM aqui é calculado com os jogadores <b>desta mesa</b> e os prêmios que você informar — é exato para mesa final, e uma aproximação em estágios anteriores de MTT (o ICM "de campo completo" exigiria o total de fichas e jogadores do torneio inteiro, como o próprio ICMIZER pede no modo MTT).</li>
     </ul>
     Formato aceito: hand history estilo PokerStars (texto puro).
@@ -492,9 +494,11 @@
       // que a decisão é tomada — ou seja, já descontando SB/BB/ante postados.
       var postedRe = /^(\S.*?): posts (?:the ante|small blind|big blind|small & big blinds) ([\d,]+)/gm;
       var pm;
+      var deadMoney = 0;
       while ((pm = postedRe.exec(block)) !== null) {
         var pname = pm[1].trim();
         var pamt = parseInt(pm[2].replace(/,/g, ''), 10);
+        deadMoney += pamt;
         var seatObj = seats.find(function (s) { return s.name === pname; });
         if (seatObj) seatObj.chips = Math.max(0, seatObj.chips - pamt);
       }
@@ -582,7 +586,8 @@
         raisesBeforeHero: raisesBeforeHero,
         heroChips: heroSeatObj.chips,
         allSeats: seats, // full seat list w/ chips, for table-level ICM
-        behindPlayers: behindPlayers
+        behindPlayers: behindPlayers,
+        deadMoney: deadMoney // total de blinds/antes já no pote antes da decisão do Hero
       };
     } catch (e) {
       return null;
@@ -636,11 +641,11 @@
 
       var effChips = Math.min(hand.heroChips, hand.allInSeatObj.chips);
       var winStacks = stacks.slice();
-      winStacks[heroIdxInSeats] += effChips;
+      winStacks[heroIdxInSeats] += effChips + hand.deadMoney;
       winStacks[villainIdxInSeats] -= effChips;
       var loseStacks = stacks.slice();
       loseStacks[heroIdxInSeats] -= effChips;
-      loseStacks[villainIdxInSeats] += effChips;
+      loseStacks[villainIdxInSeats] += effChips + hand.deadMoney;
 
       var evCall = equity * tableEV(winStacks) + (1 - equity) * tableEV(loseStacks);
       var evFold = currentEV;
@@ -657,52 +662,103 @@
       };
     }
 
-    // push decision: at-most-one-caller approximation across players still behind Hero
+    // push decision: simulação Monte Carlo completa — em cada rodada, cada jogador atrás
+    // decide (de forma independente, sorteada pela % de call dele) se paga ou não. Isso
+    // cobre naturalmente 0, 1, 2 ou mais pagadores ao mesmo tempo, em vez de assumir no
+    // máximo um pagador por vez.
     var behind = hand.behindPlayers;
     if (!behind.length) return null;
 
-    var callInfos = behind.map(function (p) {
+    var behindInfo = behind.map(function (p) {
       var idx = hand.allSeats.findIndex(function (s) { return s.name === p.name; });
       var pStackBB = p.chips / hand.bb;
       var pct = villainRangePct(villainPct, Math.min(hand.effBB, pStackBB));
-      return { idx: idx, chips: p.chips, pct: pct / 100 };
+      var labels = topNCombos(pct);
+      var pool = [];
+      labels.forEach(function (l) { expandHandToCombos(l).forEach(function (c) { pool.push(c); }); });
+      return { idx: idx, chips: p.chips, pct: pct / 100, pool: pool };
     });
 
-    var pNobodyCalls = callInfos.reduce(function (acc, c) { return acc * (1 - c.pct); }, 1);
+    var heroChips = stacks[heroIdxInSeats];
+    var deadMoney = hand.deadMoney || 0;
+    var iters = Math.max(400, Math.round(iterations / Math.max(1, behindInfo.length)));
 
-    // Note (approximation limitation): we model "nobody calls" + "exactly one caller"
-    // scenarios and explicitly drop the "two or more callers at once" scenario. To avoid
-    // silently under-weighting the EV (which would bias the result toward "fold"), we
-    // renormalize by the probability mass we actually modeled. This likely slightly
-    // *overstates* Hero's edge in heavy multi-way spots, since beating two live ranges
-    // at once is harder than beating one — a real limitation, not a hidden math error.
-    var evPushRaw = pNobodyCalls * currentEV;
-    var equitySum = 0, weightSum = 0;
-    var probMassModeled = pNobodyCalls;
-    callInfos.forEach(function (c) {
-      var pOnlyThis = c.pct;
-      callInfos.forEach(function (other) { if (other !== c) pOnlyThis *= (1 - other.pct); });
-      if (pOnlyThis <= 0) return;
-      probMassModeled += pOnlyThis;
-      var vPct = villainRangePct(villainPct, Math.min(hand.effBB, c.chips / hand.bb));
-      var range = topNCombos(vPct);
-      var equity = equityVsRange(hand.heroExactCards, range, Math.max(500, Math.round(iterations / Math.max(1, callInfos.length))));
-      if (equity === null) return;
-      equitySum += equity * pOnlyThis; weightSum += pOnlyThis;
+    var evSum = 0, count = 0, winCount = 0, tieCount = 0, calledCount = 0;
+    var attempts = 0, maxAttempts = iters * 5;
 
-      var effChips = Math.min(hand.heroChips, c.chips);
-      var winStacks = stacks.slice();
-      winStacks[heroIdxInSeats] += effChips;
-      winStacks[c.idx] -= effChips;
-      var loseStacks = stacks.slice();
-      loseStacks[heroIdxInSeats] -= effChips;
-      loseStacks[c.idx] += effChips;
+    while (count < iters && attempts < maxAttempts) {
+      attempts++;
 
-      evPushRaw += pOnlyThis * (equity * tableEV(winStacks) + (1 - equity) * tableEV(loseStacks));
-    });
+      // sorteia, pra cada jogador atrás, se ele paga ou não nesta rodada
+      var callers = [];
+      for (var bi = 0; bi < behindInfo.length; bi++) {
+        if (Math.random() < behindInfo[bi].pct) callers.push(behindInfo[bi]);
+      }
 
-    var evPush = probMassModeled > 0 ? evPushRaw / probMassModeled : evPushRaw;
-    var avgEquity = weightSum > 0 ? equitySum / weightSum : null;
+      if (!callers.length) {
+        // ninguém paga: Hero fica com o pote todo (fichas dele de volta + dead money de todo mundo)
+        var winStacksUncalled = stacks.slice();
+        winStacksUncalled[heroIdxInSeats] += deadMoney;
+        evSum += tableEV(winStacksUncalled);
+        count++;
+        continue;
+      }
+
+      // sorteia uma combinação de mão pra cada pagador, dentro da faixa dele, sem conflito de carta
+      var used = {};
+      used[cardKey(hand.heroExactCards[0])] = true; used[cardKey(hand.heroExactCards[1])] = true;
+      var callerHands = []; var dealOk = true;
+      for (var ci = 0; ci < callers.length; ci++) {
+        var availablePool = callers[ci].pool.filter(function (combo) {
+          return !used[cardKey(combo[0])] && !used[cardKey(combo[1])];
+        });
+        if (!availablePool.length) { dealOk = false; break; }
+        var picked = availablePool[(Math.random() * availablePool.length) | 0];
+        used[cardKey(picked[0])] = true; used[cardKey(picked[1])] = true;
+        callerHands.push(picked);
+      }
+      if (!dealOk) continue; // conflito de cartas — tenta de novo
+
+      var deckLeft = [];
+      for (var di = 0; di < FULL_DECK.length; di++) { if (!used[cardKey(FULL_DECK[di])]) deckLeft.push(FULL_DECK[di]); }
+      var board = [];
+      for (var bd = 0; bd < 5; bd++) {
+        var bp = (Math.random() * deckLeft.length) | 0;
+        board.push(deckLeft[bp]);
+        deckLeft.splice(bp, 1);
+      }
+
+      // Simplificação: o "pote principal" disputado é limitado pelo stack mais curto entre
+      // Hero e os pagadores desta rodada (aproxima side-pots sem resolver todos os níveis
+      // quando há 3+ stacks bem diferentes — ainda assim, muito mais realista que ignorar
+      // 2+ pagadores por completo).
+      var involved = [heroChips].concat(callers.map(function (c) { return c.chips; }));
+      var effShared = Math.min.apply(null, involved);
+
+      var heroScore = evaluate7(hand.heroExactCards.concat(board));
+      var callerScores = callerHands.map(function (ch) { return evaluate7(ch.concat(board)); });
+      var maxScore = Math.max(heroScore, Math.max.apply(null, callerScores));
+      var heroWinsThis = heroScore === maxScore;
+      var winnersCount = (heroWinsThis ? 1 : 0) + callerScores.filter(function (s) { return s === maxScore; }).length;
+
+      var mainPot = deadMoney + effShared * (1 + callers.length);
+      var shareEach = mainPot / winnersCount;
+
+      var resultStacks = stacks.slice();
+      resultStacks[heroIdxInSeats] -= effShared;
+      callers.forEach(function (c) { resultStacks[c.idx] -= effShared; });
+      if (heroWinsThis) resultStacks[heroIdxInSeats] += shareEach;
+      callers.forEach(function (c, i) { if (callerScores[i] === maxScore) resultStacks[c.idx] += shareEach; });
+
+      evSum += tableEV(resultStacks);
+      count++;
+      calledCount++;
+      if (heroWinsThis && winnersCount === 1) winCount++;
+      else if (heroWinsThis) tieCount++;
+    }
+
+    var evPush = count > 0 ? evSum / count : currentEV;
+    var avgEquity = calledCount > 0 ? (winCount + tieCount * 0.5) / calledCount : null;
     var evFoldPush = currentEV;
     var shouldPush = evPush > evFoldPush;
     // "didPush" = Hero não deu fold (nem check, que na prática é recusar investir fichas).
