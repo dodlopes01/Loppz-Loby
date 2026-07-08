@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Loppz Loby</title>
+<title>Lopz GTO</title>
 <style>
   :root {
     --felt: #0E2E24; --felt-2: #123A2C; --panel: #163F30; --panel-2: #1B4939;
     --gold: #C9A227; --gold-dim: #8F7620; --cream: #EFE7D2; --muted: #85A597;
-    --line: rgba(239, 231, 210, 0.14);
+    --line: rgba(239, 231, 210, 0.14); --success: #E8843A; --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -20,33 +20,37 @@
   .shell { display: flex; flex-direction: column; height: 100vh; }
 
   .topbar {
-    padding: 16px 18px 12px;
-    border-bottom: 1px solid var(--line);
-    background: var(--felt-2);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 18px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--felt-2) 0%, var(--felt) 100%);
     flex-shrink: 0;
   }
-  .topbar h1 {
-    margin: 0; font-size: 19px; font-weight: 800; letter-spacing: 0.02em; color: var(--gold);
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(160deg, var(--gold) 0%, var(--gold-dim) 100%);
+    display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 900; color: #1A1508;
+    flex-shrink: 0; box-shadow: 0 3px 8px rgba(0,0,0,0.35);
   }
-  .topbar p {
-    margin: 3px 0 0; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
-  }
+  .brand-text h1 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: 0.01em; color: var(--gold); line-height: 1.15; }
+  .brand-text p { margin: 1px 0 0; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
   .tabs {
-    display: flex; gap: 6px; padding: 10px 14px;
+    display: flex; gap: 6px; padding: 9px 14px;
     background: var(--felt-2); border-bottom: 1px solid var(--line);
     overflow-x: auto; flex-shrink: 0;
     -webkit-overflow-scrolling: touch;
   }
   .tabs::-webkit-scrollbar { display: none; }
   .tab-btn {
-    flex-shrink: 0;
+    flex-shrink: 0; display: flex; align-items: center; gap: 6px;
     background: var(--panel); border: 1px solid var(--line); color: var(--cream);
-    font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px; cursor: pointer;
-    white-space: nowrap;
+    font-size: 12.5px; font-weight: 700; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    white-space: nowrap; transition: background .12s, border-color .12s;
   }
+  .tab-btn:hover { border-color: var(--gold-dim); }
   .tab-btn.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
   .tab-btn.add { color: var(--muted); border-style: dashed; }
+  .tab-btn .ic { font-size: 13px; }
 
   .content { flex: 1; position: relative; overflow: hidden; }
   .content iframe {
@@ -59,20 +63,118 @@
   .add-panel.show { display: flex; }
   .add-panel h2 { color: var(--gold); font-size: 17px; margin: 0 0 10px; }
   .add-panel p { color: var(--muted); font-size: 13px; max-width: 340px; line-height: 1.6; margin: 0; }
+
+  /* ---------------- HOME ---------------- */
+  .home-panel {
+    display: none; position: absolute; inset: 0; overflow-y: auto;
+    background: radial-gradient(ellipse at top, #10352A 0%, #0A2018 100%);
+  }
+  .home-panel.show { display: block; }
+  .home-inner { max-width: 640px; margin: 0 auto; padding: 26px 18px 50px; }
+
+  .home-hero { text-align: center; margin-bottom: 22px; }
+  .home-hero h2 { margin: 0 0 8px; font-size: 22px; font-weight: 800; color: var(--gold); letter-spacing: 0.01em; }
+  .home-hero p { margin: 0 auto; max-width: 440px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .home-hero .badge {
+    display: inline-block; background: rgba(232,132,58,0.15); border: 1px solid rgba(232,132,58,0.4);
+    color: var(--success); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 5px 12px; border-radius: 999px; margin-bottom: 10px;
+  }
+
+  .home-table-wrap { position: relative; max-width: 460px; margin: 0 auto 26px; }
+  .home-table {
+    position: relative; width: 100%; padding-top: 82%;
+    background: radial-gradient(ellipse at center, var(--panel-2) 0%, var(--panel) 62%, var(--felt-2) 100%);
+    border: 7px solid #0A251C; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line), inset 0 12px 34px rgba(0,0,0,0.35);
+  }
+  .home-table-label {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); text-align: center;
+    pointer-events: none;
+  }
+  .home-table-label .sym { font-size: 26px; color: var(--gold-dim); opacity: 0.55; display: block; }
+  .home-table-label .txt { font-size: 9px; color: var(--gold-dim); opacity: 0.6; text-transform: uppercase; letter-spacing: 0.14em; margin-top: 2px; }
+
+  .seat-card {
+    position: absolute; transform: translate(-50%, -50%); width: 108px;
+    background: var(--panel); border: 1.5px solid var(--line); border-radius: 12px;
+    padding: 8px 8px 9px; text-align: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    transition: transform .12s, border-color .12s, background .12s;
+  }
+  .seat-card:hover { transform: translate(-50%, -50%) scale(1.06); border-color: var(--gold-dim); }
+  .seat-card:active { transform: translate(-50%, -50%) scale(0.97); }
+  .seat-card .n { position: absolute; top: -7px; left: -7px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--gold); color: #1A1508; font-size: 10.5px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  .seat-card .ic { font-size: 19px; display: block; margin-bottom: 4px; }
+  .seat-card .lbl { font-size: 11px; font-weight: 800; color: var(--cream); line-height: 1.2; margin-bottom: 3px; }
+  .seat-card .desc { font-size: 9px; color: var(--muted); line-height: 1.35; display: block; }
+
+  .home-divider { display: flex; align-items: center; gap: 10px; margin: 8px 0 16px; }
+  .home-divider .line { flex: 1; height: 1px; background: var(--line); }
+  .home-divider span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; white-space: nowrap; }
+
+  .path-list { display: flex; flex-direction: column; gap: 8px; }
+  .path-item {
+    display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 11px 14px; cursor: pointer; box-shadow: var(--card-shadow);
+    transition: border-color .12s, background .12s;
+  }
+  .path-item:hover { border-color: var(--gold-dim); background: var(--panel-2); }
+  .path-item .pn {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--felt-2); border: 1.5px solid var(--gold-dim);
+    color: var(--gold); font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .path-item .pic { font-size: 18px; flex-shrink: 0; }
+  .path-item .ptext { flex: 1; min-width: 0; }
+  .path-item .ptitle { font-size: 13px; font-weight: 800; color: var(--cream); }
+  .path-item .pdesc { font-size: 11px; color: var(--muted); margin-top: 1px; line-height: 1.4; }
+  .path-item .parrow { color: var(--gold-dim); font-size: 16px; flex-shrink: 0; }
+
+  @media (min-width: 760px) {
+    .home-inner { max-width: 760px; padding: 44px 24px 60px; }
+    .home-hero h2 { font-size: 26px; }
+    .home-table-wrap { max-width: 560px; }
+  }
 </style>
 </head>
 <body>
 <div class="shell">
 
   <div class="topbar">
-    <h1>Loppz Loby</h1>
-    <p>estudo de poker · offline</p>
+    <div class="brand">
+      <div class="brand-mark">♠</div>
+      <div class="brand-text">
+        <h1>Lopz GTO</h1>
+        <p>estudo de poker · offline</p>
+      </div>
+    </div>
   </div>
 
   <div class="tabs" id="tabs"></div>
 
   <div class="content">
     <iframe id="frame" title="conteúdo"></iframe>
+
+    <div class="home-panel" id="homePanel">
+      <div class="home-inner">
+        <div class="home-hero">
+          <span class="badge">Para iniciantes</span>
+          <h2>♠ Lopz GTO</h2>
+          <p>Sua caixa de ferramentas pra estudar poker do zero — termos, odds, ranges, equity e ICM, tudo num só lugar. Toque numa posição da mesa ou siga a trilha abaixo.</p>
+        </div>
+
+        <div class="home-table-wrap">
+          <div class="home-table" id="homeTable">
+            <div class="home-table-label"><span class="sym">♠</span><span class="txt">Lopz GTO</span></div>
+          </div>
+        </div>
+
+        <div class="home-divider"><div class="line"></div><span>Não sabe por onde começar?</span><div class="line"></div></div>
+
+        <div class="path-list" id="pathList"></div>
+      </div>
+    </div>
+
     <div class="add-panel" id="addPanel">
       <h2>+ Nova aba</h2>
       <p>Quer adicionar uma nova ferramenta aqui (ex: tracker de sessões, notas de mesa, calculadora de ICM)? É só pedir no chat que eu crio o arquivo e devolvo a pasta inteira já com a aba nova pronta pra usar.</p>
@@ -84,24 +186,36 @@
 <script>
   // Lista de abas do site. Para adicionar uma nova ferramenta,
   // é só pedir no chat — não é preciso editar nada aqui manualmente.
+  // A ordem abaixo é a trilha de aprendizado sugerida pra quem tá começando.
   var TABS = [
-    { id: 'glossario', label: 'Glossário', file: 'glossario.html' },
-    { id: 'potodds',   label: 'Pot Odds',  file: 'potodds.html' },
-    { id: 'outs',      label: 'Outs & Odds', file: 'outs.html' },
-    { id: 'ranges',    label: 'Ranges Pré-Flop', file: 'ranges.html' },
-    { id: 'analise',   label: 'Análise de Mãos', file: 'analise.html' },
-    { id: 'equity',    label: 'Equity vs Range', file: 'equity.html' },
-    { id: 'icm',       label: 'ICM', file: 'icm.html' }
+    { id: 'glossario', label: 'Glossário',        file: 'glossario.html', icon: '📖', desc: 'Termos e conceitos básicos explicados' },
+    { id: 'potodds',   label: 'Pot Odds',          file: 'potodds.html',   icon: '🎯', desc: 'Vale a pena pagar? Calcule na hora' },
+    { id: 'outs',      label: 'Outs & Odds',       file: 'outs.html',      icon: '🃏', desc: 'Quantas cartas te ajudam e a chance de vir' },
+    { id: 'ranges',    label: 'Ranges Pré-Flop',   file: 'ranges.html',    icon: '🗺️', desc: 'Quais mãos jogar em cada posição da mesa' },
+    { id: 'equity',    label: 'Equity vs Range',   file: 'equity.html',    icon: '⚔️', desc: 'Sua mão contra a faixa do oponente' },
+    { id: 'icm',       label: 'ICM',               file: 'icm.html',       icon: '💰', desc: 'Fichas não são dinheiro — converta pra valor real' },
+    { id: 'analise',   label: 'Análise de Mãos',   file: 'analise.html',   icon: '🔍', desc: 'Cole seu hand history e ache seus erros' }
   ];
 
   var tabsEl = document.getElementById('tabs');
   var frame = document.getElementById('frame');
   var addPanel = document.getElementById('addPanel');
+  var homePanel = document.getElementById('homePanel');
+  var homeTable = document.getElementById('homeTable');
+  var pathList = document.getElementById('pathList');
 
-  TABS.forEach(function(tab, idx) {
+  // ---- pill "Início" (primeira aba, ativa por padrão) ----
+  var homeBtn = document.createElement('button');
+  homeBtn.className = 'tab-btn';
+  homeBtn.innerHTML = '<span class="ic">🏠</span> Início';
+  homeBtn.dataset.id = '__home__';
+  homeBtn.addEventListener('click', function() { selectTab('__home__'); });
+  tabsEl.appendChild(homeBtn);
+
+  TABS.forEach(function(tab) {
     var btn = document.createElement('button');
-    btn.className = 'tab-btn' + (idx === 0 ? ' active' : '');
-    btn.textContent = tab.label;
+    btn.className = 'tab-btn';
+    btn.innerHTML = '<span class="ic">' + tab.icon + '</span> ' + tab.label;
     btn.dataset.id = tab.id;
     btn.addEventListener('click', function() { selectTab(tab.id); });
     tabsEl.appendChild(btn);
@@ -113,22 +227,60 @@
   addBtn.addEventListener('click', function() { selectTab('__add__'); });
   tabsEl.appendChild(addBtn);
 
+  // ---- monta os "assentos" da mesa na home (posições calculadas em % ao redor da elipse) ----
+  var seatPct = [
+    { left: 50.0, top: 90.0 },
+    { left: 15.6, top: 74.9 },
+    { left: 7.1,  top: 41.1 },
+    { left: 30.9, top: 14.0 },
+    { left: 69.1, top: 14.0 },
+    { left: 92.9, top: 41.1 },
+    { left: 84.4, top: 74.9 }
+  ];
+  TABS.forEach(function(tab, i) {
+    var pos = seatPct[i] || seatPct[seatPct.length - 1];
+    var card = document.createElement('div');
+    card.className = 'seat-card';
+    card.style.left = pos.left + '%';
+    card.style.top = pos.top + '%';
+    card.innerHTML = '<span class="n">' + (i + 1) + '</span>' +
+      '<span class="ic">' + tab.icon + '</span>' +
+      '<span class="lbl">' + tab.label + '</span>' +
+      '<span class="desc">' + tab.desc + '</span>';
+    card.addEventListener('click', function() { selectTab(tab.id); });
+    homeTable.appendChild(card);
+  });
+
+  // ---- trilha de aprendizado (lista numerada, mesma ordem) ----
+  TABS.forEach(function(tab, i) {
+    var item = document.createElement('div');
+    item.className = 'path-item';
+    item.innerHTML = '<span class="pn">' + (i + 1) + '</span>' +
+      '<span class="pic">' + tab.icon + '</span>' +
+      '<span class="ptext"><span class="ptitle">' + tab.label + '</span><span class="pdesc">' + tab.desc + '</span></span>' +
+      '<span class="parrow">›</span>';
+    item.addEventListener('click', function() { selectTab(tab.id); });
+    pathList.appendChild(item);
+  });
+
   function selectTab(id) {
     Array.prototype.forEach.call(tabsEl.children, function(btn) {
       btn.classList.toggle('active', btn.dataset.id === id || (id === '__add__' && btn === addBtn));
     });
-    if (id === '__add__') {
-      frame.style.display = 'none';
-      addPanel.classList.add('show');
-      return;
-    }
+
+    frame.style.display = 'none';
     addPanel.classList.remove('show');
+    homePanel.classList.remove('show');
+
+    if (id === '__add__') { addPanel.classList.add('show'); return; }
+    if (id === '__home__') { homePanel.classList.add('show'); return; }
+
     frame.style.display = 'block';
     var tab = TABS.filter(function(t) { return t.id === id; })[0];
     if (tab) frame.src = tab.file;
   }
 
-  selectTab(TABS[0].id);
+  selectTab('__home__');
 </script>
 </body>
 </html>
