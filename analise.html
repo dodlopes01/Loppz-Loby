@@ -62,10 +62,17 @@
   .vw-cards { display: flex; align-items: center; gap: 8px; }
   .vw-cards .lbl { font-size: 18px; font-weight: 800; color: var(--cream); }
   .vw-meta { font-size: 13.5px; color: var(--muted); margin-bottom: 10px; }
-  .vw-decision { font-size: 15.5px; margin-bottom: 12px; line-height: 1.55; }
-  .vw-decision b { color: var(--gold); }
-  .vw-ev { display: flex; gap: 18px; margin-bottom: 14px; font-size: 13.5px; }
+  .vw-decision-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .vw-drow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .vw-dlabel { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; min-width: 92px; }
+  .vw-dval { display: inline-block; font-size: 16px; font-weight: 900; padding: 5px 14px; border-radius: 8px; }
+  .vw-dval.did.bad { background: var(--danger-bg); color: var(--danger); border: 1.5px solid rgba(210,86,74,0.5); }
+  .vw-dval.did.good { background: rgba(63,183,168,0.15); color: #3FB7A8; border: 1.5px solid rgba(63,183,168,0.5); }
+  .vw-dval.rec { background: rgba(201,162,39,0.15); color: var(--gold); border: 1.5px solid var(--gold); }
+  .vw-ev { display: flex; gap: 18px; margin-bottom: 14px; font-size: 13.5px; flex-wrap: wrap; }
   .vw-ev span b { display: block; font-size: 18px; }
+  .vw-raise-note { font-size: 11.5px; color: var(--muted); background: rgba(232,132,58,0.1);
+    border: 1px solid rgba(232,132,58,0.3); border-radius: 8px; padding: 8px 10px; margin: -6px 0 14px; line-height: 1.5; }
 
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
     padding: 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); }
@@ -709,10 +716,12 @@
       var postedRe = /^(\S.*?): posts (?:the ante|small blind|big blind|small & big blinds) ([\d,]+)/gm;
       var pm;
       var deadMoney = 0;
+      var postedByName = {};
       while ((pm = postedRe.exec(block)) !== null) {
         var pname = pm[1].trim();
         var pamt = parseInt(pm[2].replace(/,/g, ''), 10);
         deadMoney += pamt;
+        postedByName[pname] = (postedByName[pname] || 0) + pamt;
         var seatObj = seats.find(function (s) { return s.name === pname; });
         if (seatObj) seatObj.chips = Math.max(0, seatObj.chips - pamt);
       }
@@ -744,6 +753,7 @@
 
       var facedAllIn = false, allInBySeatName = null;
       var heroAction = null;
+      var heroRaiseTo = null; // quanto o hero arriscou, se o raise dele NÃO foi all-in (já líquido do que ele tinha postado)
       var raisesBeforeHero = 0;
       var playersFoldedBeforeHero = {};
 
@@ -763,7 +773,11 @@
         }
         if (/folds/.test(line)) heroAction = 'fold';
         else if (/raises .* to .* and is all-in/.test(line)) heroAction = 'push';
-        else if (/raises .* to/.test(line)) heroAction = raisesBeforeHero > 0 ? 'raise-over' : 'raise-small';
+        else if (/raises .* to/.test(line)) {
+          heroAction = raisesBeforeHero > 0 ? 'raise-over' : 'raise-small';
+          var raiseToMatch = line.match(/raises .* to ([\d,]+)/);
+          if (raiseToMatch) heroRaiseTo = parseInt(raiseToMatch[1].replace(/,/g, ''), 10) - (postedByName[heroName] || 0);
+        }
         else if (/calls .* and is all-in/.test(line)) heroAction = 'call-allin';
         else if (/calls/.test(line)) heroAction = 'call';
         else if (/checks/.test(line)) heroAction = 'check';
@@ -801,6 +815,7 @@
         effBB: effBB,
         heroExactCards: heroExactCards,
         heroAction: heroAction,
+        heroRaiseTo: heroRaiseTo,
         facedAllInBeforeHero: facedAllIn,
         allInSeatObj: allInSeatObj,
         raisesBeforeHero: raisesBeforeHero,
@@ -918,95 +933,122 @@
     var deadMoney = hand.deadMoney || 0;
     var iters = Math.max(400, Math.round(iterations / Math.max(1, behindInfo.length)));
 
-    var evSum = 0, count = 0, winCount = 0, tieCount = 0, calledCount = 0;
-    var attempts = 0, maxAttempts = iters * 5;
+    // Simula "Hero coloca `riskAmount` fichas em jogo" (pode ser o stack todo — um push — ou
+    // só o valor de um raise não all-in). Reutiliza as mesmas faixas de call calculadas acima;
+    // a simplificação aqui é assumir que a chance de call dos jogadores atrás não muda pelo
+    // tamanho do raise (na prática, um raise menor tende a ser pago mais largo — isso é uma
+    // aproximação, não um solver de sizing completo) e que ninguém re-aumenta depois.
+    function simulateRiskAmount(riskAmount) {
+      var evSum = 0, count = 0, winCount = 0, tieCount = 0, calledCount = 0;
+      var attempts = 0, maxAttempts = iters * 5;
 
-    while (count < iters && attempts < maxAttempts) {
-      attempts++;
+      while (count < iters && attempts < maxAttempts) {
+        attempts++;
 
-      // sorteia, pra cada jogador atrás, se ele paga ou não nesta rodada
-      var callers = [];
-      for (var bi = 0; bi < behindInfo.length; bi++) {
-        if (Math.random() < behindInfo[bi].pct) callers.push(behindInfo[bi]);
-      }
+        var callers = [];
+        for (var bi = 0; bi < behindInfo.length; bi++) {
+          if (Math.random() < behindInfo[bi].pct) callers.push(behindInfo[bi]);
+        }
 
-      if (!callers.length) {
-        // ninguém paga: Hero fica com o pote todo (fichas dele de volta + dead money de todo mundo)
-        var winStacksUncalled = stacks.slice();
-        winStacksUncalled[heroIdxInSeats] += deadMoney;
-        evSum += tableEV(winStacksUncalled);
+        if (!callers.length) {
+          var winStacksUncalled = stacks.slice();
+          winStacksUncalled[heroIdxInSeats] += deadMoney;
+          evSum += tableEV(winStacksUncalled);
+          count++;
+          continue;
+        }
+
+        var used = {};
+        used[cardKey(hand.heroExactCards[0])] = true; used[cardKey(hand.heroExactCards[1])] = true;
+        var callerHands = []; var dealOk = true;
+        for (var ci = 0; ci < callers.length; ci++) {
+          var availablePool = callers[ci].pool.filter(function (combo) {
+            return !used[cardKey(combo[0])] && !used[cardKey(combo[1])];
+          });
+          if (!availablePool.length) { dealOk = false; break; }
+          var picked = availablePool[(Math.random() * availablePool.length) | 0];
+          used[cardKey(picked[0])] = true; used[cardKey(picked[1])] = true;
+          callerHands.push(picked);
+        }
+        if (!dealOk) continue;
+
+        var deckLeft = [];
+        for (var di = 0; di < FULL_DECK.length; di++) { if (!used[cardKey(FULL_DECK[di])]) deckLeft.push(FULL_DECK[di]); }
+        var board = [];
+        for (var bd = 0; bd < 5; bd++) {
+          var bp = (Math.random() * deckLeft.length) | 0;
+          board.push(deckLeft[bp]);
+          deckLeft.splice(bp, 1);
+        }
+
+        // pote principal limitado pelo menor stack envolvido nesta rodada (aproxima side-pots)
+        var involved = [riskAmount].concat(callers.map(function (c) { return c.chips; }));
+        var effShared = Math.min.apply(null, involved);
+
+        var heroScore = evaluate7(hand.heroExactCards.concat(board));
+        var callerScores = callerHands.map(function (ch) { return evaluate7(ch.concat(board)); });
+        var maxScore = Math.max(heroScore, Math.max.apply(null, callerScores));
+        var heroWinsThis = heroScore === maxScore;
+        var winnersCount = (heroWinsThis ? 1 : 0) + callerScores.filter(function (s) { return s === maxScore; }).length;
+
+        var mainPot = deadMoney + effShared * (1 + callers.length);
+        var shareEach = mainPot / winnersCount;
+
+        var resultStacks = stacks.slice();
+        resultStacks[heroIdxInSeats] -= effShared;
+        callers.forEach(function (c) { resultStacks[c.idx] -= effShared; });
+        if (heroWinsThis) resultStacks[heroIdxInSeats] += shareEach;
+        callers.forEach(function (c, i) { if (callerScores[i] === maxScore) resultStacks[c.idx] += shareEach; });
+
+        evSum += tableEV(resultStacks);
         count++;
-        continue;
+        calledCount++;
+        if (heroWinsThis && winnersCount === 1) winCount++;
+        else if (heroWinsThis) tieCount++;
       }
 
-      // sorteia uma combinação de mão pra cada pagador, dentro da faixa dele, sem conflito de carta
-      var used = {};
-      used[cardKey(hand.heroExactCards[0])] = true; used[cardKey(hand.heroExactCards[1])] = true;
-      var callerHands = []; var dealOk = true;
-      for (var ci = 0; ci < callers.length; ci++) {
-        var availablePool = callers[ci].pool.filter(function (combo) {
-          return !used[cardKey(combo[0])] && !used[cardKey(combo[1])];
-        });
-        if (!availablePool.length) { dealOk = false; break; }
-        var picked = availablePool[(Math.random() * availablePool.length) | 0];
-        used[cardKey(picked[0])] = true; used[cardKey(picked[1])] = true;
-        callerHands.push(picked);
-      }
-      if (!dealOk) continue; // conflito de cartas — tenta de novo
-
-      var deckLeft = [];
-      for (var di = 0; di < FULL_DECK.length; di++) { if (!used[cardKey(FULL_DECK[di])]) deckLeft.push(FULL_DECK[di]); }
-      var board = [];
-      for (var bd = 0; bd < 5; bd++) {
-        var bp = (Math.random() * deckLeft.length) | 0;
-        board.push(deckLeft[bp]);
-        deckLeft.splice(bp, 1);
-      }
-
-      // Simplificação: o "pote principal" disputado é limitado pelo stack mais curto entre
-      // Hero e os pagadores desta rodada (aproxima side-pots sem resolver todos os níveis
-      // quando há 3+ stacks bem diferentes — ainda assim, muito mais realista que ignorar
-      // 2+ pagadores por completo).
-      var involved = [heroChips].concat(callers.map(function (c) { return c.chips; }));
-      var effShared = Math.min.apply(null, involved);
-
-      var heroScore = evaluate7(hand.heroExactCards.concat(board));
-      var callerScores = callerHands.map(function (ch) { return evaluate7(ch.concat(board)); });
-      var maxScore = Math.max(heroScore, Math.max.apply(null, callerScores));
-      var heroWinsThis = heroScore === maxScore;
-      var winnersCount = (heroWinsThis ? 1 : 0) + callerScores.filter(function (s) { return s === maxScore; }).length;
-
-      var mainPot = deadMoney + effShared * (1 + callers.length);
-      var shareEach = mainPot / winnersCount;
-
-      var resultStacks = stacks.slice();
-      resultStacks[heroIdxInSeats] -= effShared;
-      callers.forEach(function (c) { resultStacks[c.idx] -= effShared; });
-      if (heroWinsThis) resultStacks[heroIdxInSeats] += shareEach;
-      callers.forEach(function (c, i) { if (callerScores[i] === maxScore) resultStacks[c.idx] += shareEach; });
-
-      evSum += tableEV(resultStacks);
-      count++;
-      calledCount++;
-      if (heroWinsThis && winnersCount === 1) winCount++;
-      else if (heroWinsThis) tieCount++;
+      return {
+        ev: count > 0 ? evSum / count : currentEV,
+        equity: calledCount > 0 ? (winCount + tieCount * 0.5) / calledCount : null
+      };
     }
 
-    var evPush = count > 0 ? evSum / count : currentEV;
-    var avgEquity = calledCount > 0 ? (winCount + tieCount * 0.5) / calledCount : null;
+    var pushResult = simulateRiskAmount(heroChips);
+    var evPush = pushResult.ev;
+    var avgEquity = pushResult.equity;
     var evFoldPush = currentEV;
-    var shouldPush = evPush > evFoldPush;
-    // "didPush" = Hero não deu fold (nem check, que na prática é recusar investir fichas).
-    // Um call, call-allin, ou raise que não seja literalmente "push" ainda conta como
-    // "jogou a mão" — antes só "push" literal contava, e ações como "call-allin" ficavam
-    // sempre marcadas como se fossem fold, escondendo erros reais.
-    var didPush = (hand.heroAction !== 'fold' && hand.heroAction !== 'check');
-    var mistake = shouldPush !== didPush;
+
+    // Se o Hero fez (ou poderia ter feito) um raise não all-in, simula esse tamanho específico
+    // também — pra comparar Fold vs Raise (parcial) vs Push como três opções, em vez de só
+    // binário push/fold. Simplificação: assume que ninguém aumenta ainda mais depois do seu
+    // raise, e reaproveita a mesma faixa de call que seria usada contra um all-in (na prática,
+    // um raise menor tende a ser pago mais largo — não é um solver de sizing completo).
+    var evRaise = null;
+    if (hand.heroRaiseTo && hand.heroRaiseTo > 0 && hand.heroRaiseTo < heroChips) {
+      evRaise = simulateRiskAmount(hand.heroRaiseTo).ev;
+    }
+
+    var evByKey = { fold: evFoldPush, push: evPush };
+    if (evRaise !== null) evByKey.raise = evRaise;
+    var bestOption = Object.keys(evByKey).reduce(function (best, k) { return evByKey[k] > evByKey[best] ? k : best; }, 'fold');
+
+    var didAction;
+    if (hand.heroAction === 'fold' || hand.heroAction === 'check') didAction = 'fold';
+    else if (hand.heroAction === 'push') didAction = 'push';
+    else if ((hand.heroAction === 'raise-small' || hand.heroAction === 'raise-over') && evRaise !== null) didAction = 'raise';
+    else didAction = 'push'; // call/call-allin/raise sem tamanho capturado: trata como equivalente a "jogou" (igual antes)
+
+    var shouldPush = bestOption !== 'fold'; // mantém compatibilidade com o resto do app
+    var didPush = didAction !== 'fold';
+    var mistake = bestOption !== didAction;
+    var severity = Math.max(0, evByKey[bestOption] - evByKey[didAction]);
 
     return {
       hand: hand, isCallDecision: false, equity: avgEquity,
-      evPush: evPush, evFold: evFoldPush, shouldPlay: shouldPush, didPlay: didPush,
-      mistake: mistake, severity: Math.abs(evPush - evFoldPush)
+      evPush: evPush, evFold: evFoldPush, evRaise: evRaise,
+      bestOption: bestOption, didAction: didAction,
+      shouldPlay: shouldPush, didPlay: didPush,
+      mistake: mistake, severity: severity
     };
   }
 
@@ -1085,9 +1127,17 @@
 
   function renderHandDetail(hand) {
     var info = parseShowdownInfo(hand.rawBlock);
-    var positions = seatPositions(hand.allSeats.length);
 
-    var seatsHtml = hand.allSeats.map(function (s, i) {
+    // O Hero fica sempre no mesmo lugar da mesa (embaixo) — os outros assentos é que
+    // giram ao redor dele, seguindo a ordem real da mesa a partir do Hero.
+    var heroSeatIdx = hand.allSeats.findIndex(function (s) { return s.name === hand.heroName; });
+    var n = hand.allSeats.length;
+    var rotatedSeats = [];
+    for (var k = 0; k < n; k++) rotatedSeats.push(hand.allSeats[(heroSeatIdx + k) % n]);
+
+    var positions = seatPositions(n);
+
+    var seatsHtml = rotatedSeats.map(function (s, i) {
       var pos = positions[i];
       var isHero = s.name === hand.heroName;
       var revealedEntry = info.revealed.find(function (r) { return r.name === s.name; });
@@ -1398,11 +1448,17 @@
     }
   }
 
+  var OPTION_LABEL = { fold: 'Fold', push: 'Push (all-in)', raise: 'Raise', call: 'Call' };
+
   function renderViewer(e) {
     var model = modelEl.value;
     var h = e.hand;
     var cardsLabel = handKey(h.heroExactCards);
-    var recommended = e.isCallDecision ? (e.shouldPlay ? 'Call' : 'Fold') : (e.shouldPlay ? 'Push' : 'Fold');
+
+    var recommendedKey = e.isCallDecision ? (e.shouldPlay ? 'call' : 'fold') : e.bestOption;
+    var didKey = e.isCallDecision ? (e.didPlay ? 'call' : 'fold') : e.didAction;
+    var recommendedLabel = OPTION_LABEL[recommendedKey] || recommendedKey;
+    var didLabel = actionLabel(h.heroAction) + (didKey === 'raise' && h.heroRaiseTo ? ' (' + h.heroRaiseTo.toLocaleString('pt-BR') + ')' : '');
 
     var html = '<div class="vw-head">' +
         '<div class="vw-cards">' + h.heroExactCards.map(cardFaceHTML).join('') + '<span class="lbl">' + cardsLabel + '</span></div>' +
@@ -1410,11 +1466,18 @@
       '</div>' +
       '<div class="vw-meta">' + h.position + ' · ' + h.effBB.toFixed(1) + ' BB efetivo · mão #' + h.id +
         (e.equity !== null ? ' · equity vs faixa assumida: ' + (e.equity * 100).toFixed(1) + '%' : '') + '</div>' +
-      '<div class="vw-decision">Você fez <b>' + actionLabel(h.heroAction) + '</b>. Recomendado: <b>' + recommended + '</b></div>' +
-      '<div class="vw-ev">' +
-        '<span>EV ' + (e.isCallDecision ? 'call' : 'push') + '<b>' + fmtEV(e.evPush, model) + '</b></span>' +
-        '<span>EV fold<b>' + fmtEV(e.evFold, model) + '</b></span>' +
+      '<div class="vw-decision-box">' +
+        '<div class="vw-drow"><span class="vw-dlabel">Você fez</span> <span class="vw-dval did ' + (e.mistake ? 'bad' : 'good') + '">' + didLabel + '</span></div>' +
+        '<div class="vw-drow"><span class="vw-dlabel">Recomendado</span> <span class="vw-dval rec">' + recommendedLabel + '</span></div>' +
       '</div>' +
+      '<div class="vw-ev">' +
+        (e.isCallDecision
+          ? '<span>EV call<b>' + fmtEV(e.evPush, model) + '</b></span><span>EV fold<b>' + fmtEV(e.evFold, model) + '</b></span>'
+          : '<span>EV push<b>' + fmtEV(e.evPush, model) + '</b></span>' +
+            (e.evRaise !== null ? '<span>EV raise<b>' + fmtEV(e.evRaise, model) + '</b></span>' : '') +
+            '<span>EV fold<b>' + fmtEV(e.evFold, model) + '</b></span>') +
+      '</div>' +
+      (!e.isCallDecision && e.evRaise !== null ? '<p class="vw-raise-note">⚠️ Você fez um raise não all-in — o EV do raise acima é uma estimativa simplificada (assume que ninguém aumenta de novo depois, e que os jogadores atrás reagem parecido com um all-in).</p>' : '') +
       renderHandDetail(h);
 
     viewerContent.innerHTML = html;
