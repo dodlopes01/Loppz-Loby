@@ -193,7 +193,11 @@
   }
   .opener-row button.active { background: var(--panel-2); border-color: var(--red); color: var(--red); }
 
-  .stat { font-size: 12px; color: var(--muted); margin-bottom: 10px; text-align: center; }
+  .stat-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .stat { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 0; }
+  .real-pct-badge { font-size: 11.5px; font-weight: 700; color: var(--cream); background: var(--felt-2);
+    border: 1px solid var(--gold-dim); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+  .real-pct-badge b { color: var(--gold); font-size: 13px; }
   .stat b { color: var(--cream); }
 
   .toolbar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -214,6 +218,14 @@
   .palette button .sw { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
   .palette button.selected { border-color: var(--red); }
   .palette-mode { display: flex; gap: 6px; width: 100%; margin-bottom: 6px; }
+  .quick-fill { width: 100%; background: var(--felt-2); border: 1.5px dashed var(--gold-dim); border-radius: 10px;
+    padding: 10px 12px; margin-top: 8px; }
+  .qf-head { font-size: 12px; color: var(--cream); margin-bottom: 8px; }
+  .qf-head b { color: var(--gold); }
+  .quick-fill input[type=range] { width: 100%; accent-color: var(--red); }
+  .qf-actions { margin-top: 8px; }
+  .qf-actions button { width: 100%; background: var(--red); border: 1px solid var(--red); color: var(--cream);
+    font-size: 12px; font-weight: 700; padding: 8px; border-radius: 8px; cursor: pointer; }
   .palette-mode button {
     flex: 1; justify-content: center; background: var(--panel); border: 1px solid var(--line);
     padding: 7px; font-size: 11px;
@@ -424,7 +436,10 @@
       <button data-opener="SB">SB</button>
     </div>
 
-    <div class="stat" id="stat"></div>
+    <div class="stat-row">
+      <div class="stat" id="stat"></div>
+      <div class="real-pct-badge">🎲 Total selecionado <b id="realPct">0%</b></div>
+    </div>
 
     <p class="autosave-note">💾 Suas edições salvam automaticamente neste navegador.</p>
   </div>
@@ -733,6 +748,8 @@
   var gridEl = document.getElementById('grid');
   var cellsByLabel = {};
 
+  var isPointerDown = false;
+
   hands.forEach(function(h) {
     var cell = document.createElement('div');
     cell.className = 'cell';
@@ -742,19 +759,45 @@
     cell.style.order = h.i * 13 + h.j;
     gridEl.appendChild(cell);
     cellsByLabel[h.label] = cell;
+
+    cell.addEventListener('mousedown', function(e) {
+      if (!editMode) return;
+      e.preventDefault();
+      isPointerDown = true;
+      if (paletteMode === 'marker') markCellStart(h.label);
+      else paintCellStart(h.label);
+    });
+    cell.addEventListener('mouseenter', function() {
+      if (!editMode || !isPointerDown) return;
+      if (paletteMode === 'marker') markCellDrag(h.label);
+      else paintCellDrag(h.label);
+    });
     cell.addEventListener('click', function() {
-      if (editMode) {
-        if (paletteMode === 'marker') {
-          markCell(h.label);
-        } else {
-          paintCell(h.label);
-        }
-      } else {
-        showResult(h.label);
-      }
+      if (!editMode) showResult(h.label);
     });
   });
   gridEl.style.display = 'grid';
+
+  document.addEventListener('mouseup', function() { isPointerDown = false; dragAction = null; markDragAction = null; });
+  gridEl.addEventListener('touchstart', function(e) {
+    if (!editMode) return;
+    e.preventDefault();
+    isPointerDown = true;
+    var label = elementLabelAtTouch(e.touches[0]);
+    if (label) { if (paletteMode === 'marker') markCellStart(label); else paintCellStart(label); }
+  }, { passive: false });
+  gridEl.addEventListener('touchmove', function(e) {
+    if (!editMode || !isPointerDown) return;
+    e.preventDefault();
+    var label = elementLabelAtTouch(e.touches[0]);
+    if (label) { if (paletteMode === 'marker') markCellDrag(label); else paintCellDrag(label); }
+  }, { passive: false });
+  document.addEventListener('touchend', function() { isPointerDown = false; dragAction = null; markDragAction = null; });
+
+  function elementLabelAtTouch(touch) {
+    var el = document.elementFromPoint(touch.clientX, touch.clientY);
+    return (el && el.classList.contains('cell')) ? el.dataset.label : null;
+  }
 
   // ---------- Mini grade de preview (hover na mesa) ----------
   var seatPreview = document.getElementById('seatPreview');
@@ -789,43 +832,82 @@
   }
 
 
-  function paintCell(label) {
+  var dragAction = null; // 'set' | 'erase' — decidido pela primeira célula do traço, aplicado às demais durante o arraste
+
+  function paintCellStart(label) {
     if (!paintColor) return;
     var key = ctxKey();
     var baseAction = computeBase()[label];
     var existing = customOverrides[key] ? customOverrides[key][label] : undefined;
     var currentEffective = existing !== undefined ? existing : baseAction;
-
-    if (!customOverrides[key]) customOverrides[key] = {};
-
-    if (currentEffective === paintColor) {
-      // tocar de novo na mesma cor desfaz a pintura
-      if (paintColor === 'fold') {
-        // desfazer um fold pintado: remove o override e mostra o que a formula calcularia
-        delete customOverrides[key][label];
-      } else {
-        // desfazer qualquer outra cor sempre apaga pra fold — nunca reverte escondido
-        // pro cálculo automático, o que perderia o "zero"/preset que estava valendo antes
-        customOverrides[key][label] = 'fold';
-      }
-    } else {
-      customOverrides[key][label] = paintColor;
-    }
+    // tocar numa célula que já está na cor escolhida começa um traço de "apagar";
+    // qualquer outra célula começa um traço de "pintar" — e o resto do arraste segue essa decisão
+    dragAction = (currentEffective === paintColor) ? 'erase' : 'set';
+    applyPaintAction(label);
     persistOverrides();
     render();
   }
 
-  function markCell(label) {
+  function paintCellDrag(label) {
+    if (!paintColor || !dragAction) return;
+    applyPaintAction(label);
+    persistOverrides();
+    render();
+  }
+
+  function applyPaintAction(label) {
     var key = ctxKey();
-    if (!customMarks[key]) customMarks[key] = {};
-    if (customMarks[key][label] === markColor) {
-      delete customMarks[key][label]; // tap same color again to remove
+    if (!customOverrides[key]) customOverrides[key] = {};
+    if (dragAction === 'erase') {
+      // apagar um fold pintado: remove o override e mostra o que a fórmula calcularia.
+      // apagar qualquer outra cor sempre volta pra fold — nunca reverte escondido pro
+      // cálculo automático, o que perderia o "zero"/preset que estava valendo antes.
+      if (paintColor === 'fold') delete customOverrides[key][label];
+      else customOverrides[key][label] = 'fold';
     } else {
-      customMarks[key][label] = markColor;
+      customOverrides[key][label] = paintColor;
     }
+  }
+
+  var markDragAction = null; // 'set' | 'erase', mesmo conceito pro modo marcador livre
+
+  function markCellStart(label) {
+    var key = ctxKey();
+    var current = customMarks[key] ? customMarks[key][label] : undefined;
+    markDragAction = (current === markColor) ? 'erase' : 'set';
+    applyMarkAction(label);
     persistMarks();
     render();
   }
+
+  function markCellDrag(label) {
+    if (!markDragAction) return;
+    applyMarkAction(label);
+    persistMarks();
+    render();
+  }
+
+  function applyMarkAction(label) {
+    var key = ctxKey();
+    if (!customMarks[key]) customMarks[key] = {};
+    if (markDragAction === 'erase') delete customMarks[key][label];
+    else customMarks[key][label] = markColor;
+  }
+
+  var quickFillPct = {}; // lembra o último % usado por mesa/contexto
+
+  function applyTopNFill(pct) {
+    var key = ctxKey();
+    if (!customOverrides[key]) customOverrides[key] = {};
+    var included = topNCombos(pct);
+    hands.forEach(function(h) {
+      customOverrides[key][h.label] = included[h.label] ? paintColor : 'fold';
+    });
+    persistOverrides();
+    setActivePreset(null);
+    render();
+  }
+
 
   function renderPalette() {
     var box = document.getElementById('palette');
@@ -847,7 +929,7 @@
     if (paletteMode === 'action') {
       var lbl = document.createElement('div');
       lbl.className = 'lbl';
-      lbl.textContent = 'Escolha a ação e toque nas mãos do grid (toque de novo pra desfazer):';
+      lbl.textContent = 'Escolha a ação e arraste o mouse pelas mãos do grid (toque de novo pra desfazer):';
       box.appendChild(lbl);
       var cycle = getCycle();
       if (!paintColor || cycle.indexOf(paintColor) === -1) paintColor = cycle[0];
@@ -858,6 +940,28 @@
         btn.addEventListener('click', function() { paintColor = cls; renderPalette(); });
         box.appendChild(btn);
       });
+
+      if (paintColor !== 'fold') {
+        var quickFill = document.createElement('div');
+        quickFill.className = 'quick-fill';
+        var pctNow = quickFillPct[ctxKey()] || 20;
+        quickFill.innerHTML =
+          '<div class="qf-head">⚡ Preencher rápido: top <b id="qfPctLabel">' + pctNow.toFixed(1) + '%</b> das mãos</div>' +
+          '<input type="range" id="qfSlider" min="0" max="100" step="0.5" value="' + pctNow + '">' +
+          '<div class="qf-actions"><button id="qfApplyBtn" type="button">Preencher com esta cor</button></div>';
+        box.appendChild(quickFill);
+
+        var qfSlider = quickFill.querySelector('#qfSlider');
+        var qfLabel = quickFill.querySelector('#qfPctLabel');
+        qfSlider.addEventListener('input', function() {
+          qfLabel.textContent = parseFloat(qfSlider.value).toFixed(1) + '%';
+        });
+        quickFill.querySelector('#qfApplyBtn').addEventListener('click', function() {
+          var pct = parseFloat(qfSlider.value);
+          quickFillPct[ctxKey()] = pct;
+          applyTopNFill(pct);
+        });
+      }
     } else {
       var lbl2 = document.createElement('div');
       lbl2.className = 'lbl';
@@ -877,14 +981,17 @@
     var final = computeFinal();
     var overrides = customOverrides[ctxKey()] || {};
     var marks = customMarks[ctxKey()] || {};
+    var selectedCombos = 0;
     hands.forEach(function(h) {
       var cell = cellsByLabel[h.label];
       cell.classList.remove('raise', 'allin', 'added', 'edited', 'mark-yellow', 'mark-blue', 'mark-purple', 'mark-pink', 'mark-white');
       var cls = final[h.label];
-      if (cls !== 'fold') cell.classList.add(cls);
+      if (cls !== 'fold') { cell.classList.add(cls); selectedCombos += h.combos; }
       if (overrides.hasOwnProperty(h.label)) cell.classList.add('edited');
       if (marks[h.label]) cell.classList.add('mark-' + marks[h.label]);
     });
+    var realPctEl = document.getElementById('realPct');
+    if (realPctEl) realPctEl.textContent = (selectedCombos / 1326 * 100).toFixed(1) + '%';
     updateStat();
     updateLegend();
     renderPalette();
