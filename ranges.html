@@ -327,7 +327,7 @@
 
   <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
   <button class="info-toggle" id="presetBtn">📁 Presets</button>
-  <div class="source-note" id="sourceNote" style="display:none;"><b>Fonte:</b> ranges calculados com a fórmula de Chen (heurística de força de mão criada por Bill Chen) para ordenar as 169 mãos e os percentuais de abertura por posição foram definidos por mim como aproximação didática — não são a saída de um solver GTO real (tipo PioSOLVER ou GTO Wizard). Bom pra construir intuição e ter referência rápida; não é precisão de nível profissional. A mesa é de 9-max (UTG, UTG+1, MP1, MP2, HJ, CO, BTN, SB, BB).</div>
+  <div class="source-note" id="sourceNote" style="display:none;"><b>Como funciona:</b> essa página não tem mais um range calculado por trás — ela começa <b>sempre em branco</b>. Você monta seu próprio range mesa por mesa (posição + profundidade de stack), pintando as mãos como quiser, e o que você monta fica salvo automaticamente nesse navegador, separado por mesa. Use o preenchimento rápido (a seleção de cor mostra um slider) pra já começar com uma base de top N% e ajustar por cima. A mesa é de 9-max (UTG, UTG+1, MP1, MP2, HJ, CO, BTN, SB, BB).</div>
 
   <!-- PRESETS (mais enxuto) -->
   <div class="io-panel" id="presetPanel">
@@ -449,7 +449,6 @@
       <button class="info-toggle" id="bbCalcToggle">🧮 Calculadora de BBs</button>
       <button class="info-toggle" id="editBtn">🎨 Pintar range</button>
       <button class="info-toggle" id="zeroBtn">🗒️ Zerar</button>
-      <button class="info-toggle" id="resetBtn">↺ Restaurar</button>
       <button class="info-toggle" id="copyPrevBtn">📋 Copiar mesa anterior</button>
       <button class="info-toggle" id="ioBtn">🔄 Backup</button>
     </div>
@@ -693,26 +692,11 @@
   var lastCtxKey = ctxKey(); // guarda a "mesa" anterior, pra função de copiar
 
   function computeBaseFor(pos, bb, opener) {
+    // Essa página agora é só pra você montar e memorizar o SEU range, mesa por mesa (posição +
+    // profundidade de stack) — não existe mais um "range calculado" de fundo. Tudo começa em
+    // fold; o que aparece na grade é exatamente o que você pintou e nada além disso.
     var map = {};
     hands.forEach(function(h) { map[h.label] = 'fold'; });
-
-    if (pos === 'BB') {
-      if (bb <= 20) {
-        var cfg = bbDefenseShort[bb][opener];
-        var callSet = topNCombos(cfg.call);
-        Object.keys(callSet).forEach(function(l) { map[l] = 'raise'; });
-      } else {
-        var cfg2 = bbDefenseDeep[opener];
-        var tiers = getTiers(cfg2.threeBet, cfg2.call);
-        Object.keys(tiers.tier1).forEach(function(l) { map[l] = 'allin'; });
-        Object.keys(tiers.tier2).forEach(function(l) { map[l] = 'raise'; });
-      }
-    } else {
-      var pct = positionPercents[bb][pos];
-      var active = topNCombos(pct);
-      var cls = actionType[bb] === 'allin' ? 'allin' : 'raise';
-      Object.keys(active).forEach(function(l) { map[l] = cls; });
-    }
     return map;
   }
 
@@ -822,13 +806,14 @@
   function showSeatPreview(pos) {
     var opener = pos === 'BB' ? currentOpener : null;
     var final = computeFinalFor(pos, currentBB, opener);
+    var realCombos = 0;
     hands.forEach(function(h) {
       var mc = miniCellsByLabel[h.label];
       mc.classList.remove('raise', 'allin', 'added');
       var cls = final[h.label];
-      if (cls !== 'fold') mc.classList.add(cls);
+      if (cls !== 'fold') { mc.classList.add(cls); realCombos += h.combos; }
     });
-    var pct = pos === 'BB' ? '' : (' · ' + positionPercents[currentBB][pos] + '%');
+    var pct = ' · ' + (realCombos / 1326 * 100).toFixed(1) + '%';
     seatPreviewHead.textContent = posShort[pos] + ' · ' + currentBB + 'bb' + pct;
     seatPreview.classList.add('show');
     document.getElementById('feltLabel').style.opacity = '0';
@@ -1023,18 +1008,9 @@
   function updateStat() {
     var el = document.getElementById('stat');
     if (currentPos === 'BB') {
-      if (currentBB <= 20) {
-        var cfg = bbDefenseShort[currentBB][currentOpener];
-        el.innerHTML = 'BB vs shove do ' + posNames[currentOpener] + ' · ' + currentBB + 'bb · call <b>' + cfg.call + '%</b> · fold <b>' + (100 - cfg.call) + '%</b>';
-      } else {
-        var cfg2 = bbDefenseDeep[currentOpener];
-        var foldPct = 100 - cfg2.threeBet - cfg2.call;
-        el.innerHTML = 'BB vs abertura do ' + posNames[currentOpener] + ' · ' + currentBB + 'bb · 3-bet <b>' + cfg2.threeBet + '%</b> · call <b>' + cfg2.call + '%</b> · fold <b>' + foldPct + '%</b>';
-      }
+      el.innerHTML = 'BB vs abertura do ' + posNames[currentOpener] + ' · ' + currentBB + 'bb — monte sua defesa nessa mesa';
     } else {
-      var pct = positionPercents[currentBB][currentPos];
-      var verb = actionType[currentBB] === 'allin' ? 'all-in' : 'raise';
-      el.innerHTML = posNames[currentPos] + ' · ' + currentBB + 'bb · jogando <b>' + pct + '%</b> das mãos (' + verb + ')';
+      el.innerHTML = posNames[currentPos] + ' · ' + currentBB + 'bb — monte seu range de abertura nessa mesa';
     }
   }
 
@@ -1230,13 +1206,7 @@
     var key = ctxKey();
     if (!customOverrides[key]) customOverrides[key] = {};
     hands.forEach(function(h) { customOverrides[key][h.label] = 'fold'; });
-    persistOverrides();
-    render();
-  });
-
-  document.getElementById('resetBtn').addEventListener('click', function() {
-    delete customOverrides[ctxKey()];
-    delete customMarks[ctxKey()];
+    delete customMarks[key];
     persistOverrides();
     persistMarks();
     render();
