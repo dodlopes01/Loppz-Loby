@@ -912,6 +912,28 @@
     var behind = hand.behindPlayers;
     if (!behind.length) return null;
 
+    // divide a faixa de call de um jogador em duas camadas — igual o modelo de defesa do BB
+    // em Ranges Pré-Flop: as mãos mais fortes dessa faixa re-aumentam (shove) sobre o raise
+    // do Hero, o resto só paga (flat call). É o que permite modelar "fold vs raise vs push"
+    // de verdade, e não só "fold vs push".
+    function splitCallTiers(labels) {
+      var sorted = labels.slice().sort(function (a, b) {
+        var ha = HAND_TYPES.filter(function (x) { return x.label === a; })[0];
+        var hb = HAND_TYPES.filter(function (x) { return x.label === b; })[0];
+        return (hb ? hb.score : 0) - (ha ? ha.score : 0);
+      });
+      var total = rangeComboWeight(sorted) || 1;
+      var target = total * 0.30; // top 30% da faixa de call re-aumenta; resto só paga
+      var acc = 0, shove = [], flat = [];
+      sorted.forEach(function (l) {
+        var h = HAND_TYPES.filter(function (x) { return x.label === l; })[0];
+        var w = h ? h.combos : 0;
+        if (acc < target) shove.push(l); else flat.push(l);
+        acc += w;
+      });
+      return { shove: shove, flat: flat };
+    }
+
     var behindInfo = behind.map(function (p) {
       var idx = hand.allSeats.findIndex(function (s) { return s.name === p.name; });
       var pStackBB = p.chips / hand.bb;
@@ -926,7 +948,14 @@
       }
       var pool = [];
       labels.forEach(function (l) { expandHandToCombos(l).forEach(function (c) { pool.push(c); }); });
-      return { idx: idx, chips: p.chips, pct: pct / 100, pool: pool };
+
+      var tiers = splitCallTiers(labels);
+      var shovePool = [], flatPool = [];
+      tiers.shove.forEach(function (l) { expandHandToCombos(l).forEach(function (c) { shovePool.push(c); }); });
+      tiers.flat.forEach(function (l) { expandHandToCombos(l).forEach(function (c) { flatPool.push(c); }); });
+      var shoveFrac = (rangeComboWeight(tiers.shove) / (rangeComboWeight(labels) || 1));
+
+      return { idx: idx, chips: p.chips, pct: pct / 100, pool: pool, shovePool: shovePool, flatPool: flatPool, shoveFrac: shoveFrac };
     });
 
     var heroChips = stacks[heroIdxInSeats];
@@ -937,8 +966,12 @@
     // só o valor de um raise não all-in). Reutiliza as mesmas faixas de call calculadas acima;
     // a simplificação aqui é assumir que a chance de call dos jogadores atrás não muda pelo
     // tamanho do raise (na prática, um raise menor tende a ser pago mais largo — isso é uma
-    // aproximação, não um solver de sizing completo) e que ninguém re-aumenta depois.
-    function simulateRiskAmount(riskAmount) {
+    // aproximação, não um solver de sizing completo).
+    // Quando `allowShoveOver` é true (cenário de raise), qualquer jogador que caia na camada
+    // "shove" dessa mão vira um all-in de verdade sobre o raise do Hero — nessa rodada, o Hero
+    // é tratado como se pagasse com o stack cheio (simplificação: assume que o Hero sempre paga
+    // quando é re-aumentado, já que a essa altura do stack curto ele normalmente está comprometido).
+    function simulateRiskAmount(riskAmount, allowShoveOver) {
       var evSum = 0, count = 0, winCount = 0, tieCount = 0, calledCount = 0;
       var attempts = 0, maxAttempts = iters * 5;
 
@@ -946,8 +979,13 @@
         attempts++;
 
         var callers = [];
+        var anyShove = false;
         for (var bi = 0; bi < behindInfo.length; bi++) {
-          if (Math.random() < behindInfo[bi].pct) callers.push(behindInfo[bi]);
+          if (Math.random() >= behindInfo[bi].pct) continue;
+          var c = behindInfo[bi];
+          var isShove = allowShoveOver && Math.random() < c.shoveFrac;
+          callers.push({ idx: c.idx, chips: c.chips, pool: isShove ? c.shovePool : c.flatPool, isShove: isShove });
+          if (isShove) anyShove = true;
         }
 
         if (!callers.length) {
@@ -981,8 +1019,10 @@
           deckLeft.splice(bp, 1);
         }
 
-        // pote principal limitado pelo menor stack envolvido nesta rodada (aproxima side-pots)
-        var involved = [riskAmount].concat(callers.map(function (c) { return c.chips; }));
+        // se alguém re-aumentou (shove) sobre o raise, o Hero paga com o stack cheio nessa
+        // rodada — a mão virou efetivamente um all-in, mesmo tendo começado como um raise menor
+        var effectiveRisk = anyShove ? heroChips : riskAmount;
+        var involved = [effectiveRisk].concat(callers.map(function (c) { return c.chips; }));
         var effShared = Math.min.apply(null, involved);
 
         var heroScore = evaluate7(hand.heroExactCards.concat(board));
@@ -1013,19 +1053,20 @@
       };
     }
 
-    var pushResult = simulateRiskAmount(heroChips);
+    var pushResult = simulateRiskAmount(heroChips, false);
     var evPush = pushResult.ev;
     var avgEquity = pushResult.equity;
     var evFoldPush = currentEV;
 
     // Se o Hero fez (ou poderia ter feito) um raise não all-in, simula esse tamanho específico
-    // também — pra comparar Fold vs Raise (parcial) vs Push como três opções, em vez de só
-    // binário push/fold. Simplificação: assume que ninguém aumenta ainda mais depois do seu
-    // raise, e reaproveita a mesma faixa de call que seria usada contra um all-in (na prática,
-    // um raise menor tende a ser pago mais largo — não é um solver de sizing completo).
+    // também — pra comparar Fold vs Raise (parcial) vs Push como três opções. A simulação do
+    // raise já modela os jogadores atrás respondendo com fold, call (na medida do raise) ou
+    // re-aumento (shove) sobre o raise do Hero — igual o "fold/call/3-bet" que já existe em
+    // Ranges Pré-Flop. Continua uma aproximação (não resolve o quanto o Hero re-abriria depois
+    // de ser re-aumentado com outro tamanho — assume que ele paga o shove, dado o stack curto).
     var evRaise = null;
     if (hand.heroRaiseTo && hand.heroRaiseTo > 0 && hand.heroRaiseTo < heroChips) {
-      evRaise = simulateRiskAmount(hand.heroRaiseTo).ev;
+      evRaise = simulateRiskAmount(hand.heroRaiseTo, true).ev;
     }
 
     var evByKey = { fold: evFoldPush, push: evPush };
@@ -1477,7 +1518,7 @@
             (e.evRaise !== null ? '<span>EV raise<b>' + fmtEV(e.evRaise, model) + '</b></span>' : '') +
             '<span>EV fold<b>' + fmtEV(e.evFold, model) + '</b></span>') +
       '</div>' +
-      (!e.isCallDecision && e.evRaise !== null ? '<p class="vw-raise-note">⚠️ Você fez um raise não all-in — o EV do raise acima é uma estimativa simplificada (assume que ninguém aumenta de novo depois, e que os jogadores atrás reagem parecido com um all-in).</p>' : '') +
+      (!e.isCallDecision && e.evRaise !== null ? '<p class="vw-raise-note">⚠️ Você fez um raise não all-in — o EV do raise já considera os jogadores atrás podendo dar fold, pagar, ou re-aumentar (shove) sobre o seu raise. Simplificação: quando alguém re-aumenta, o modelo assume que você paga (dado o stack curto) — ainda não resolve um novo re-raise seu depois disso.</p>' : '') +
       renderHandDetail(h);
 
     viewerContent.innerHTML = html;
