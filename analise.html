@@ -278,9 +278,9 @@
 
   <button class="info-toggle" id="infoToggle">ℹ️ Como funciona o motor</button>
   <div class="disclaimer" id="disclaimerBox" style="display:none;">
-    <b>V3 — equilíbrio de Nash pra push/fold + equity Monte Carlo + ICM real.</b>
+    <b>V3.1 — equilíbrio de Nash pra push/fold (agora ICM-aware) + equity Monte Carlo + ICM real.</b>
     <ul>
-      <li><b>🧠 Faixa do vilão calculada por Nash (novo, padrão):</b> em vez de você chutar se o vilão joga apertado/médio/largo, o motor agora <b>resolve</b> a faixa de push (do agressor) e de call (do defensor) em equilíbrio de Nash pra profundidade de stack exata de cada mão — via best-response iterativo (o mesmo princípio de solvers tipo SnapShove/HRC). Isso já é a range "correta" assumindo que os dois lados jogam bem — as opções antigas (apertada/média/larga) continuam disponíveis pra comparar contra oponentes reais mais fracos ou mais soltos.</li>
+      <li><b>🧠 Faixa do vilão calculada por Nash, agora considerando ICM:</b> o solver resolve primeiro em fichas (chip-EV, rápido e reaproveitado entre mãos de profundidade parecida), e quando o modelo escolhido é ICM, roda mais uma rodada de ajuste usando o <b>ICM real da mesa inteira</b> (todos os stacks e os prêmios da mão) — perto da bolha, isso deixa as faixas visivelmente mais apertadas dos dois lados, do jeito que acontece de verdade. Esse ajuste roda mão por mão (não dá pra reaproveitar entre mãos diferentes, já que cada uma tem sua própria mesa), então adiciona alguns segundos por mão quando ativado.</li>
       <li><b>Equity exata (via simulação):</b> sua mão real vs. a faixa do oponente, usando o mesmo avaliador de 7 cartas do "Equity vs Range".</li>
       <li><b>ICM de verdade:</b> valor em prêmio ($) de cada resultado, via fórmula recursiva de finish-probability — não é mais só uma estimativa por percentil.</li>
       <li><b>Stacks descontando blind/ante já postados:</b> o EV de dar fold usa o stack no momento real da decisão (já descontando SB/BB/ante que você já colocou no pote), não o stack "cheio" do início da mão.</li>
@@ -290,7 +290,7 @@
     </ul>
     O que ainda é simplificado (e será refinado nas próximas fases):
     <ul>
-      <li>O equilíbrio de Nash aqui é resolvido em <b>chip-EV</b> (fichas), não em ICM — é o padrão dos solvers push/fold (a range de equilíbrio depende só da profundidade em BB). O EV final que você vê na tela continua honrando o modelo ICM/$ que você escolheu; só a <i>construção da faixa</i> do vilão usa chip-EV.</li>
+      <li>O ajuste de ICM no solver roda só <b>1 rodada extra</b> de resposta ótima (não converge tantas vezes quanto o solver base em fichas) — pra manter rápido o suficiente pra rodar mão por mão. Em cenários com pagamento quase igual pra quase todo mundo (raro num torneio real, mas pode acontecer em testes), a diferença de EV fica tão perto de zero que o ruído da simulação pode deixar a faixa instável — isso não deve aparecer em estruturas de premiação normais, onde a maioria dos lugares não paga nada.</li>
       <li>Quando 2+ jogadores pagam com stacks bem diferentes entre si, o "pote principal" é limitado pelo stack mais curto entre eles — uma aproximação de side-pot que cobre bem a maioria dos casos, mas não resolve todos os níveis quando há 3+ stacks muito diferentes na mesma mão.</li>
       <li>O ICM aqui é calculado com os jogadores <b>desta mesa</b> e os prêmios que você informar — pra um SNG de mesa única isso já é o campo completo do torneio; pra torneios multi-mesa seria uma aproximação até chegar na mesa final.</li>
     </ul>
@@ -636,6 +636,12 @@
     return w;
   }
 
+  function labelsToPool(labels) {
+    var pool = [];
+    labels.forEach(function (l) { expandHandToCombos(l).forEach(function (c) { pool.push(c); }); });
+    return pool;
+  }
+
   function solveNashHU(effBBraw) {
     var effBB = Math.max(2, Math.min(60, Math.round(effBBraw))); // arredonda pra BB inteiro, pra cachear como uma "tabela"
     var key = 'hu_' + effBB;
@@ -647,12 +653,6 @@
 
     var pusherLabels = topNCombos(50);
     var callerLabels = topNCombos(20);
-
-    function labelsToPool(labels) {
-      var pool = [];
-      labels.forEach(function (l) { expandHandToCombos(l).forEach(function (c) { pool.push(c); }); });
-      return pool;
-    }
 
     for (var iter = 0; iter < solverIters; iter++) {
       // resposta ótima do defensor (call), dado o range de push atual
@@ -683,6 +683,71 @@
     var result = { pushRange: pusherLabels, callRange: callerLabels };
     nashCache[key] = result;
     return result;
+  }
+
+  // ================= Refinamento de ICM sobre o Nash base (chip-EV) =================
+  // O solveNashHU acima resolve o equilíbrio em fichas puras (chip-EV) — é rápido e cacheável
+  // por profundidade em BB, mas não enxerga a pressão de ICM (bolha, saltos de premiação).
+  // Essa função pega esse resultado como ponto de partida e roda mais 1 rodada de resposta
+  // ótima usando o ICM REAL da mesa inteira (não uma aproximação) — o truque pra isso ficar
+  // rápido: dentro de uma rodada, os stacks resultantes de vencer/perder são os MESMOS pra
+  // todas as 169 mãos (só a equity de cada mão muda) — então o ICM de cada cenário é calculado
+  // uma única vez por rodada, fora do loop de mãos, em vez de 169 vezes.
+  function refineNashWithICM(baseResult, stacks, payouts, pusherIdx, callerIdx, deadMoney) {
+    var icmIters = 1;
+    var icmTrials = 40;
+    var pusherChips = stacks[pusherIdx], callerChips = stacks[callerIdx];
+    var effChips = Math.min(pusherChips, callerChips);
+
+    function seatEV(modStacks, seatIdx) { return icmEquity(modStacks, payouts)[seatIdx]; }
+
+    var foldEVCaller = seatEV(stacks, callerIdx);
+    var foldEVPusher = seatEV(stacks, pusherIdx);
+
+    var pusherLabels = baseResult.pushRange.slice();
+    var callerLabels = baseResult.callRange.slice();
+
+    for (var iter = 0; iter < icmIters; iter++) {
+      // ---- resposta do defensor: ICM calculado 2x (ganha / perde), fora do loop de mãos ----
+      var callerWinStacks = stacks.slice(); callerWinStacks[callerIdx] += effChips; callerWinStacks[pusherIdx] -= effChips;
+      var callerLoseStacks = stacks.slice(); callerLoseStacks[callerIdx] -= effChips; callerLoseStacks[pusherIdx] += effChips;
+      var evCallerWin = seatEV(callerWinStacks, callerIdx);
+      var evCallerLose = seatEV(callerLoseStacks, callerIdx);
+
+      var pusherPool = labelsToPool(pusherLabels);
+      var newCallerLabels = [];
+      HAND_TYPES.forEach(function (h) {
+        var eq = equityVsPool(handRepCombo[h.label], pusherPool, icmTrials);
+        if (eq === null) return;
+        var evCall = eq * evCallerWin + (1 - eq) * evCallerLose;
+        if (evCall > foldEVCaller) newCallerLabels.push(h.label);
+      });
+      callerLabels = newCallerLabels.length ? newCallerLabels : callerLabels;
+
+      // ---- resposta do agressor: ICM calculado 3x (ganha / perde / não pago), fora do loop ----
+      var callWeight = rangeComboWeight(callerLabels) / 1326;
+      var pFold = 1 - callWeight;
+      var callerPool = labelsToPool(callerLabels.length ? callerLabels : ['22']);
+
+      var pusherWinStacks = stacks.slice(); pusherWinStacks[pusherIdx] += effChips; pusherWinStacks[callerIdx] -= effChips;
+      var pusherLoseStacks = stacks.slice(); pusherLoseStacks[pusherIdx] -= effChips; pusherLoseStacks[callerIdx] += effChips;
+      var uncalledStacks = stacks.slice(); uncalledStacks[pusherIdx] += deadMoney;
+      var evPusherWin = seatEV(pusherWinStacks, pusherIdx);
+      var evPusherLose = seatEV(pusherLoseStacks, pusherIdx);
+      var evPusherUncalled = seatEV(uncalledStacks, pusherIdx);
+
+      var newPusherLabels = [];
+      HAND_TYPES.forEach(function (h) {
+        var eq = equityVsPool(handRepCombo[h.label], callerPool, icmTrials);
+        if (eq === null) { newPusherLabels.push(h.label); return; }
+        var evCalled = eq * evPusherWin + (1 - eq) * evPusherLose;
+        var evPush = pFold * evPusherUncalled + callWeight * evCalled;
+        if (evPush > foldEVPusher) newPusherLabels.push(h.label);
+      });
+      pusherLabels = newPusherLabels.length ? newPusherLabels : pusherLabels;
+    }
+
+    return { pushRange: pusherLabels, callRange: callerLabels };
   }
 
   // ================= PokerStars-format hand history parser =================
@@ -874,7 +939,11 @@
       var villainEffBB = Math.min(hand.effBB, hand.allInSeatObj.chips / hand.bb);
       var range;
       if (villainMode === 'nash') {
-        range = solveNashHU(villainEffBB).pushRange; // faixa de push do vilão, em equilíbrio de Nash
+        var nashBase = solveNashHU(villainEffBB);
+        if (model === 'icm') {
+          nashBase = refineNashWithICM(nashBase, stacks, payouts, villainIdxInSeats, heroIdxInSeats, hand.deadMoney);
+        }
+        range = nashBase.pushRange; // faixa de push do vilão, em equilíbrio de Nash (refinada por ICM se aplicável)
       } else {
         var vPct = villainRangePct(villainPct, villainEffBB);
         range = topNCombos(vPct);
@@ -940,7 +1009,11 @@
       var callerEffBB = Math.min(hand.effBB, pStackBB);
       var labels, pct;
       if (villainMode === 'nash') {
-        labels = solveNashHU(callerEffBB).callRange; // faixa de call do jogador, em equilíbrio de Nash
+        var nashBase = solveNashHU(callerEffBB);
+        if (model === 'icm') {
+          nashBase = refineNashWithICM(nashBase, stacks, payouts, heroIdxInSeats, idx, hand.deadMoney);
+        }
+        labels = nashBase.callRange; // faixa de call do jogador, em equilíbrio de Nash (refinada por ICM se aplicável)
         pct = (rangeComboWeight(labels) / 1326) * 100;
       } else {
         pct = villainRangePct(villainPct, callerEffBB);
@@ -1326,7 +1399,9 @@
     var btn = document.getElementById('analyzeBtn');
     btn.disabled = true; btn.textContent = 'Calculando…';
     setStatus(villainMode === 'nash'
-      ? 'Resolvendo equilíbrio de Nash pras profundidades de stack encontradas — pode levar alguns segundos na primeira vez…'
+      ? (model === 'icm'
+          ? 'Resolvendo equilíbrio de Nash + ajuste de ICM por mão — pode levar bem mais tempo que o normal (o ajuste de ICM roda mão por mão, não dá pra reaproveitar entre mãos diferentes)…'
+          : 'Resolvendo equilíbrio de Nash pras profundidades de stack encontradas — pode levar alguns segundos na primeira vez…')
       : 'Rodando simulações de equity, pode levar alguns segundos…', '');
 
     setTimeout(function () {
