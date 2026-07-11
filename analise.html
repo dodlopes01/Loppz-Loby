@@ -278,19 +278,21 @@
 
   <button class="info-toggle" id="infoToggle">ℹ️ Como funciona o motor</button>
   <div class="disclaimer" id="disclaimerBox" style="display:none;">
-    <b>V3.1 — equilíbrio de Nash pra push/fold (agora ICM-aware) + equity Monte Carlo + ICM real.</b>
+    <b>V4.1 — matriz de equity pré-calculada (em paralelo, via Web Workers) + Nash ICM-aware + ICM real.</b>
     <ul>
-      <li><b>🧠 Faixa do vilão calculada por Nash, agora considerando ICM:</b> o solver resolve primeiro em fichas (chip-EV, rápido e reaproveitado entre mãos de profundidade parecida), e quando o modelo escolhido é ICM, roda mais uma rodada de ajuste usando o <b>ICM real da mesa inteira</b> (todos os stacks e os prêmios da mão) — perto da bolha, isso deixa as faixas visivelmente mais apertadas dos dois lados, do jeito que acontece de verdade. Esse ajuste roda mão por mão (não dá pra reaproveitar entre mãos diferentes, já que cada uma tem sua própria mesa), então adiciona alguns segundos por mão quando ativado.</li>
+      <li><b>⚡ Equity pré-calculada, em paralelo:</b> antes de usar o modo Nash pela primeira vez neste navegador, o app calcula a equity das 169 mãos contra as outras 168, uma vez só, e guarda isso salvo. Esse cálculo roda dividido entre várias threads ao mesmo tempo (uma por núcleo do seu processador), então a aba não trava enquanto calcula — e depois de pronta, o solver de Nash faz até 40 rodadas de convergência (e o ajuste de ICM até 12) quase instantaneamente, em vez de recalcular tudo via simulação toda hora.</li>
+      <li><b>🧠 Faixa do vilão calculada por Nash, considerando ICM:</b> o solver resolve primeiro em fichas (chip-EV, rápido e reaproveitado entre mãos de profundidade parecida), e quando o modelo escolhido é ICM, roda mais rodadas de ajuste usando o <b>ICM real da mesa inteira</b> (todos os stacks e os prêmios da mão) — perto da bolha, isso deixa as faixas visivelmente mais apertadas dos dois lados, do jeito que acontece de verdade.</li>
       <li><b>Equity exata (via simulação):</b> sua mão real vs. a faixa do oponente, usando o mesmo avaliador de 7 cartas do "Equity vs Range".</li>
       <li><b>ICM de verdade:</b> valor em prêmio ($) de cada resultado, via fórmula recursiva de finish-probability — não é mais só uma estimativa por percentil.</li>
       <li><b>Stacks descontando blind/ante já postados:</b> o EV de dar fold usa o stack no momento real da decisão (já descontando SB/BB/ante que você já colocou no pote), não o stack "cheio" do início da mão.</li>
       <li><b>Dinheiro morto do pote creditado a quem ganha:</b> quem vence a mão recebe o pote (blinds/antes de quem já desistiu incluídos), tanto no push quanto no call.</li>
       <li><b>Multi-way de verdade:</b> em vez de assumir "no máximo um pagador por vez", o motor sorteia, pra cada jogador atrás de você, se ele paga ou não — de forma independente, rodada a rodada — e resolve o showdown com todos que realmente pagaram (0, 1, 2 ou mais ao mesmo tempo).</li>
+      <li><b>Se o navegador não suportar Web Workers</b> (raríssimo hoje em dia), o app cai automaticamente pra um cálculo mais lento numa única thread só — funciona igual, só demora mais na primeira vez.</li>
       <li><b>Detecção de erro corrigida:</b> qualquer ação sua que não seja fold (call, call-allin, raise) é comparada corretamente com a recomendação.</li>
     </ul>
     O que ainda é simplificado (e será refinado nas próximas fases):
     <ul>
-      <li>O ajuste de ICM no solver roda só <b>1 rodada extra</b> de resposta ótima (não converge tantas vezes quanto o solver base em fichas) — pra manter rápido o suficiente pra rodar mão por mão. Em cenários com pagamento quase igual pra quase todo mundo (raro num torneio real, mas pode acontecer em testes), a diferença de EV fica tão perto de zero que o ruído da simulação pode deixar a faixa instável — isso não deve aparecer em estruturas de premiação normais, onde a maioria dos lugares não paga nada.</li>
+      <li>O ajuste de ICM roda mão por mão (não dá pra reaproveitar entre mãos diferentes, já que cada mesa é única) — com a matriz pré-calculada isso ficou bem mais rápido, mas ainda não é instantâneo. Em cenários com pagamento quase igual pra quase todo mundo (raro num torneio real, mas pode acontecer em testes), a diferença de EV fica tão perto de zero que o ruído da simulação pode deixar a faixa instável — isso não deve aparecer em estruturas de premiação normais, onde a maioria dos lugares não paga nada.</li>
       <li>Quando 2+ jogadores pagam com stacks bem diferentes entre si, o "pote principal" é limitado pelo stack mais curto entre eles — uma aproximação de side-pot que cobre bem a maioria dos casos, mas não resolve todos os níveis quando há 3+ stacks muito diferentes na mesma mão.</li>
       <li>O ICM aqui é calculado com os jogadores <b>desta mesa</b> e os prêmios que você informar — pra um SNG de mesa única isso já é o campo completo do torneio; pra torneios multi-mesa seria uma aproximação até chegar na mesa final.</li>
     </ul>
@@ -616,7 +618,9 @@
   }
 
   // constrói a matriz em pequenos pedaços (via setTimeout), pra não travar a aba enquanto calcula
-  function buildEquityMatrixAsync(onProgress, onDone) {
+  // versão de reserva: se o navegador não suportar Web Workers, roda em pedacinhos na mesma
+  // thread (mais lento, mas funciona em qualquer lugar)
+  function buildEquityMatrixSingleThread(onProgress, onDone) {
     var labels = HAND_TYPES.map(function (h) { return h.label; });
     var n = labels.length;
     var pairs = [];
@@ -649,6 +653,171 @@
       }
     }
     processChunk();
+  }
+
+  // ---------- código-fonte do Web Worker (autossuficiente — reimplementa só o essencial:
+  // avaliador de 7 cartas + simulação Monte Carlo, nada mais) ----------
+  var MATRIX_WORKER_SOURCE = [
+    'function cardKeyW(c){return c.rank+c.suit;}',
+    'var SUITS_W=["s","h","d","c"];',
+    'var FULL_DECK_W=(function(){var out=[];for(var r=2;r<=14;r++)for(var s=0;s<4;s++)out.push({rank:r,suit:SUITS_W[s]});return out;})();',
+    'function evaluate5W(cards){',
+    '  var ranks=cards.map(function(c){return c.rank;}).sort(function(a,b){return b-a;});',
+    '  var suits=cards.map(function(c){return c.suit;});',
+    '  var isFlush=suits.every(function(s){return s===suits[0];});',
+    '  var uniq=[]; ranks.forEach(function(r){if(uniq.indexOf(r)===-1)uniq.push(r);});',
+    '  var isStraight=false, straightHigh=0;',
+    '  if(uniq.length===5){',
+    '    if(uniq[0]-uniq[4]===4){isStraight=true;straightHigh=uniq[0];}',
+    '    else if(uniq.join(",")==="14,5,4,3,2"){isStraight=true;straightHigh=5;}',
+    '  }',
+    '  var freq={}; ranks.forEach(function(r){freq[r]=(freq[r]||0)+1;});',
+    '  var groups=Object.keys(freq).map(function(r){return {rank:+r,count:freq[r]};}).sort(function(a,b){return b.count-a.count||b.rank-a.rank;});',
+    '  var category, tiebreak;',
+    '  if(isStraight&&isFlush){category=8;tiebreak=[straightHigh];}',
+    '  else if(groups[0].count===4){category=7;tiebreak=[groups[0].rank,groups[1].rank];}',
+    '  else if(groups[0].count===3&&groups[1]&&groups[1].count===2){category=6;tiebreak=[groups[0].rank,groups[1].rank];}',
+    '  else if(isFlush){category=5;tiebreak=ranks;}',
+    '  else if(isStraight){category=4;tiebreak=[straightHigh];}',
+    '  else if(groups[0].count===3){category=3;tiebreak=[groups[0].rank].concat(groups.slice(1).map(function(g){return g.rank;}));}',
+    '  else if(groups[0].count===2&&groups[1]&&groups[1].count===2){category=2;tiebreak=[groups[0].rank,groups[1].rank,groups[2].rank];}',
+    '  else if(groups[0].count===2){category=1;tiebreak=[groups[0].rank].concat(groups.slice(1).map(function(g){return g.rank;}));}',
+    '  else {category=0;tiebreak=ranks;}',
+    '  var score=category; var tb=tiebreak.slice(0,5);',
+    '  tb.forEach(function(v){score=score*15+v;});',
+    '  for(var p=tb.length;p<5;p++)score=score*15;',
+    '  return score;',
+    '}',
+    'var COMBOS7C5_W=(function(){var out=[];function rec(start,chosen){if(chosen.length===5){out.push(chosen.slice());return;}for(var i=start;i<7;i++){chosen.push(i);rec(i+1,chosen);chosen.pop();}}rec(0,[]);return out;})();',
+    'function evaluate7W(cards7){',
+    '  var best=-1;',
+    '  for(var k=0;k<COMBOS7C5_W.length;k++){',
+    '    var idxs=COMBOS7C5_W[k];',
+    '    var five=[cards7[idxs[0]],cards7[idxs[1]],cards7[idxs[2]],cards7[idxs[3]],cards7[idxs[4]]];',
+    '    var s=evaluate5W(five);',
+    '    if(s>best)best=s;',
+    '  }',
+    '  return best;',
+    '}',
+    'function computeEquityW(heroCombo, rawPool, iterations){',
+    '  var heroKeys={}; heroKeys[cardKeyW(heroCombo[0])]=true; heroKeys[cardKeyW(heroCombo[1])]=true;',
+    '  var pool=rawPool.filter(function(c){return !heroKeys[cardKeyW(c[0])]&&!heroKeys[cardKeyW(c[1])];});',
+    '  if(!pool.length) return 0.5;',
+    '  var wins=0, ties=0, valid=0, attempts=0, maxAttempts=iterations*3;',
+    '  while(valid<iterations && attempts<maxAttempts){',
+    '    attempts++;',
+    '    var vc=pool[(Math.random()*pool.length)|0];',
+    '    var used={}; used[cardKeyW(heroCombo[0])]=true; used[cardKeyW(heroCombo[1])]=true;',
+    '    used[cardKeyW(vc[0])]=true; used[cardKeyW(vc[1])]=true;',
+    '    var candidates=[];',
+    '    for(var i=0;i<FULL_DECK_W.length;i++){ if(!used[cardKeyW(FULL_DECK_W[i])]) candidates.push(FULL_DECK_W[i]); }',
+    '    var board=[];',
+    '    for(var b=0;b<5;b++){ var pick=(Math.random()*candidates.length)|0; board.push(candidates[pick]); candidates.splice(pick,1); }',
+    '    var heroScore=evaluate7W(heroCombo.concat(board));',
+    '    var villainScore=evaluate7W(vc.concat(board));',
+    '    if(heroScore>villainScore) wins++; else if(heroScore===villainScore) ties++;',
+    '    valid++;',
+    '  }',
+    '  if(!valid) return 0.5;',
+    '  return (wins+ties*0.5)/valid;',
+    '}',
+    'self.onmessage = function(e){',
+    '  var jobs = e.data.jobs;',
+    '  var results = [];',
+    '  for (var i = 0; i < jobs.length; i++) {',
+    '    var job = jobs[i];',
+    '    var eq = computeEquityW(job.heroCombo, job.villainPool, job.trials);',
+    '    results.push({ heroLabel: job.heroLabel, villainLabel: job.villainLabel, eq: eq });',
+    '    if ((i+1) % 150 === 0) self.postMessage({ type: "progress", done: i+1 });',
+    '  }',
+    '  self.postMessage({ type: "done", results: results });',
+    '};'
+  ].join('\n');
+
+  // versão paralela com Web Workers: divide os pares entre várias threads ao mesmo tempo
+  // (uma por núcleo de processador disponível), então a construção fica bem mais rápida e
+  // não trava a aba nenhum momento — o navegador continua 100% responsivo enquanto calcula.
+  function buildEquityMatrixWithWorkers(onProgress, onDone) {
+    var labels = HAND_TYPES.map(function (h) { return h.label; });
+    var n = labels.length;
+
+    // só o "triângulo superior" (i<=j) precisa ser calculado — o resto vem de graça pela
+    // simetria (equity(A,B) = 1 - equity(B,A)), o que já corta o trabalho pela metade
+    var jobs = [];
+    for (var i = 0; i < n; i++) {
+      for (var j = i; j < n; j++) {
+        jobs.push({
+          heroLabel: labels[i], heroCombo: handRepCombo[labels[i]],
+          villainLabel: labels[j], villainPool: expandHandToCombos(labels[j]),
+          trials: MATRIX_TRIALS
+        });
+      }
+    }
+    var totalJobs = jobs.length;
+
+    labels.forEach(function (l) { if (!EQUITY_MATRIX[l]) EQUITY_MATRIX[l] = {}; });
+
+    var numWorkers = Math.max(2, Math.min(navigator.hardwareConcurrency || 4, 8));
+    var chunkSize = Math.ceil(jobs.length / numWorkers);
+    var chunks = [];
+    for (var c = 0; c < numWorkers; c++) {
+      var slice = jobs.slice(c * chunkSize, (c + 1) * chunkSize);
+      if (slice.length) chunks.push(slice);
+    }
+
+    var blob = new Blob([MATRIX_WORKER_SOURCE], { type: 'application/javascript' });
+    var workerUrl = URL.createObjectURL(blob);
+    var progressByWorker = chunks.map(function () { return 0; });
+    var workersFinished = 0;
+
+    function reportProgress() {
+      var total = progressByWorker.reduce(function (a, b) { return a + b; }, 0);
+      if (onProgress) onProgress(total, totalJobs);
+    }
+
+    function finish() {
+      URL.revokeObjectURL(workerUrl);
+      MATRIX_READY = true;
+      saveEquityMatrixToCache();
+      if (onDone) onDone();
+    }
+
+    chunks.forEach(function (chunk, idx) {
+      var worker = new Worker(workerUrl);
+      worker.onmessage = function (e) {
+        if (e.data.type === 'progress') {
+          progressByWorker[idx] = e.data.done;
+          reportProgress();
+        } else if (e.data.type === 'done') {
+          progressByWorker[idx] = chunk.length;
+          e.data.results.forEach(function (r) {
+            EQUITY_MATRIX[r.heroLabel][r.villainLabel] = r.eq;
+            if (!EQUITY_MATRIX[r.villainLabel]) EQUITY_MATRIX[r.villainLabel] = {};
+            EQUITY_MATRIX[r.villainLabel][r.heroLabel] = 1 - r.eq;
+          });
+          worker.terminate();
+          workersFinished++;
+          reportProgress();
+          if (workersFinished === chunks.length) finish();
+        }
+      };
+      worker.onerror = function () {
+        // se um worker falhar (raro), cai pro modo de 1 thread só, do zero
+        worker.terminate();
+        URL.revokeObjectURL(workerUrl);
+        buildEquityMatrixSingleThread(onProgress, onDone);
+      };
+      worker.postMessage({ jobs: chunk });
+    });
+  }
+
+  // escolhe o melhor jeito disponível de construir a matriz
+  function buildEquityMatrixAsync(onProgress, onDone) {
+    if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined') {
+      buildEquityMatrixWithWorkers(onProgress, onDone);
+    } else {
+      buildEquityMatrixSingleThread(onProgress, onDone);
+    }
   }
 
   // equity de uma mão (label) contra uma faixa inteira (lista de labels), via lookup direto —
@@ -1516,13 +1685,14 @@
     }
 
     // pro modo Nash, precisa da matriz de equity pré-calculada. Se ainda não existe (primeira
-    // vez neste navegador), constrói agora — só acontece uma vez, fica salva pra sempre depois.
+    // vez neste navegador), constrói agora, em paralelo (um núcleo do processador por thread) —
+    // só acontece uma vez, fica salva pra sempre depois.
     if (villainMode === 'nash' && !MATRIX_READY) {
-      setStatus('Calculando a tabela de equity das 169 mãos (só acontece uma vez neste navegador)… 0%', '');
+      setStatus('Calculando a tabela de equity das 169 mãos em paralelo (só acontece uma vez neste navegador)… 0%', '');
       buildEquityMatrixAsync(
         function (done, total) {
           var pct = Math.round((done / total) * 100);
-          setStatus('Calculando a tabela de equity das 169 mãos (só acontece uma vez neste navegador)… ' + pct + '% (' + done.toLocaleString('pt-BR') + ' de ' + total.toLocaleString('pt-BR') + ' pares)', '');
+          setStatus('Calculando a tabela de equity das 169 mãos em paralelo (só acontece uma vez neste navegador)… ' + pct + '% (' + done.toLocaleString('pt-BR') + ' de ' + total.toLocaleString('pt-BR') + ' pares)', '');
         },
         function () {
           setStatus('Tabela de equity pronta e salva — próximas análises não vão precisar recalcular isso.', 'ok');
