@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Agenda</title>
+<style>
+  :root {
+    --felt: #141212; --felt-2: #1C1918; --panel: #211D1C; --panel-2: #29231F;
+    --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15); --cream: #EFE7D2; --muted: #9C9490;
+    --danger: #D2564A; --danger-bg: #3A211D; --success: #E8843A; --success-bg: #3A2712;
+    --line: rgba(239, 231, 210, 0.14); --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; background: radial-gradient(ellipse at top, #1C1918 0%, #0A0908 100%);
+    color: var(--cream); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 19px; font-weight: 800; margin: 0; color: var(--gold); }
+  header span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); }
+
+  /* ---- barra de resumo ---- */
+  .summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat-chip {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 8px; text-align: center; box-shadow: var(--card-shadow);
+  }
+  .stat-chip .n { font-size: 17px; font-weight: 800; color: var(--gold); display: block; line-height: 1.2; }
+  .stat-chip .n.pos { color: var(--success); }
+  .stat-chip .n.neg { color: var(--danger); }
+  .stat-chip .l { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; display: block; margin-top: 3px; line-height: 1.3; }
+
+  /* ---- alternador de visão ---- */
+  .view-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
+  .view-toggle button {
+    flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12.5px; font-weight: 700; padding: 9px; border-radius: 10px; cursor: pointer;
+  }
+  .view-toggle button.active { background: var(--red); border-color: var(--red); color: var(--cream); }
+
+  /* ---- calendário ---- */
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-nav button { background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 16px; width: 34px; height: 34px; border-radius: 9px; cursor: pointer; }
+  .cal-nav button:hover { border-color: var(--gold-dim); }
+  .cal-nav .cal-title { font-size: 15px; font-weight: 800; color: var(--gold); text-transform: capitalize; }
+  .cal-nav .cal-today { font-size: 10.5px; color: var(--muted); background: var(--felt-2); border: 1px solid var(--line);
+    border-radius: 999px; padding: 5px 10px; cursor: pointer; margin-left: 8px; }
+
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 6px; }
+  .cal-weekdays span { text-align: center; font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-day {
+    aspect-ratio: 1 / 1; border-radius: 10px; background: var(--felt-2); border: 1.5px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; padding: 2px;
+  }
+  .cal-day.empty { background: transparent; border: none; cursor: default; }
+  .cal-day .dnum { font-size: 12px; font-weight: 700; color: var(--cream); }
+  .cal-day.today { border-color: var(--gold); box-shadow: 0 0 0 1.5px var(--gold); }
+  .cal-day.today .dnum { color: var(--gold); }
+  .cal-day.has-win { background: var(--success-bg); border-color: rgba(232,132,58,0.5); }
+  .cal-day.has-loss { background: var(--danger-bg); border-color: rgba(210,86,74,0.5); }
+  .cal-day.has-even { background: rgba(201,162,39,0.12); border-color: rgba(201,162,39,0.4); }
+  .cal-day.has-study-only { background: rgba(201,162,39,0.08); border-color: var(--gold-dim); }
+  .cal-day .dicons { position: absolute; bottom: 3px; font-size: 8px; display: flex; gap: 2px; }
+  .cal-day.selected { outline: 2px solid var(--cream); outline-offset: -2px; }
+
+  .cal-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 10.5px; color: var(--muted); }
+  .cal-legend .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+
+  /* ---- painel do dia ---- */
+  .day-panel { display: none; }
+  .day-panel.show { display: block; }
+  .day-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .day-panel-head h2 { font-size: 15px; color: var(--gold); margin: 0; text-transform: capitalize; }
+  .day-panel-head button { background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 13px; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; }
+
+  .record-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .record-tabs button { flex: 1; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+    font-size: 12.5px; font-weight: 700; padding: 9px; border-radius: 10px; cursor: pointer; }
+  .record-tabs button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+
+  .field-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 110px; }
+  .field label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .field input, .field textarea, .field select {
+    background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px; color: var(--cream);
+    font-size: 13.5px; padding: 8px 10px; font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--gold-dim); outline: none; }
+
+  .tool-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tool-tag {
+    background: var(--felt-2); border: 1px solid var(--line); color: var(--muted);
+    font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  }
+  .tool-tag.selected { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+
+  .record-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .record-actions button { flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn-save { background: var(--red); border: 1px solid var(--red); color: var(--cream); }
+  .btn-clear { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+  .record-status { font-size: 11.5px; color: var(--success); margin-top: 8px; min-height: 14px; }
+
+  .empty-day-note { font-size: 12.5px; color: var(--muted); text-align: center; padding: 10px 0; }
+
+  /* ---- linha do tempo ---- */
+  .timeline { display: none; }
+  .timeline.show { display: block; }
+  .tl-item { display: flex; gap: 12px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--card-shadow); cursor: pointer; }
+  .tl-item:hover { border-color: var(--gold-dim); }
+  .tl-date { flex-shrink: 0; width: 52px; text-align: center; }
+  .tl-date .dow { font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+  .tl-date .dnum { font-size: 19px; font-weight: 800; color: var(--gold); line-height: 1.1; }
+  .tl-date .mon { font-size: 9px; color: var(--muted); text-transform: uppercase; }
+  .tl-body { flex: 1; min-width: 0; }
+  .tl-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-bottom: 3px; }
+  .tl-row:last-child { margin-bottom: 0; }
+  .tl-badge { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
+  .tl-badge.study { background: rgba(201,162,39,0.15); color: var(--gold); }
+  .tl-badge.win { background: var(--success-bg); color: var(--success); }
+  .tl-badge.loss { background: var(--danger-bg); color: var(--danger); }
+  .tl-text { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  @media (min-width: 760px) {
+    .wrap { max-width: 900px; padding: 40px 24px 70px; }
+    header h1 { font-size: 22px; }
+    .cal-day .dnum { font-size: 14px; }
+    .summary-bar { gap: 12px; }
+    .stat-chip { padding: 16px 10px; }
+    .stat-chip .n { font-size: 21px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>📅 Agenda</h1>
+    <span>colorbydoug</span>
+  </header>
+
+  <div class="summary-bar" id="summaryBar"></div>
+
+  <div class="view-toggle">
+    <button id="viewCalBtn" class="active">🗓️ Calendário</button>
+    <button id="viewTimelineBtn">📋 Linha do tempo</button>
+  </div>
+
+  <div class="card" id="calView">
+    <div class="cal-nav">
+      <button id="calPrevBtn">‹</button>
+      <div style="display:flex; align-items:center;">
+        <span class="cal-title" id="calTitle"></span>
+        <button class="cal-today" id="calTodayBtn">hoje</button>
+      </div>
+      <button id="calNextBtn">›</button>
+    </div>
+    <div class="cal-weekdays">
+      <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-legend">
+      <span><span class="dot" style="background:var(--success);"></span>Sessão com lucro</span>
+      <span><span class="dot" style="background:var(--danger);"></span>Sessão com prejuízo</span>
+      <span><span class="dot" style="background:var(--gold);"></span>Só estudo</span>
+    </div>
+  </div>
+
+  <div class="card day-panel" id="dayPanel">
+    <div class="day-panel-head">
+      <h2 id="dayPanelTitle"></h2>
+      <button id="dayPanelCloseBtn">✕</button>
+    </div>
+
+    <div class="record-tabs">
+      <button id="tabStudyBtn" class="active">📚 Estudo</button>
+      <button id="tabSessionBtn">🎮 Sessão de jogo</button>
+    </div>
+
+    <div id="studyForm">
+      <div class="field-row">
+        <div class="field">
+          <label>Duração (minutos)</label>
+          <input type="number" id="studyMinutes" min="0" placeholder="ex: 45">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field" style="flex:1 1 100%;">
+          <label>Ferramentas usadas</label>
+          <div class="tool-tags" id="studyTools"></div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field" style="flex:1 1 100%;">
+          <label>O que aprendi</label>
+          <textarea id="studyLearned" placeholder="ex: eu tava jogando muito apertado no BB contra CO..."></textarea>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field" style="flex:1 1 100%;">
+          <label>Próximo passo</label>
+          <input type="text" id="studyNext" placeholder="ex: revisar range de 3-bet do SB">
+        </div>
+      </div>
+      <div class="record-actions">
+        <button class="btn-save" id="saveStudyBtn">💾 Salvar estudo</button>
+        <button class="btn-clear" id="clearStudyBtn">Apagar</button>
+      </div>
+      <p class="record-status" id="studyStatus"></p>
+    </div>
+
+    <div id="sessionForm" style="display:none;">
+      <div class="field-row">
+        <div class="field">
+          <label>Duração (minutos)</label>
+          <input type="number" id="sessMinutes" min="0" placeholder="ex: 90">
+        </div>
+        <div class="field">
+          <label>Torneios jogados</label>
+          <input type="number" id="sessCount" min="0" placeholder="ex: 3">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Buy-in total</label>
+          <input type="number" id="sessBuyin" min="0" step="0.01" placeholder="ex: 30.00">
+        </div>
+        <div class="field">
+          <label>Resultado (+/- $)</label>
+          <input type="number" id="sessResult" step="0.01" placeholder="ex: 45.50 ou -30">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Posição final (opcional)</label>
+          <input type="text" id="sessPosition" placeholder="ex: 1º, 3º e 7º">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field" style="flex:1 1 100%;">
+          <label>Próximo passo</label>
+          <input type="text" id="sessNext" placeholder="ex: revisar mãos de bolha dessa sessão">
+        </div>
+      </div>
+      <div class="record-actions">
+        <button class="btn-save" id="saveSessionBtn">💾 Salvar sessão</button>
+        <button class="btn-clear" id="clearSessionBtn">Apagar</button>
+      </div>
+      <p class="record-status" id="sessionStatus"></p>
+    </div>
+  </div>
+
+  <div class="timeline" id="timelineView"></div>
+
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = 'loppzloby_agenda_v1';
+  var TOOLS = [
+    { id: 'glossario', label: 'Glossário' },
+    { id: 'outs', label: 'Outs & Odds' },
+    { id: 'potodds', label: 'Pot Odds' },
+    { id: 'ranges', label: 'Ranges' },
+    { id: 'equity', label: 'Equity vs Range' },
+    { id: 'icm', label: 'ICM' },
+    { id: 'analise', label: 'Análise de Mãos' }
+  ];
+  var WEEKDAY_ABBR = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  var MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+  var data = {};
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) data = JSON.parse(raw);
+  } catch (e) { /* ignora localStorage indisponível */ }
+
+  function persist() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+    catch (e) { /* ignora */ }
+  }
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function todayKey() { return dateKey(new Date()); }
+  function fmtMoney(v) {
+    var sign = v > 0 ? '+' : '';
+    return sign + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  var today = new Date();
+  var viewYear = today.getFullYear(), viewMonth = today.getMonth(); // 0-indexed
+  var selectedDateKey = null;
+  var currentTab = 'study'; // 'study' | 'session'
+
+  // ================= resumo do mês =================
+  function renderSummary() {
+    var monthPrefix = viewYear + '-' + pad2(viewMonth + 1);
+    var studyMinutes = 0, netResult = 0, hasAnyMoney = false;
+    var weekSessions = 0;
+    var now = new Date();
+    var weekAgo = new Date(now.getTime() - 7 * 86400000);
+
+    Object.keys(data).forEach(function (k) {
+      var rec = data[k];
+      if (k.indexOf(monthPrefix) === 0) {
+        if (rec.study && rec.study.minutes) studyMinutes += Number(rec.study.minutes) || 0;
+        if (rec.session && rec.session.result !== undefined && rec.session.result !== '') {
+          netResult += Number(rec.session.result) || 0;
+          hasAnyMoney = true;
+        }
+      }
+      if (rec.session) {
+        var d = new Date(k + 'T12:00:00');
+        if (d >= weekAgo && d <= now) weekSessions++;
+      }
+    });
+
+    // sequência de dias ativos (streak), contando pra trás a partir de hoje
+    var streak = 0;
+    var cursor = new Date();
+    while (true) {
+      var key = dateKey(cursor);
+      var rec = data[key];
+      if (rec && (rec.study || rec.session)) { streak++; cursor.setDate(cursor.getDate() - 1); }
+      else break;
+    }
+
+    var hours = (studyMinutes / 60).toFixed(1);
+    var box = document.getElementById('summaryBar');
+    box.innerHTML =
+      '<div class="stat-chip"><span class="n">' + hours + 'h</span><span class="l">estudo no mês</span></div>' +
+      '<div class="stat-chip"><span class="n ' + (netResult > 0 ? 'pos' : (netResult < 0 ? 'neg' : '')) + '">' + (hasAnyMoney ? fmtMoney(netResult) : '—') + '</span><span class="l">resultado no mês</span></div>' +
+      '<div class="stat-chip"><span class="n">' + streak + '</span><span class="l">dias seguidos ativo</span></div>' +
+      '<div class="stat-chip"><span class="n">' + weekSessions + '</span><span class="l">sessões essa semana</span></div>';
+  }
+
+  // ================= calendário =================
+  function renderCalendar() {
+    document.getElementById('calTitle').textContent = MONTH_NAMES[viewMonth] + ' de ' + viewYear;
+
+    var firstDay = new Date(viewYear, viewMonth, 1);
+    var startWeekday = firstDay.getDay();
+    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+    var grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+
+    for (var e = 0; e < startWeekday; e++) {
+      var empty = document.createElement('div');
+      empty.className = 'cal-day empty';
+      grid.appendChild(empty);
+    }
+
+    for (var day = 1; day <= daysInMonth; day++) {
+      var d = new Date(viewYear, viewMonth, day);
+      var key = dateKey(d);
+      var rec = data[key];
+      var cell = document.createElement('div');
+      cell.className = 'cal-day';
+      if (key === todayKey()) cell.classList.add('today');
+      if (key === selectedDateKey) cell.classList.add('selected');
+
+      var icons = '';
+      if (rec) {
+        if (rec.session) {
+          var result = Number(rec.session.result) || 0;
+          if (result > 0) cell.classList.add('has-win');
+          else if (result < 0) cell.classList.add('has-loss');
+          else cell.classList.add('has-even');
+          icons += '🎮';
+        } else if (rec.study) {
+          cell.classList.add('has-study-only');
+        }
+        if (rec.study) icons += '📚';
+      }
+
+      cell.innerHTML = '<span class="dnum">' + day + '</span>' + (icons ? '<span class="dicons">' + icons + '</span>' : '');
+      cell.addEventListener('click', function () {
+        var clickedKey = this.getAttribute('data-key');
+        openDayPanel(clickedKey);
+      });
+      cell.setAttribute('data-key', key);
+      grid.appendChild(cell);
+    }
+  }
+
+  document.getElementById('calPrevBtn').addEventListener('click', function () {
+    viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    renderCalendar(); renderSummary();
+  });
+  document.getElementById('calNextBtn').addEventListener('click', function () {
+    viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    renderCalendar(); renderSummary();
+  });
+  document.getElementById('calTodayBtn').addEventListener('click', function () {
+    viewYear = today.getFullYear(); viewMonth = today.getMonth();
+    renderCalendar(); renderSummary();
+  });
+
+  // ================= painel do dia =================
+  var toolTagEls = {};
+  var studyToolsBox = document.getElementById('studyTools');
+  TOOLS.forEach(function (t) {
+    var tag = document.createElement('button');
+    tag.type = 'button';
+    tag.className = 'tool-tag';
+    tag.textContent = t.label;
+    tag.addEventListener('click', function () { tag.classList.toggle('selected'); });
+    studyToolsBox.appendChild(tag);
+    toolTagEls[t.id] = tag;
+  });
+
+  function openDayPanel(key) {
+    selectedDateKey = key;
+    renderCalendar();
+
+    var d = new Date(key + 'T12:00:00');
+    document.getElementById('dayPanelTitle').textContent = d.getDate() + ' de ' + MONTH_NAMES[d.getMonth()] + ' de ' + d.getFullYear();
+    document.getElementById('dayPanel').classList.add('show');
+
+    var rec = data[key] || {};
+    var s = rec.study || {};
+    document.getElementById('studyMinutes').value = s.minutes || '';
+    document.getElementById('studyLearned').value = s.learned || '';
+    document.getElementById('studyNext').value = s.nextStep || '';
+    var selectedTools = s.tools || [];
+    TOOLS.forEach(function (t) { toolTagEls[t.id].classList.toggle('selected', selectedTools.indexOf(t.id) !== -1); });
+    document.getElementById('studyStatus').textContent = '';
+
+    var g = rec.session || {};
+    document.getElementById('sessMinutes').value = g.minutes || '';
+    document.getElementById('sessCount').value = g.tournaments || '';
+    document.getElementById('sessBuyin').value = g.buyIn || '';
+    document.getElementById('sessResult').value = g.result !== undefined ? g.result : '';
+    document.getElementById('sessPosition').value = g.position || '';
+    document.getElementById('sessNext').value = g.nextStep || '';
+    document.getElementById('sessionStatus').textContent = '';
+
+    switchTab('study');
+    document.getElementById('dayPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.getElementById('dayPanelCloseBtn').addEventListener('click', function () {
+    document.getElementById('dayPanel').classList.remove('show');
+    selectedDateKey = null;
+    renderCalendar();
+  });
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('tabStudyBtn').classList.toggle('active', tab === 'study');
+    document.getElementById('tabSessionBtn').classList.toggle('active', tab === 'session');
+    document.getElementById('studyForm').style.display = tab === 'study' ? 'block' : 'none';
+    document.getElementById('sessionForm').style.display = tab === 'session' ? 'block' : 'none';
+  }
+  document.getElementById('tabStudyBtn').addEventListener('click', function () { switchTab('study'); });
+  document.getElementById('tabSessionBtn').addEventListener('click', function () { switchTab('session'); });
+
+  document.getElementById('saveStudyBtn').addEventListener('click', function () {
+    if (!selectedDateKey) return;
+    var minutes = parseInt(document.getElementById('studyMinutes').value, 10) || 0;
+    var learned = document.getElementById('studyLearned').value.trim();
+    var nextStep = document.getElementById('studyNext').value.trim();
+    var tools = TOOLS.filter(function (t) { return toolTagEls[t.id].classList.contains('selected'); }).map(function (t) { return t.id; });
+
+    if (!minutes && !learned && !tools.length) {
+      document.getElementById('studyStatus').textContent = 'Preencha ao menos a duração ou o que você aprendeu.';
+      return;
+    }
+    if (!data[selectedDateKey]) data[selectedDateKey] = {};
+    data[selectedDateKey].study = { minutes: minutes, learned: learned, nextStep: nextStep, tools: tools };
+    persist();
+    renderCalendar(); renderSummary();
+    document.getElementById('studyStatus').textContent = 'Estudo salvo!';
+  });
+
+  document.getElementById('clearStudyBtn').addEventListener('click', function () {
+    if (!selectedDateKey || !data[selectedDateKey]) return;
+    if (!confirm('Apagar o registro de estudo desse dia?')) return;
+    delete data[selectedDateKey].study;
+    if (!data[selectedDateKey].session) delete data[selectedDateKey];
+    persist();
+    renderCalendar(); renderSummary();
+    openDayPanel(selectedDateKey);
+    document.getElementById('studyStatus').textContent = 'Apagado.';
+  });
+
+  document.getElementById('saveSessionBtn').addEventListener('click', function () {
+    if (!selectedDateKey) return;
+    var minutes = parseInt(document.getElementById('sessMinutes').value, 10) || 0;
+    var tournaments = parseInt(document.getElementById('sessCount').value, 10) || 0;
+    var buyIn = parseFloat(document.getElementById('sessBuyin').value) || 0;
+    var resultRaw = document.getElementById('sessResult').value;
+    var result = resultRaw === '' ? undefined : parseFloat(resultRaw);
+    var position = document.getElementById('sessPosition').value.trim();
+    var nextStep = document.getElementById('sessNext').value.trim();
+
+    if (!minutes && !tournaments && !buyIn && result === undefined) {
+      document.getElementById('sessionStatus').textContent = 'Preencha ao menos a duração ou o resultado da sessão.';
+      return;
+    }
+    if (!data[selectedDateKey]) data[selectedDateKey] = {};
+    data[selectedDateKey].session = {
+      minutes: minutes, tournaments: tournaments, buyIn: buyIn,
+      result: result === undefined ? 0 : result, position: position, nextStep: nextStep
+    };
+    persist();
+    renderCalendar(); renderSummary();
+    document.getElementById('sessionStatus').textContent = 'Sessão salva!';
+  });
+
+  document.getElementById('clearSessionBtn').addEventListener('click', function () {
+    if (!selectedDateKey || !data[selectedDateKey]) return;
+    if (!confirm('Apagar o registro de sessão desse dia?')) return;
+    delete data[selectedDateKey].session;
+    if (!data[selectedDateKey].study) delete data[selectedDateKey];
+    persist();
+    renderCalendar(); renderSummary();
+    openDayPanel(selectedDateKey);
+    document.getElementById('sessionStatus').textContent = 'Apagado.';
+  });
+
+  // ================= linha do tempo =================
+  function renderTimeline() {
+    var box = document.getElementById('timelineView');
+    var keys = Object.keys(data).sort().reverse();
+    if (!keys.length) {
+      box.innerHTML = '<p class="empty-day-note">Nenhum registro ainda. Clique num dia do calendário pra começar.</p>';
+      return;
+    }
+    var html = '';
+    keys.forEach(function (key) {
+      var rec = data[key];
+      if (!rec.study && !rec.session) return;
+      var d = new Date(key + 'T12:00:00');
+      html += '<div class="tl-item" data-key="' + key + '">' +
+        '<div class="tl-date"><span class="dow">' + WEEKDAY_ABBR[d.getDay()] + '</span><span class="dnum">' + d.getDate() + '</span><span class="mon">' + MONTH_NAMES[d.getMonth()].slice(0, 3) + '</span></div>' +
+        '<div class="tl-body">';
+      if (rec.study) {
+        html += '<div class="tl-row"><span class="tl-badge study">Estudo</span><span class="tl-text">' +
+          (rec.study.minutes ? rec.study.minutes + ' min' : '') +
+          (rec.study.learned ? ' · ' + escapeHtml(rec.study.learned) : '') + '</span></div>';
+      }
+      if (rec.session) {
+        var r = Number(rec.session.result) || 0;
+        html += '<div class="tl-row"><span class="tl-badge ' + (r >= 0 ? 'win' : 'loss') + '">' + fmtMoney(r) + '</span><span class="tl-text">' +
+          (rec.session.tournaments ? rec.session.tournaments + ' torneio(s)' : 'Sessão') +
+          (rec.session.position ? ' · ' + escapeHtml(rec.session.position) : '') + '</span></div>';
+      }
+      html += '</div></div>';
+    });
+    box.innerHTML = html;
+
+    Array.prototype.forEach.call(box.querySelectorAll('.tl-item'), function (el) {
+      el.addEventListener('click', function () {
+        switchView('cal');
+        var key = this.getAttribute('data-key');
+        var d = new Date(key + 'T12:00:00');
+        viewYear = d.getFullYear(); viewMonth = d.getMonth();
+        renderCalendar(); renderSummary();
+        openDayPanel(key);
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // ================= alternador de visão =================
+  function switchView(view) {
+    document.getElementById('viewCalBtn').classList.toggle('active', view === 'cal');
+    document.getElementById('viewTimelineBtn').classList.toggle('active', view === 'timeline');
+    document.getElementById('calView').style.display = view === 'cal' ? 'block' : 'none';
+    document.getElementById('timelineView').classList.toggle('show', view === 'timeline');
+    if (view === 'cal') { document.getElementById('dayPanel').classList.remove('show'); }
+    if (view === 'timeline') { renderTimeline(); document.getElementById('dayPanel').classList.remove('show'); }
+  }
+  document.getElementById('viewCalBtn').addEventListener('click', function () { switchView('cal'); });
+  document.getElementById('viewTimelineBtn').addEventListener('click', function () { switchView('timeline'); });
+
+  renderSummary();
+  renderCalendar();
+})();
+</script>
+</body>
+</html>
