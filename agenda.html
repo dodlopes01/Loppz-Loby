@@ -61,17 +61,22 @@
   .cal-day {
     aspect-ratio: 1 / 1; border-radius: 10px; background: var(--felt-2); border: 1.5px solid var(--line);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    cursor: pointer; position: relative; padding: 2px;
+    cursor: pointer; position: relative; padding: 2px; gap: 3px;
   }
   .cal-day.empty { background: transparent; border: none; cursor: default; }
-  .cal-day .dnum { font-size: 12px; font-weight: 700; color: var(--cream); }
+  .cal-day .dnum { font-size: 13px; font-weight: 700; color: var(--cream); }
   .cal-day.today { border-color: var(--gold); box-shadow: 0 0 0 1.5px var(--gold); }
   .cal-day.today .dnum { color: var(--gold); }
   .cal-day.has-win { background: var(--success-bg); border-color: rgba(232,132,58,0.5); }
   .cal-day.has-loss { background: var(--danger-bg); border-color: rgba(210,86,74,0.5); }
   .cal-day.has-even { background: rgba(201,162,39,0.12); border-color: rgba(201,162,39,0.4); }
   .cal-day.has-study-only { background: rgba(201,162,39,0.08); border-color: var(--gold-dim); }
-  .cal-day .dicons { position: absolute; bottom: 3px; font-size: 8px; display: flex; gap: 2px; }
+  .cal-day .dmarks { display: flex; gap: 4px; align-items: center; height: 7px; }
+  .cal-day .dmarks .m { width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,0.35); }
+  .cal-day .dmarks .m.win { background: var(--success); }
+  .cal-day .dmarks .m.loss { background: var(--danger); }
+  .cal-day .dmarks .m.even { background: var(--gold); }
+  .cal-day .dmarks .m.study { background: var(--cream); }
   .cal-day.selected { outline: 2px solid var(--cream); outline-offset: -2px; }
 
   .cal-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 10.5px; color: var(--muted); }
@@ -374,21 +379,20 @@
       if (key === todayKey()) cell.classList.add('today');
       if (key === selectedDateKey) cell.classList.add('selected');
 
-      var icons = '';
+      var marks = '';
       if (rec) {
         if (rec.session) {
           var result = Number(rec.session.result) || 0;
-          if (result > 0) cell.classList.add('has-win');
-          else if (result < 0) cell.classList.add('has-loss');
-          else cell.classList.add('has-even');
-          icons += '🎮';
+          if (result > 0) { cell.classList.add('has-win'); marks += '<span class="m win"></span>'; }
+          else if (result < 0) { cell.classList.add('has-loss'); marks += '<span class="m loss"></span>'; }
+          else { cell.classList.add('has-even'); marks += '<span class="m even"></span>'; }
         } else if (rec.study) {
           cell.classList.add('has-study-only');
         }
-        if (rec.study) icons += '📚';
+        if (rec.study) marks += '<span class="m study"></span>';
       }
 
-      cell.innerHTML = '<span class="dnum">' + day + '</span>' + (icons ? '<span class="dicons">' + icons + '</span>' : '');
+      cell.innerHTML = '<span class="dnum">' + day + '</span>' + (marks ? '<span class="dmarks">' + marks + '</span>' : '');
       cell.addEventListener('click', function () {
         var clickedKey = this.getAttribute('data-key');
         openDayPanel(clickedKey);
