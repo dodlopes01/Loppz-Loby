@@ -655,12 +655,27 @@
     processChunk();
   }
 
-  // ---------- código-fonte do Web Worker (autossuficiente — reimplementa só o essencial:
-  // avaliador de 7 cartas + simulação Monte Carlo, nada mais) ----------
+  // ---------- código-fonte do Web Worker (autossuficiente — reimplementa o essencial:
+  // avaliador de 7 cartas + expansão de mão em combinações + simulação Monte Carlo. O worker
+  // recebe só pares de siglas (ex: "AA","27o") — leves de enviar — e monta as cartas sozinho,
+  // em vez da aba principal montar tudo isso antes de mandar (isso é o que travava a aba). ----------
   var MATRIX_WORKER_SOURCE = [
-    'function cardKeyW(c){return c.rank+c.suit;}',
+    'var RANK_VAL_W={A:14,K:13,Q:12,J:11,T:10,"9":9,"8":8,"7":7,"6":6,"5":5,"4":4,"3":3,"2":2};',
     'var SUITS_W=["s","h","d","c"];',
+    'function cardKeyW(c){return c.rank+c.suit;}',
     'var FULL_DECK_W=(function(){var out=[];for(var r=2;r<=14;r++)for(var s=0;s<4;s++)out.push({rank:r,suit:SUITS_W[s]});return out;})();',
+    'function expandHandToCombosW(label){',
+    '  var out=[];',
+    '  if(label.length===2){',
+    '    var v=RANK_VAL_W[label[0]];',
+    '    for(var a=0;a<4;a++)for(var b=a+1;b<4;b++)out.push([{rank:v,suit:SUITS_W[a]},{rank:v,suit:SUITS_W[b]}]);',
+    '  } else {',
+    '    var v1=RANK_VAL_W[label[0]], v2=RANK_VAL_W[label[1]], suited=label[2]==="s";',
+    '    if(suited){ for(var s=0;s<4;s++) out.push([{rank:v1,suit:SUITS_W[s]},{rank:v2,suit:SUITS_W[s]}]); }',
+    '    else { for(var s1=0;s1<4;s1++)for(var s2=0;s2<4;s2++) if(s1!==s2) out.push([{rank:v1,suit:SUITS_W[s1]},{rank:v2,suit:SUITS_W[s2]}]); }',
+    '  }',
+    '  return out;',
+    '}',
     'function evaluate5W(cards){',
     '  var ranks=cards.map(function(c){return c.rank;}).sort(function(a,b){return b-a;});',
     '  var suits=cards.map(function(c){return c.suit;});',
@@ -722,12 +737,17 @@
     '  return (wins+ties*0.5)/valid;',
     '}',
     'self.onmessage = function(e){',
-    '  var jobs = e.data.jobs;',
+    '  var jobs = e.data.jobs; // array de [heroLabel, villainLabel]',
+    '  var trials = e.data.trials;',
     '  var results = [];',
+    '  var comboCache = {}; // evita expandir a mesma sigla varias vezes dentro do mesmo worker',
+    '  function getCombos(label){ if(!comboCache[label]) comboCache[label]=expandHandToCombosW(label); return comboCache[label]; }',
     '  for (var i = 0; i < jobs.length; i++) {',
-    '    var job = jobs[i];',
-    '    var eq = computeEquityW(job.heroCombo, job.villainPool, job.trials);',
-    '    results.push({ heroLabel: job.heroLabel, villainLabel: job.villainLabel, eq: eq });',
+    '    var heroLabel = jobs[i][0], villainLabel = jobs[i][1];',
+    '    var heroCombo = getCombos(heroLabel)[0];',
+    '    var villainPool = getCombos(villainLabel);',
+    '    var eq = computeEquityW(heroCombo, villainPool, trials);',
+    '    results.push([heroLabel, villainLabel, eq]);',
     '    if ((i+1) % 150 === 0) self.postMessage({ type: "progress", done: i+1 });',
     '  }',
     '  self.postMessage({ type: "done", results: results });',
@@ -735,8 +755,9 @@
   ].join('\n');
 
   // versão paralela com Web Workers: divide os pares entre várias threads ao mesmo tempo
-  // (uma por núcleo de processador disponível), então a construção fica bem mais rápida e
-  // não trava a aba nenhum momento — o navegador continua 100% responsivo enquanto calcula.
+  // (uma por núcleo de processador disponível). Cada worker só recebe as SIGLAS das mãos
+  // (ex: "AA","27o") e monta as cartas por conta própria — a aba principal nunca monta uma
+  // lista pesada de objetos antes de enviar, então não trava esperando isso.
   function buildEquityMatrixWithWorkers(onProgress, onDone) {
     var labels = HAND_TYPES.map(function (h) { return h.label; });
     var n = labels.length;
@@ -745,13 +766,7 @@
     // simetria (equity(A,B) = 1 - equity(B,A)), o que já corta o trabalho pela metade
     var jobs = [];
     for (var i = 0; i < n; i++) {
-      for (var j = i; j < n; j++) {
-        jobs.push({
-          heroLabel: labels[i], heroCombo: handRepCombo[labels[i]],
-          villainLabel: labels[j], villainPool: expandHandToCombos(labels[j]),
-          trials: MATRIX_TRIALS
-        });
-      }
+      for (var j = i; j < n; j++) jobs.push([labels[i], labels[j]]);
     }
     var totalJobs = jobs.length;
 
@@ -765,35 +780,70 @@
       if (slice.length) chunks.push(slice);
     }
 
-    var blob = new Blob([MATRIX_WORKER_SOURCE], { type: 'application/javascript' });
-    var workerUrl = URL.createObjectURL(blob);
+    var blob, workerUrl;
+    try {
+      blob = new Blob([MATRIX_WORKER_SOURCE], { type: 'application/javascript' });
+      workerUrl = URL.createObjectURL(blob);
+    } catch (e) {
+      buildEquityMatrixSingleThread(onProgress, onDone);
+      return;
+    }
+
     var progressByWorker = chunks.map(function () { return 0; });
     var workersFinished = 0;
+    var workers = [];
+    var fellBack = false;
+    var lastProgressTs = Date.now();
 
     function reportProgress() {
+      lastProgressTs = Date.now();
       var total = progressByWorker.reduce(function (a, b) { return a + b; }, 0);
       if (onProgress) onProgress(total, totalJobs);
     }
 
+    function cleanupWorkers() {
+      workers.forEach(function (w) { try { w.terminate(); } catch (e) { /* ignora */ } });
+      try { URL.revokeObjectURL(workerUrl); } catch (e) { /* ignora */ }
+    }
+
+    function fallbackToSingleThread() {
+      if (fellBack) return;
+      fellBack = true;
+      cleanupWorkers();
+      clearInterval(watchdog);
+      buildEquityMatrixSingleThread(onProgress, onDone);
+    }
+
     function finish() {
-      URL.revokeObjectURL(workerUrl);
+      if (fellBack) return;
+      clearInterval(watchdog);
+      cleanupWorkers();
       MATRIX_READY = true;
       saveEquityMatrixToCache();
       if (onDone) onDone();
     }
 
+    // trava de segurança: se nenhum worker der sinal de vida em 8s (ex: navegador bloqueando
+    // Web Workers por alguma política de segurança), cai pro modo de 1 thread só
+    var watchdog = setInterval(function () {
+      if (Date.now() - lastProgressTs > 8000) fallbackToSingleThread();
+    }, 2000);
+
     chunks.forEach(function (chunk, idx) {
       var worker = new Worker(workerUrl);
+      workers.push(worker);
       worker.onmessage = function (e) {
+        if (fellBack) return;
         if (e.data.type === 'progress') {
           progressByWorker[idx] = e.data.done;
           reportProgress();
         } else if (e.data.type === 'done') {
           progressByWorker[idx] = chunk.length;
           e.data.results.forEach(function (r) {
-            EQUITY_MATRIX[r.heroLabel][r.villainLabel] = r.eq;
-            if (!EQUITY_MATRIX[r.villainLabel]) EQUITY_MATRIX[r.villainLabel] = {};
-            EQUITY_MATRIX[r.villainLabel][r.heroLabel] = 1 - r.eq;
+            var heroLabel = r[0], villainLabel = r[1], eq = r[2];
+            EQUITY_MATRIX[heroLabel][villainLabel] = eq;
+            if (!EQUITY_MATRIX[villainLabel]) EQUITY_MATRIX[villainLabel] = {};
+            EQUITY_MATRIX[villainLabel][heroLabel] = 1 - eq;
           });
           worker.terminate();
           workersFinished++;
@@ -802,18 +852,15 @@
         }
       };
       worker.onerror = function () {
-        // se um worker falhar (raro), cai pro modo de 1 thread só, do zero
-        worker.terminate();
-        URL.revokeObjectURL(workerUrl);
-        buildEquityMatrixSingleThread(onProgress, onDone);
+        fallbackToSingleThread();
       };
-      worker.postMessage({ jobs: chunk });
+      worker.postMessage({ jobs: chunk, trials: MATRIX_TRIALS });
     });
   }
 
   // escolhe o melhor jeito disponível de construir a matriz
   function buildEquityMatrixAsync(onProgress, onDone) {
-    if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined') {
+    if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && typeof URL !== 'undefined' && URL.createObjectURL) {
       buildEquityMatrixWithWorkers(onProgress, onDone);
     } else {
       buildEquityMatrixSingleThread(onProgress, onDone);
@@ -1652,15 +1699,27 @@
     var btn = document.getElementById('analyzeBtn');
     btn.disabled = true; btn.textContent = 'Calculando…';
 
+    // lê e filtra as mãos ANTES de decidir se precisa construir a matriz — assim, se nada
+    // bater com o filtro de profundidade, a gente avisa na hora, sem gastar tempo calculando
+    // a tabela de equity à toa
+    var parsed = [], skipped = 0;
+    blocks.forEach(function (b) { var h = parseHand(b); if (h) parsed.push(h); else skipped++; });
+    var hasCandidate = parsed.some(function (h) { return h.effBB <= threshold; });
+
+    if (!hasCandidate) {
+      lastEvaluated = []; lastTotalParsed = parsed.length; lastSkipped = skipped;
+      renderResults([], parsed.length, skipped);
+      setStatus(parsed.length + ' mão(s) lida(s), nenhuma dentro do limite de ' + threshold + ' BB.', 'err');
+      btn.disabled = false; btn.textContent = 'Analisar mãos';
+      return;
+    }
+
     function runAnalysis() {
       setStatus(villainMode === 'nash'
         ? 'Resolvendo equilíbrio de Nash pras profundidades de stack encontradas…'
         : 'Rodando simulações de equity, pode levar alguns segundos…', '');
 
       setTimeout(function () {
-        var parsed = [], skipped = 0;
-        blocks.forEach(function (b) { var h = parseHand(b); if (h) parsed.push(h); else skipped++; });
-
         var evaluated = parsed
           .map(function (h) { return evaluateHand(h, threshold, model, payoutsStr, villainPct, iterations, villainMode); })
           .filter(Boolean);
