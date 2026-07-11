@@ -220,7 +220,8 @@
     { id: 'ranges',    label: 'Ranges Pré-Flop',   file: 'ranges.html',    icon: '🗺️', desc: 'Quais mãos jogar em cada posição da mesa' },
     { id: 'equity',    label: 'Equity vs Range',   file: 'equity.html',    icon: '⚔️', desc: 'Sua mão contra a faixa do oponente' },
     { id: 'icm',       label: 'ICM',               file: 'icm.html',       icon: '💰', desc: 'Fichas não são dinheiro — converta pra valor real' },
-    { id: 'analise',   label: 'Análise de Mãos',   file: 'analise.html',   icon: '🔍', desc: 'Cole seu hand history e ache seus erros' }
+    { id: 'analise',   label: 'Análise de Mãos',   file: 'analise.html',   icon: '🔍', desc: 'Cole seu hand history e ache seus erros' },
+    { id: 'agenda',    label: 'Agenda',            file: 'agenda.html',    icon: '📅', desc: 'Calendário de estudo e sessões de jogo' }
   ];
 
   var tabsEl = document.getElementById('tabs');
@@ -256,12 +257,13 @@
   // ---- monta os "assentos" da mesa na home (posições calculadas em % ao redor da elipse) ----
   var seatPct = [
     { left: 50.0, top: 90.0 },
-    { left: 15.6, top: 74.9 },
-    { left: 7.1,  top: 41.1 },
-    { left: 30.9, top: 14.0 },
-    { left: 69.1, top: 14.0 },
-    { left: 92.9, top: 41.1 },
-    { left: 84.4, top: 74.9 }
+    { left: 18.9, top: 78.3 },
+    { left: 6.0,  top: 50.0 },
+    { left: 18.9, top: 21.7 },
+    { left: 50.0, top: 10.0 },
+    { left: 81.1, top: 21.7 },
+    { left: 94.0, top: 50.0 },
+    { left: 81.1, top: 78.3 }
   ];
   TABS.forEach(function(tab, i) {
     var pos = seatPct[i] || seatPct[seatPct.length - 1];
