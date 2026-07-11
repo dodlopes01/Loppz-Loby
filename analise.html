@@ -584,6 +584,92 @@
     return equityVsPool(heroCards, rawPool, iterations);
   }
 
+  // ================= matriz de equity 169×169 pré-calculada =================
+  // Em vez de rodar Monte Carlo toda vez que o solver de Nash quer saber "qual a equity dessa
+  // mão contra aquela faixa", calculamos UMA VEZ SÓ a equity de cada uma das 169 mãos contra
+  // cada uma das outras 168 (usando uma combinação representante de cada uma, igual o resto do
+  // solver já faz) — e guardamos isso no navegador pra sempre. Depois disso, "equity vs faixa"
+  // vira só uma média ponderada direto da tabela, sem simular nada — instantâneo. Isso permite
+  // rodar o solver com muito mais rodadas de convergência sem custo extra de tempo.
+  var EQUITY_MATRIX = {};
+  var MATRIX_READY = false;
+  var MATRIX_CACHE_KEY = 'loppzloby_equity_matrix_v1';
+  var MATRIX_TRIALS = 350; // por par de mãos — alto porque isso só roda uma vez na vida
+
+  function loadEquityMatrixFromCache() {
+    try {
+      var raw = localStorage.getItem(MATRIX_CACHE_KEY);
+      if (!raw) return false;
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.v === 1 && parsed.m) {
+        EQUITY_MATRIX = parsed.m;
+        MATRIX_READY = true;
+        return true;
+      }
+    } catch (e) { /* cache corrompido ou indisponível — reconstrói do zero */ }
+    return false;
+  }
+
+  function saveEquityMatrixToCache() {
+    try { localStorage.setItem(MATRIX_CACHE_KEY, JSON.stringify({ v: 1, m: EQUITY_MATRIX })); }
+    catch (e) { /* localStorage cheio/indisponível — segue só na memória desta sessão */ }
+  }
+
+  // constrói a matriz em pequenos pedaços (via setTimeout), pra não travar a aba enquanto calcula
+  function buildEquityMatrixAsync(onProgress, onDone) {
+    var labels = HAND_TYPES.map(function (h) { return h.label; });
+    var n = labels.length;
+    var pairs = [];
+    for (var i = 0; i < n; i++) for (var j = 0; j < n; j++) pairs.push([labels[i], labels[j]]);
+
+    labels.forEach(function (l) { if (!EQUITY_MATRIX[l]) EQUITY_MATRIX[l] = {}; });
+
+    var idx = 0;
+    var chunkSize = 25;
+
+    function processChunk() {
+      var end = Math.min(idx + chunkSize, pairs.length);
+      for (; idx < end; idx++) {
+        var a = pairs[idx][0], b = pairs[idx][1];
+        if (EQUITY_MATRIX[a][b] !== undefined) continue; // já preenchido (simetria com o par espelhado)
+        var pool = expandHandToCombos(b);
+        var eq = equityVsPool(handRepCombo[a], pool, MATRIX_TRIALS);
+        if (eq === null) eq = 0.5; // conflito total de cartas (raríssimo) — neutro
+        EQUITY_MATRIX[a][b] = eq;
+        if (!EQUITY_MATRIX[b]) EQUITY_MATRIX[b] = {};
+        if (EQUITY_MATRIX[b][a] === undefined) EQUITY_MATRIX[b][a] = 1 - eq; // empates se cancelam, então isso vale
+      }
+      if (onProgress) onProgress(idx, pairs.length);
+      if (idx < pairs.length) {
+        setTimeout(processChunk, 0);
+      } else {
+        MATRIX_READY = true;
+        saveEquityMatrixToCache();
+        if (onDone) onDone();
+      }
+    }
+    processChunk();
+  }
+
+  // equity de uma mão (label) contra uma faixa inteira (lista de labels), via lookup direto —
+  // sem nenhuma simulação, é a média das linhas da matriz ponderada pelo nº de combos de cada mão
+  function equityVsRangeMatrix(heroLabel, rangeLabels) {
+    if (!rangeLabels.length) return null;
+    var row = EQUITY_MATRIX[heroLabel];
+    if (!row) return null;
+    var sum = 0, totalW = 0;
+    for (var i = 0; i < rangeLabels.length; i++) {
+      var l = rangeLabels[i];
+      var eq = row[l];
+      if (eq === undefined) continue;
+      var h = HAND_TYPE_BY_LABEL[l];
+      var w = h ? h.combos : 1;
+      sum += eq * w;
+      totalW += w;
+    }
+    return totalW > 0 ? sum / totalW : null;
+  }
+
   // ================= real ICM (recursive finish-probability formula) =================
   // Returns $ EV per player given chip stacks (array) and payouts (array, index 0 = 1st place).
   function icmEquity(stacks, payouts) {
@@ -650,31 +736,28 @@
     if (nashCache[key]) return nashCache[key];
 
     var dead = 1.5; // SB+BB já no pote (simplificação padrão de solver push/fold, ignora ante aqui)
-    var solverTrials = 220; // simulação bem mais precisa — tempo deixou de ser o fator limitante
-    var solverIters = 9; // mais rodadas de convergência do best-response
+    var solverIters = 40; // com a matriz pré-calculada isso é praticamente de graça — bem mais rodadas de convergência
 
     var pusherLabels = topNCombos(50);
     var callerLabels = topNCombos(20);
 
     for (var iter = 0; iter < solverIters; iter++) {
-      // resposta ótima do defensor (call), dado o range de push atual
-      var pusherPool = labelsToPool(pusherLabels);
+      // resposta ótima do defensor (call), dado o range de push atual — lookup direto na matriz
       var newCallerLabels = [];
       HAND_TYPES.forEach(function (h) {
-        var eq = equityVsPool(handRepCombo[h.label], pusherPool, solverTrials);
+        var eq = equityVsRangeMatrix(h.label, pusherLabels);
         if (eq === null) return;
         var evCall = eq * (2 * effBB + dead) - effBB;
         if (evCall > 0) newCallerLabels.push(h.label);
       });
       callerLabels = newCallerLabels.length ? newCallerLabels : callerLabels;
 
-      // resposta ótima do agressor (push), dado o range de call atual
+      // resposta ótima do agressor (push), dado o range de call atual — lookup direto na matriz
       var callWeight = rangeComboWeight(callerLabels) / 1326;
       var pFold = 1 - callWeight;
-      var callerPool = labelsToPool(callerLabels.length ? callerLabels : ['22']);
       var newPusherLabels = [];
       HAND_TYPES.forEach(function (h) {
-        var eq = equityVsPool(handRepCombo[h.label], callerPool, solverTrials);
+        var eq = equityVsRangeMatrix(h.label, callerLabels.length ? callerLabels : ['22']);
         if (eq === null) { newPusherLabels.push(h.label); return; }
         var evPush = pFold * dead + callWeight * (eq * (2 * effBB + dead) - effBB);
         if (evPush > 0) newPusherLabels.push(h.label);
@@ -696,8 +779,7 @@
   // todas as 169 mãos (só a equity de cada mão muda) — então o ICM de cada cenário é calculado
   // uma única vez por rodada, fora do loop de mãos, em vez de 169 vezes.
   function refineNashWithICM(baseResult, stacks, payouts, pusherIdx, callerIdx, deadMoney) {
-    var icmIters = 3; // mais rodadas de ajuste com ICM real (antes era só 1)
-    var icmTrials = 130; // simulação bem mais precisa por rodada
+    var icmIters = 12; // com a matriz isso também fica barato — bem mais rodadas de ajuste de ICM
     var pusherChips = stacks[pusherIdx], callerChips = stacks[callerIdx];
     var effChips = Math.min(pusherChips, callerChips);
 
@@ -716,10 +798,10 @@
       var evCallerWin = seatEV(callerWinStacks, callerIdx);
       var evCallerLose = seatEV(callerLoseStacks, callerIdx);
 
-      var pusherPool = labelsToPool(pusherLabels);
+      var pusherLabelsForPool = pusherLabels;
       var newCallerLabels = [];
       HAND_TYPES.forEach(function (h) {
-        var eq = equityVsPool(handRepCombo[h.label], pusherPool, icmTrials);
+        var eq = equityVsRangeMatrix(h.label, pusherLabelsForPool);
         if (eq === null) return;
         var evCall = eq * evCallerWin + (1 - eq) * evCallerLose;
         if (evCall > foldEVCaller) newCallerLabels.push(h.label);
@@ -729,7 +811,7 @@
       // ---- resposta do agressor: ICM calculado 3x (ganha / perde / não pago), fora do loop ----
       var callWeight = rangeComboWeight(callerLabels) / 1326;
       var pFold = 1 - callWeight;
-      var callerPool = labelsToPool(callerLabels.length ? callerLabels : ['22']);
+      var callerLabelsForPool = callerLabels.length ? callerLabels : ['22'];
 
       var pusherWinStacks = stacks.slice(); pusherWinStacks[pusherIdx] += effChips; pusherWinStacks[callerIdx] -= effChips;
       var pusherLoseStacks = stacks.slice(); pusherLoseStacks[pusherIdx] -= effChips; pusherLoseStacks[callerIdx] += effChips;
@@ -740,7 +822,7 @@
 
       var newPusherLabels = [];
       HAND_TYPES.forEach(function (h) {
-        var eq = equityVsPool(handRepCombo[h.label], callerPool, icmTrials);
+        var eq = equityVsRangeMatrix(h.label, callerLabelsForPool);
         if (eq === null) { newPusherLabels.push(h.label); return; }
         var evCalled = eq * evPusherWin + (1 - eq) * evPusherLose;
         var evPush = pFold * evPusherUncalled + callWeight * evCalled;
@@ -1400,37 +1482,56 @@
 
     var btn = document.getElementById('analyzeBtn');
     btn.disabled = true; btn.textContent = 'Calculando…';
-    setStatus(villainMode === 'nash'
-      ? (model === 'icm'
-          ? 'Resolvendo equilíbrio de Nash + ajuste de ICM por mão — pode levar bem mais tempo que o normal (o ajuste de ICM roda mão por mão, não dá pra reaproveitar entre mãos diferentes)…'
-          : 'Resolvendo equilíbrio de Nash pras profundidades de stack encontradas — pode levar alguns segundos na primeira vez…')
-      : 'Rodando simulações de equity, pode levar alguns segundos…', '');
 
-    setTimeout(function () {
-      var parsed = [], skipped = 0;
-      blocks.forEach(function (b) { var h = parseHand(b); if (h) parsed.push(h); else skipped++; });
+    function runAnalysis() {
+      setStatus(villainMode === 'nash'
+        ? 'Resolvendo equilíbrio de Nash pras profundidades de stack encontradas…'
+        : 'Rodando simulações de equity, pode levar alguns segundos…', '');
 
-      var evaluated = parsed
-        .map(function (h) { return evaluateHand(h, threshold, model, payoutsStr, villainPct, iterations, villainMode); })
-        .filter(Boolean);
+      setTimeout(function () {
+        var parsed = [], skipped = 0;
+        blocks.forEach(function (b) { var h = parseHand(b); if (h) parsed.push(h); else skipped++; });
 
-      evaluated.sort(function (a, b) { return b.severity - a.severity; });
-      lastEvaluated = evaluated; lastTotalParsed = parsed.length; lastSkipped = skipped;
-      renderResults(evaluated, parsed.length, skipped);
-      setStatus(parsed.length + ' mão(s) lida(s)' + (skipped ? ', ' + skipped + ' ignorada(s) (formato não reconhecido ou sem cartas do Hero)' : '') + '.', 'ok');
-      btn.disabled = false; btn.textContent = 'Analisar mãos';
+        var evaluated = parsed
+          .map(function (h) { return evaluateHand(h, threshold, model, payoutsStr, villainPct, iterations, villainMode); })
+          .filter(Boolean);
 
-      if (parsed.length) {
-        addHistoryEntry({
-          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-          ts: Date.now(),
-          rawText: raw,
-          handCount: parsed.length,
-          mistakeCount: evaluated.filter(function (e) { return e.mistake; }).length,
-          model: model, threshold: threshold, villainRange: villainRangeEl.value, payouts: payoutsStr
-        });
-      }
-    }, 30);
+        evaluated.sort(function (a, b) { return b.severity - a.severity; });
+        lastEvaluated = evaluated; lastTotalParsed = parsed.length; lastSkipped = skipped;
+        renderResults(evaluated, parsed.length, skipped);
+        setStatus(parsed.length + ' mão(s) lida(s)' + (skipped ? ', ' + skipped + ' ignorada(s) (formato não reconhecido ou sem cartas do Hero)' : '') + '.', 'ok');
+        btn.disabled = false; btn.textContent = 'Analisar mãos';
+
+        if (parsed.length) {
+          addHistoryEntry({
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+            ts: Date.now(),
+            rawText: raw,
+            handCount: parsed.length,
+            mistakeCount: evaluated.filter(function (e) { return e.mistake; }).length,
+            model: model, threshold: threshold, villainRange: villainRangeEl.value, payouts: payoutsStr
+          });
+        }
+      }, 30);
+    }
+
+    // pro modo Nash, precisa da matriz de equity pré-calculada. Se ainda não existe (primeira
+    // vez neste navegador), constrói agora — só acontece uma vez, fica salva pra sempre depois.
+    if (villainMode === 'nash' && !MATRIX_READY) {
+      setStatus('Calculando a tabela de equity das 169 mãos (só acontece uma vez neste navegador)… 0%', '');
+      buildEquityMatrixAsync(
+        function (done, total) {
+          var pct = Math.round((done / total) * 100);
+          setStatus('Calculando a tabela de equity das 169 mãos (só acontece uma vez neste navegador)… ' + pct + '% (' + done.toLocaleString('pt-BR') + ' de ' + total.toLocaleString('pt-BR') + ' pares)', '');
+        },
+        function () {
+          setStatus('Tabela de equity pronta e salva — próximas análises não vão precisar recalcular isso.', 'ok');
+          runAnalysis();
+        }
+      );
+    } else {
+      runAnalysis();
+    }
   });
 
   document.getElementById('clearBtn').addEventListener('click', function () {
@@ -1608,6 +1709,8 @@
     if (!row) return;
     selectHand(row.getAttribute('data-hand-id'));
   });
+
+  loadEquityMatrixFromCache(); // se já foi calculada antes neste navegador, carrega na hora
 })();
 </script>
 </body>
