@@ -449,6 +449,8 @@
     }
   })();
   var SORTED_HAND_TYPES = HAND_TYPES.slice().sort(function (a, b) { return b.score - a.score; });
+  var HAND_TYPE_BY_LABEL = {};
+  HAND_TYPES.forEach(function (h) { HAND_TYPE_BY_LABEL[h.label] = h; });
 
   function topNCombos(pct) {
     var target = (pct / 100) * 1326, acc = 0, set = [];
@@ -632,7 +634,7 @@
 
   function rangeComboWeight(labels) {
     var w = 0;
-    labels.forEach(function (l) { var h = HAND_TYPES.filter(function (x) { return x.label === l; })[0]; if (h) w += h.combos; });
+    labels.forEach(function (l) { var h = HAND_TYPE_BY_LABEL[l]; if (h) w += h.combos; });
     return w;
   }
 
@@ -648,8 +650,8 @@
     if (nashCache[key]) return nashCache[key];
 
     var dead = 1.5; // SB+BB já no pote (simplificação padrão de solver push/fold, ignora ante aqui)
-    var solverTrials = 45; // Monte Carlo bem reduzido — é só pra convergir a fronteira da range, não pro EV final mostrado
-    var solverIters = 4;
+    var solverTrials = 220; // simulação bem mais precisa — tempo deixou de ser o fator limitante
+    var solverIters = 9; // mais rodadas de convergência do best-response
 
     var pusherLabels = topNCombos(50);
     var callerLabels = topNCombos(20);
@@ -694,8 +696,8 @@
   // todas as 169 mãos (só a equity de cada mão muda) — então o ICM de cada cenário é calculado
   // uma única vez por rodada, fora do loop de mãos, em vez de 169 vezes.
   function refineNashWithICM(baseResult, stacks, payouts, pusherIdx, callerIdx, deadMoney) {
-    var icmIters = 1;
-    var icmTrials = 40;
+    var icmIters = 3; // mais rodadas de ajuste com ICM real (antes era só 1)
+    var icmTrials = 130; // simulação bem mais precisa por rodada
     var pusherChips = stacks[pusherIdx], callerChips = stacks[callerIdx];
     var effChips = Math.min(pusherChips, callerChips);
 
@@ -987,15 +989,15 @@
     // de verdade, e não só "fold vs push".
     function splitCallTiers(labels) {
       var sorted = labels.slice().sort(function (a, b) {
-        var ha = HAND_TYPES.filter(function (x) { return x.label === a; })[0];
-        var hb = HAND_TYPES.filter(function (x) { return x.label === b; })[0];
+        var ha = HAND_TYPE_BY_LABEL[a];
+        var hb = HAND_TYPE_BY_LABEL[b];
         return (hb ? hb.score : 0) - (ha ? ha.score : 0);
       });
       var total = rangeComboWeight(sorted) || 1;
       var target = total * 0.30; // top 30% da faixa de call re-aumenta; resto só paga
       var acc = 0, shove = [], flat = [];
       sorted.forEach(function (l) {
-        var h = HAND_TYPES.filter(function (x) { return x.label === l; })[0];
+        var h = HAND_TYPE_BY_LABEL[l];
         var w = h ? h.combos : 0;
         if (acc < target) shove.push(l); else flat.push(l);
         acc += w;
