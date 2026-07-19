@@ -8,7 +8,8 @@
   :root {
     --felt: #141212; --felt-2: #1C1918; --panel: #211D1C; --panel-2: #29231F;
     --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15); --cream: #EFE7D2; --muted: #9C9490;
-    --line: rgba(239, 231, 210, 0.14); --success: #E8843A; --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    --success: #4FAE6E; --danger: #D2564A;
+    --line: rgba(239, 231, 210, 0.14); --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -17,6 +18,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     overflow: hidden;
   }
+  .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
   .shell { display: flex; flex-direction: column; height: 100vh; }
 
   .topbar {
@@ -70,65 +72,57 @@
     background: radial-gradient(ellipse at top, #1C1918 0%, #0A0908 100%);
   }
   .home-panel.show { display: block; }
-  .home-inner { max-width: 640px; margin: 0 auto; padding: 26px 18px 50px; }
+  .home-inner { max-width: 620px; margin: 0 auto; padding: 24px 18px 50px; }
 
-  .home-hero { text-align: center; margin-bottom: 22px; }
-  .home-hero h2 { margin: 0 0 8px; font-size: 22px; font-weight: 800; color: var(--gold); letter-spacing: 0.01em; }
-  .home-hero p { margin: 0 auto; max-width: 440px; font-size: 13px; color: var(--muted); line-height: 1.6; }
-  .home-hero .badge {
-    display: inline-block; background: rgba(232,132,58,0.15); border: 1px solid rgba(232,132,58,0.4);
-    color: var(--success); font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
-    padding: 5px 12px; border-radius: 999px; margin-bottom: 10px;
-  }
+  .home-hero { margin-bottom: 18px; }
+  .home-hero h2 { margin: 0 0 6px; font-size: 21px; font-weight: 800; color: var(--gold); letter-spacing: 0.01em; }
+  .home-hero p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; max-width: 460px; }
 
-  .home-table-wrap { position: relative; max-width: 460px; margin: 0 auto 26px; }
-  .home-table {
-    position: relative; width: 100%; padding-top: 82%;
-    background: radial-gradient(ellipse at center, var(--panel-2) 0%, var(--panel) 62%, var(--felt-2) 100%);
-    border: 7px solid #0A0908; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--line), inset 0 12px 34px rgba(0,0,0,0.35);
+  /* ---- painel de evolução (elemento principal da home) ---- */
+  .evo-panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 18px; margin-bottom: 22px; box-shadow: var(--card-shadow);
   }
-  .home-table-label {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); text-align: center;
-    pointer-events: none;
-  }
-  .home-table-label .sym { font-size: 26px; color: var(--gold-dim); opacity: 0.55; display: block; }
-  .home-table-label .txt { font-size: 9px; color: var(--gold-dim); opacity: 0.6; text-transform: uppercase; letter-spacing: 0.14em; margin-top: 2px; }
+  .evo-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
+  .evo-value { font-size: 32px; font-weight: 800; margin-top: 4px; line-height: 1.1; }
+  .evo-value.pos { color: var(--success); }
+  .evo-value.neg { color: var(--danger); }
+  .evo-value.zero { color: var(--cream); }
+  .evo-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
-  .seat-card {
-    position: absolute; transform: translate(-50%, -50%); width: 108px;
-    background: var(--panel); border: 1.5px solid var(--line); border-radius: 12px;
-    padding: 8px 8px 9px; text-align: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-    transition: transform .12s, border-color .12s, background .12s;
-  }
-  .seat-card:hover { transform: translate(-50%, -50%) scale(1.06); border-color: var(--gold-dim); }
-  .seat-card:active { transform: translate(-50%, -50%) scale(0.97); }
-  .seat-card .n { position: absolute; top: -7px; left: -7px; width: 20px; height: 20px; border-radius: 50%;
-    background: var(--gold); color: #1A1508; font-size: 10.5px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
-  .seat-card .ic { font-size: 19px; display: block; margin-bottom: 4px; }
-  .seat-card .lbl { display: block; font-size: 11px; font-weight: 800; color: var(--cream); line-height: 1.2; margin-bottom: 3px; }
-  .seat-card .desc { font-size: 9px; color: var(--muted); line-height: 1.35; display: block; }
+  .evo-graph-wrap { margin: 14px 0 4px; }
 
-  .home-divider { display: flex; align-items: center; gap: 10px; margin: 8px 0 16px; }
+  .evo-stats { display: flex; gap: 8px; margin: 14px 0 16px; }
+  .evo-stat { flex: 1; background: var(--felt-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 6px; text-align: center; }
+  .evo-stat .v { font-size: 14px; font-weight: 800; color: var(--cream); }
+  .evo-stat .l { font-size: 8.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+
+  .evo-cta { display: flex; gap: 8px; }
+  .evo-cta button {
+    flex: 1; border: none; border-radius: 10px; padding: 12px; font-size: 12.5px; font-weight: 800; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .evo-cta .primary { background: var(--red); color: var(--cream); }
+  .evo-cta .secondary { background: transparent; border: 1px solid var(--gold-dim); color: var(--gold); }
+
+  .evo-empty { text-align: center; padding: 14px 6px 6px; }
+  .evo-empty p { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin: 0 0 14px; }
+
+  /* ---- grade de ferramentas ---- */
+  .home-divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; }
   .home-divider .line { flex: 1; height: 1px; background: var(--line); }
   .home-divider span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; white-space: nowrap; }
 
-  .path-list { display: flex; flex-direction: column; gap: 10px; }
-  .path-item {
-    display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line);
-    border-radius: 12px; padding: 11px 14px; cursor: pointer; box-shadow: var(--card-shadow);
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tool-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 12px 13px; cursor: pointer; box-shadow: var(--card-shadow);
     transition: border-color .12s, background .12s;
   }
-  .path-item:hover { border-color: var(--gold-dim); background: var(--panel-2); }
-  .path-item .pn {
-    width: 26px; height: 26px; border-radius: 50%; background: var(--felt-2); border: 1.5px solid var(--gold-dim);
-    color: var(--gold); font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .path-item .pic { font-size: 18px; flex-shrink: 0; }
-  .path-item .ptext { flex: 1; min-width: 0; }
-  .path-item .ptitle { display: block; font-size: 13px; font-weight: 800; color: var(--cream); }
-  .path-item .pdesc { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
-  .path-item .parrow { color: var(--gold-dim); font-size: 16px; flex-shrink: 0; }
+  .tool-card:hover { border-color: var(--gold-dim); background: var(--panel-2); }
+  .tool-card .tic { font-size: 19px; display: block; margin-bottom: 6px; }
+  .tool-card .tlbl { display: block; font-size: 12px; font-weight: 800; color: var(--cream); line-height: 1.25; margin-bottom: 3px; }
+  .tool-card .tdesc { font-size: 10.5px; color: var(--muted); line-height: 1.4; display: block; }
 
   @media (min-width: 760px) {
     .topbar { padding: 18px 26px; }
@@ -138,28 +132,17 @@
     .tabs { padding: 12px 22px; gap: 8px; }
     .tab-btn { font-size: 13.5px; padding: 10px 18px; }
 
-    .home-inner { max-width: 860px; padding: 52px 24px 70px; }
-    .home-hero { margin-bottom: 30px; }
-    .home-hero .badge { font-size: 11.5px; padding: 6px 14px; }
-    .home-hero h2 { font-size: 30px; margin-bottom: 12px; }
-    .home-hero p { font-size: 15px; max-width: 560px; line-height: 1.7; }
+    .home-inner { max-width: 760px; padding: 46px 24px 70px; }
+    .home-hero { margin-bottom: 26px; }
+    .home-hero h2 { font-size: 27px; }
+    .home-hero p { font-size: 14px; max-width: 560px; }
 
-    .home-table-wrap { max-width: 640px; margin-bottom: 36px; }
-    .home-table-label .sym { font-size: 34px; }
-    .home-table-label .txt { font-size: 11px; }
-    .seat-card { width: 130px; padding: 11px 11px 12px; border-radius: 14px; }
-    .seat-card .n { width: 24px; height: 24px; font-size: 12px; top: -9px; left: -9px; }
-    .seat-card .ic { font-size: 25px; margin-bottom: 6px; }
-    .seat-card .lbl { font-size: 13.5px; margin-bottom: 5px; }
-    .seat-card .desc { font-size: 11px; line-height: 1.45; }
+    .evo-panel { padding: 26px; }
+    .evo-value { font-size: 42px; }
+    .evo-stats { max-width: 420px; }
+    .evo-cta { max-width: 420px; }
 
-    .home-divider span { font-size: 12.5px; }
-    .path-item { padding: 15px 18px; gap: 16px; }
-    .path-item .pn { width: 32px; height: 32px; font-size: 14px; }
-    .path-item .pic { font-size: 22px; }
-    .path-item .ptitle { font-size: 15px; }
-    .path-item .pdesc { font-size: 12.5px; margin-top: 5px; }
-    .path-item .parrow { font-size: 19px; }
+    .tool-grid { grid-template-columns: repeat(4, 1fr); }
   }
 </style>
 </head>
@@ -184,20 +167,15 @@
     <div class="home-panel" id="homePanel">
       <div class="home-inner">
         <div class="home-hero">
-          <span class="badge">Para iniciantes</span>
           <h2>♠ Lopz GTO</h2>
-          <p>Sua caixa de ferramentas pra estudar poker do zero — termos, odds, ranges, equity e ICM, tudo num só lugar. Toque numa posição da mesa ou siga a trilha abaixo.</p>
+          <p>Registre seus torneios, acompanhe sua evolução e use as ferramentas de estudo quando precisar — tudo em um só lugar.</p>
         </div>
 
-        <div class="home-table-wrap">
-          <div class="home-table" id="homeTable">
-            <div class="home-table-label"><span class="sym">♠</span><span class="txt">Lopz GTO</span></div>
-          </div>
-        </div>
+        <div class="evo-panel" id="evoPanel"></div>
 
-        <div class="home-divider"><div class="line"></div><span>Não sabe por onde começar?</span><div class="line"></div></div>
+        <div class="home-divider"><div class="line"></div><span>Ferramentas de estudo</span><div class="line"></div></div>
 
-        <div class="path-list" id="pathList"></div>
+        <div class="tool-grid" id="toolGrid"></div>
       </div>
     </div>
 
@@ -212,7 +190,6 @@
 <script>
   // Lista de abas do site. Para adicionar uma nova ferramenta,
   // é só pedir no chat — não é preciso editar nada aqui manualmente.
-  // A ordem abaixo é a trilha de aprendizado sugerida pra quem tá começando.
   var TABS = [
     { id: 'glossario', label: 'Glossário',        file: 'glossario.html', icon: '📖', desc: 'Termos e conceitos básicos explicados' },
     { id: 'outs',      label: 'Outs & Odds',       file: 'outs.html',      icon: '🃏', desc: 'Quantas cartas te ajudam e a chance de vir' },
@@ -224,13 +201,14 @@
     { id: 'agenda',    label: 'Agenda',            file: 'agenda.html',    icon: '📔', desc: 'Registro rápido de estudo e sessões de jogo' },
     { id: 'estatisticas', label: 'Estatísticas',   file: 'estatisticas.html', icon: '📊', desc: 'Seus números: resultado, ROI, horas e ITM' }
   ];
+  // ferramentas mostradas na grade da home (deixa fora Agenda/Estatísticas, que já têm destaque no painel de evolução)
+  var HOME_GRID_IDS = ['glossario', 'outs', 'potodds', 'ranges', 'equity', 'icm', 'analise'];
 
   var tabsEl = document.getElementById('tabs');
   var frame = document.getElementById('frame');
   var addPanel = document.getElementById('addPanel');
   var homePanel = document.getElementById('homePanel');
-  var homeTable = document.getElementById('homeTable');
-  var pathList = document.getElementById('pathList');
+  var toolGrid = document.getElementById('toolGrid');
 
   // ---- pill "Início" (primeira aba, ativa por padrão) ----
   var homeBtn = document.createElement('button');
@@ -255,43 +233,123 @@
   addBtn.addEventListener('click', function() { selectTab('__add__'); });
   tabsEl.appendChild(addBtn);
 
-  // ---- monta os "assentos" da mesa na home (posições calculadas em % ao redor da elipse) ----
-  var seatPct = [
-    { left: 50.0, top: 90.0 },
-    { left: 21.7, top: 80.6 },
-    { left: 6.7,  top: 56.9 },
-    { left: 11.9, top: 30.0 },
-    { left: 35.0, top: 12.4 },
-    { left: 65.0, top: 12.4 },
-    { left: 88.1, top: 30.0 },
-    { left: 93.3, top: 56.9 },
-    { left: 78.3, top: 80.6 }
-  ];
-  TABS.forEach(function(tab, i) {
-    var pos = seatPct[i] || seatPct[seatPct.length - 1];
+  // ---- grade de ferramentas de estudo (sem numeração/trilha) ----
+  TABS.filter(function(t) { return HOME_GRID_IDS.indexOf(t.id) !== -1; }).forEach(function(tab) {
     var card = document.createElement('div');
-    card.className = 'seat-card';
-    card.style.left = pos.left + '%';
-    card.style.top = pos.top + '%';
-    card.innerHTML = '<span class="n">' + (i + 1) + '</span>' +
-      '<span class="ic">' + tab.icon + '</span>' +
-      '<span class="lbl">' + tab.label + '</span>' +
-      '<span class="desc">' + tab.desc + '</span>';
+    card.className = 'tool-card';
+    card.innerHTML = '<span class="tic">' + tab.icon + '</span>' +
+      '<span class="tlbl">' + tab.label + '</span>' +
+      '<span class="tdesc">' + tab.desc + '</span>';
     card.addEventListener('click', function() { selectTab(tab.id); });
-    homeTable.appendChild(card);
+    toolGrid.appendChild(card);
   });
 
-  // ---- trilha de aprendizado (lista numerada, mesma ordem) ----
-  TABS.forEach(function(tab, i) {
-    var item = document.createElement('div');
-    item.className = 'path-item';
-    item.innerHTML = '<span class="pn">' + (i + 1) + '</span>' +
-      '<span class="pic">' + tab.icon + '</span>' +
-      '<span class="ptext"><span class="ptitle">' + tab.label + '</span><span class="pdesc">' + tab.desc + '</span></span>' +
-      '<span class="parrow">›</span>';
-    item.addEventListener('click', function() { selectTab(tab.id); });
-    pathList.appendChild(item);
-  });
+  // ---- painel de evolução: lê o mesmo registro usado pela Agenda/Estatísticas ----
+  function renderEvoPanel() {
+    var STORAGE_KEY = 'loppzloby_agenda_v1';
+    var data = {};
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) data = JSON.parse(raw);
+    } catch (e) { /* ignora */ }
+
+    var evoPanel = document.getElementById('evoPanel');
+    var keys = Object.keys(data).sort();
+    var sessionKeys = keys.filter(function(k) { return data[k].session; });
+
+    if (!sessionKeys.length) {
+      evoPanel.innerHTML =
+        '<div class="evo-label">Sua evolução</div>' +
+        '<div class="evo-empty">' +
+        '<p>Você ainda não registrou nenhuma sessão de torneio. Comece agora pra acompanhar seu resultado, ROI e evolução ao longo do tempo.</p>' +
+        '<div class="evo-cta">' +
+        '<button class="primary" id="evoAddSession">🃏 Registrar sessão</button>' +
+        '</div></div>';
+      document.getElementById('evoAddSession').addEventListener('click', function() { goToAgenda('session'); });
+      return;
+    }
+
+    var netResult = 0, totalBuyIn = 0;
+    var balances = [];
+    var running = 0;
+    sessionKeys.forEach(function(k) {
+      var r = Number(data[k].session.result) || 0;
+      var b = Number(data[k].session.buyIn) || 0;
+      netResult += r; totalBuyIn += b;
+      running += r;
+      balances.push(running);
+    });
+    var roi = totalBuyIn > 0 ? (netResult / totalBuyIn * 100) : null;
+
+    // streak de dias ativos (estudo ou jogo)
+    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+    function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+    var streak = 0, cursor = new Date();
+    while (true) {
+      var dk = dateKey(cursor);
+      if (data[dk] && (data[dk].study || data[dk].session)) { streak++; cursor.setDate(cursor.getDate() - 1); }
+      else break;
+    }
+
+    var cls = netResult > 0 ? 'pos' : (netResult < 0 ? 'neg' : 'zero');
+    var sign = netResult > 0 ? '+' : '';
+    var valStr = sign + netResult.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    var html = '<div class="evo-label">Saldo acumulado (todas as sessões)</div>' +
+      '<div class="evo-value ' + cls + '">R$ ' + valStr + '</div>' +
+      '<div class="evo-sub">' + sessionKeys.length + ' sessão(ões) registrada(s) · buy-in total R$ ' + totalBuyIn.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div>';
+
+    html += '<div class="evo-graph-wrap" id="evoGraph"></div>';
+
+    html += '<div class="evo-stats">' +
+      '<div class="evo-stat"><div class="v">' + sessionKeys.length + '</div><div class="l">sessões</div></div>' +
+      '<div class="evo-stat"><div class="v">' + (roi === null ? '—' : roi.toFixed(1) + '%') + '</div><div class="l">ROI</div></div>' +
+      '<div class="evo-stat"><div class="v">' + streak + '</div><div class="l">dias seguidos</div></div>' +
+      '</div>';
+
+    html += '<div class="evo-cta">' +
+      '<button class="primary" id="evoAddSession">🃏 Registrar sessão</button>' +
+      '<button class="secondary" id="evoSeeStats">📊 Ver estatísticas</button>' +
+      '</div>';
+
+    evoPanel.innerHTML = html;
+    document.getElementById('evoAddSession').addEventListener('click', function() { goToAgenda('session'); });
+    document.getElementById('evoSeeStats').addEventListener('click', function() { selectTab('estatisticas'); });
+
+    // mini gráfico de evolução (sparkline)
+    var graphEl = document.getElementById('evoGraph');
+    if (balances.length < 2) {
+      graphEl.innerHTML = '';
+    } else {
+      var last = balances.slice(-20);
+      var W = 560, H = 64, pad = 4;
+      var maxV = Math.max.apply(null, last.concat([0]));
+      var minV = Math.min.apply(null, last.concat([0]));
+      var range = (maxV - minV) || 1;
+      function xAt(i) { return pad + (i / (last.length - 1)) * (W - pad * 2); }
+      function yAt(v) { return pad + (H - pad * 2) - ((v - minV) / range) * (H - pad * 2); }
+      var zeroY = yAt(0);
+      var pts = last.map(function(v, i) { return xAt(i) + ',' + yAt(v); });
+      var areaPath = 'M' + xAt(0) + ',' + zeroY + ' L' + pts.join(' L') + ' L' + xAt(last.length - 1) + ',' + zeroY + ' Z';
+      var color = netResult >= 0 ? 'var(--success)' : 'var(--danger)';
+      var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:64px;display:block;" preserveAspectRatio="none">' +
+        '<line x1="' + pad + '" y1="' + zeroY + '" x2="' + (W - pad) + '" y2="' + zeroY + '" stroke="var(--line)" stroke-width="1" stroke-dasharray="3,3"/>' +
+        '<path d="' + areaPath + '" fill="' + color + '" opacity="0.14" stroke="none"/>' +
+        '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '</svg>';
+      graphEl.innerHTML = svg;
+    }
+  }
+
+  function goToAgenda(action) {
+    Array.prototype.forEach.call(tabsEl.children, function(btn) {
+      btn.classList.toggle('active', btn.dataset.id === 'agenda');
+    });
+    homePanel.classList.remove('show');
+    addPanel.classList.remove('show');
+    frame.style.display = 'block';
+    frame.src = 'agenda.html' + (action ? ('?action=' + action) : '');
+  }
 
   function selectTab(id) {
     Array.prototype.forEach.call(tabsEl.children, function(btn) {
@@ -303,7 +361,7 @@
     homePanel.classList.remove('show');
 
     if (id === '__add__') { addPanel.classList.add('show'); return; }
-    if (id === '__home__') { homePanel.classList.add('show'); return; }
+    if (id === '__home__') { renderEvoPanel(); homePanel.classList.add('show'); return; }
 
     frame.style.display = 'block';
     var tab = TABS.filter(function(t) { return t.id === id; })[0];
