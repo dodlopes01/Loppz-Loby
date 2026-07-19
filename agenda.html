@@ -9,267 +9,241 @@
     --felt: #141212; --felt-2: #1C1918; --panel: #211D1C; --panel-2: #29231F;
     --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15); --cream: #EFE7D2; --muted: #9C9490;
     --danger: #D2564A; --danger-bg: #3A211D; --success: #E8843A; --success-bg: #3A2712;
-    --line: rgba(239, 231, 210, 0.14); --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    --line: rgba(239, 231, 210, 0.12);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; padding: 0; background: radial-gradient(ellipse at top, #1C1918 0%, #0A0908 100%);
-    color: var(--cream); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    min-height: 100vh;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 60px; }
+  html, body { margin: 0; padding: 0; background: var(--felt); color: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; }
+  .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 26px 18px 110px; }
+
   header { display: flex; align-items: baseline; justify-content: space-between;
-    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
-  header h1 { font-size: 19px; font-weight: 800; margin: 0; color: var(--gold); }
+    margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 18px; font-weight: 700; margin: 0; color: var(--gold); }
   header span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-    padding: 16px; margin-bottom: 16px; box-shadow: var(--card-shadow); }
-
-  /* ---- barra de resumo ---- */
-  .summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-  .stat-chip {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 8px; text-align: center; box-shadow: var(--card-shadow);
+  .overview { display: flex; gap: 8px; margin-bottom: 18px; }
+  .ov-stat {
+    flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px 6px; text-align: center;
   }
-  .stat-chip .n { font-size: 17px; font-weight: 800; color: var(--gold); display: block; line-height: 1.2; }
-  .stat-chip .n.pos { color: var(--success); }
-  .stat-chip .n.neg { color: var(--danger); }
-  .stat-chip .l { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; display: block; margin-top: 3px; line-height: 1.3; }
+  .ov-stat .v { font-size: 16px; font-weight: 800; color: var(--cream); font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .ov-stat .v.pos { color: var(--success); }
+  .ov-stat .v.neg { color: var(--danger); }
+  .ov-stat .l { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
 
-  /* ---- alternador de visão ---- */
-  .view-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
-  .view-toggle button {
-    flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
-    font-size: 12.5px; font-weight: 700; padding: 9px; border-radius: 10px; cursor: pointer;
+  .quick-add { display: flex; gap: 10px; margin-bottom: 26px; }
+  .quick-add button {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px; border-radius: 12px; font-size: 13.5px; font-weight: 800; cursor: pointer; border: none;
   }
-  .view-toggle button.active { background: var(--red); border-color: var(--red); color: var(--cream); }
+  .qa-study { background: var(--gold); color: #1A1508; }
+  .qa-session { background: var(--red); color: var(--cream); }
+  .quick-add button .qic { font-size: 15px; }
 
-  /* ---- calendário ---- */
-  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .cal-nav button { background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
-    font-size: 16px; width: 34px; height: 34px; border-radius: 9px; cursor: pointer; }
-  .cal-nav button:hover { border-color: var(--gold-dim); }
-  .cal-nav .cal-title { font-size: 15px; font-weight: 800; color: var(--gold); text-transform: capitalize; }
-  .cal-nav .cal-today { font-size: 10.5px; color: var(--muted); background: var(--felt-2); border: 1px solid var(--line);
-    border-radius: 999px; padding: 5px 10px; cursor: pointer; margin-left: 8px; }
-
-  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 6px; }
-  .cal-weekdays span { text-align: center; font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
-
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-  .cal-day {
-    aspect-ratio: 1 / 1; border-radius: 10px; background: var(--felt-2); border: 1.5px solid var(--line);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    cursor: pointer; position: relative; padding: 2px; gap: 3px;
+  .week-group { margin-bottom: 22px; }
+  .week-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 0 2px 8px; border-bottom: 1px dashed var(--line); margin-bottom: 10px;
   }
-  .cal-day.empty { background: transparent; border: none; cursor: default; }
-  .cal-day .dnum { font-size: 13px; font-weight: 700; color: var(--cream); }
-  .cal-day.today { border-color: var(--gold); box-shadow: 0 0 0 1.5px var(--gold); }
-  .cal-day.today .dnum { color: var(--gold); }
-  .cal-day.has-win { background: var(--success-bg); border-color: rgba(232,132,58,0.5); }
-  .cal-day.has-loss { background: var(--danger-bg); border-color: rgba(210,86,74,0.5); }
-  .cal-day.has-even { background: rgba(201,162,39,0.12); border-color: rgba(201,162,39,0.4); }
-  .cal-day.has-study-only { background: rgba(201,162,39,0.08); border-color: var(--gold-dim); }
-  .cal-day .dmarks { display: flex; gap: 4px; align-items: center; height: 7px; }
-  .cal-day .dmarks .m { width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0,0,0,0.35); }
-  .cal-day .dmarks .m.win { background: var(--success); }
-  .cal-day .dmarks .m.loss { background: var(--danger); }
-  .cal-day .dmarks .m.even { background: var(--gold); }
-  .cal-day .dmarks .m.study { background: var(--cream); }
-  .cal-day.selected { outline: 2px solid var(--cream); outline-offset: -2px; }
+  .week-head .wt { font-size: 11.5px; font-weight: 800; color: var(--gold); text-transform: uppercase; letter-spacing: 0.05em; }
+  .week-head .ws { font-size: 11px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .week-head .ws.pos { color: var(--success); }
+  .week-head .ws.neg { color: var(--danger); }
 
-  .cal-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 10.5px; color: var(--muted); }
-  .cal-legend .dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+  .entry-list { display: flex; flex-direction: column; gap: 8px; }
+  .entry {
+    display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 13px; padding: 10px 12px; cursor: pointer; transition: border-color .12s, background .12s;
+  }
+  .entry:hover { border-color: var(--gold-dim); background: var(--panel-2); }
 
-  /* ---- painel do dia ---- */
-  .day-panel { display: none; }
-  .day-panel.show { display: block; }
-  .day-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .day-panel-head h2 { font-size: 15px; color: var(--gold); margin: 0; text-transform: capitalize; }
-  .day-panel-head button { background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
-    font-size: 13px; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; }
+  .chip {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; position: relative;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    background: var(--felt-2); border: 2.5px dashed var(--chip-color, var(--gold-dim));
+    box-shadow: 0 0 0 3px var(--felt-2), 0 0 0 4px var(--chip-color, var(--gold-dim));
+  }
 
-  .record-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-  .record-tabs button { flex: 1; background: var(--felt-2); border: 1px solid var(--line); color: var(--cream);
+  .entry .einfo { flex: 1; min-width: 0; }
+  .entry .etitle { font-size: 12.5px; font-weight: 800; color: var(--cream); }
+  .entry .emeta { font-size: 10.5px; color: var(--muted); margin-top: 3px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entry .eright { flex-shrink: 0; text-align: right; }
+  .entry .edate { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .entry .eval { font-size: 13px; font-weight: 800; margin-top: 3px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .entry .eval.pos { color: var(--success); }
+  .entry .eval.neg { color: var(--danger); }
+  .entry .eval.gold { color: var(--gold); }
+
+  .empty-feed {
+    text-align: center; padding: 50px 20px; color: var(--muted); font-size: 13px; line-height: 1.7;
+    border: 1px dashed var(--line); border-radius: 14px;
+  }
+  .empty-feed b { display: block; color: var(--gold); font-size: 15px; margin-bottom: 8px; }
+
+  .streak-pill {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: var(--felt-2); border: 1px solid var(--gold-dim); color: var(--gold);
+    font-size: 11.5px; font-weight: 700; padding: 8px 16px; border-radius: 999px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.45); z-index: 5; white-space: nowrap;
+  }
+
+  .sheet-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10;
+  }
+  .sheet-backdrop.show { display: block; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
+    background: var(--felt-2); border-top: 1px solid var(--line); border-radius: 20px 20px 0 0;
+    padding: 8px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+    max-height: 88vh; overflow-y: auto;
+    transform: translateY(105%); transition: transform .22s ease;
+  }
+  .sheet.show { transform: translateY(0); }
+  .sheet-handle { width: 36px; height: 4px; background: var(--line); border-radius: 999px; margin: 8px auto 14px; }
+
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .sheet-head h2 { font-size: 15px; color: var(--gold); margin: 0; }
+  .sheet-close { background: var(--panel); border: 1px solid var(--line); color: var(--cream);
+    width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+
+  .type-toggle { display: flex; gap: 6px; margin-bottom: 14px; }
+  .type-toggle button { flex: 1; background: var(--panel); border: 1px solid var(--line); color: var(--cream);
     font-size: 12.5px; font-weight: 700; padding: 9px; border-radius: 10px; cursor: pointer; }
-  .record-tabs button.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .type-toggle button.active.t-study { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+  .type-toggle button.active.t-session { background: var(--red); border-color: var(--red); color: var(--cream); }
+
+  .date-chips { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .date-chips button { background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+    font-size: 11.5px; font-weight: 700; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+  .date-chips button.active { background: var(--gold-dim); border-color: var(--gold-dim); color: #1A1508; }
+  .date-chips input[type="date"] {
+    background: var(--panel); border: 1px solid var(--line); color: var(--cream); border-radius: 999px;
+    font-size: 11.5px; padding: 6px 10px; font-family: inherit;
+  }
 
   .field-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 110px; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
   .field label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
-  .field input, .field textarea, .field select {
-    background: var(--felt-2); border: 1px solid var(--line); border-radius: 8px; color: var(--cream);
-    font-size: 13.5px; padding: 8px 10px; font-family: inherit;
+  .field input, .field textarea {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; color: var(--cream);
+    font-size: 13.5px; padding: 9px 10px; font-family: inherit;
   }
-  .field textarea { resize: vertical; min-height: 60px; }
-  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--gold-dim); outline: none; }
+  .field textarea { resize: vertical; min-height: 58px; }
+  .field input:focus, .field textarea:focus { border-color: var(--gold-dim); outline: none; }
 
   .tool-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
   .tool-tag {
-    background: var(--felt-2); border: 1px solid var(--line); color: var(--muted);
+    background: var(--panel); border: 1px solid var(--line); color: var(--muted);
     font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 999px; cursor: pointer;
   }
   .tool-tag.selected { background: var(--gold); border-color: var(--gold); color: #1A1508; }
 
-  .record-actions { display: flex; gap: 8px; margin-top: 14px; }
-  .record-actions button { flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
-  .btn-save { background: var(--red); border: 1px solid var(--red); color: var(--cream); }
-  .btn-clear { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
-  .record-status { font-size: 11.5px; color: var(--success); margin-top: 8px; min-height: 14px; }
-
-  .empty-day-note { font-size: 12.5px; color: var(--muted); text-align: center; padding: 10px 0; }
-
-  /* ---- linha do tempo ---- */
-  .timeline { display: none; }
-  .timeline.show { display: block; }
-  .tl-item { display: flex; gap: 12px; background: var(--panel); border: 1px solid var(--line);
-    border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--card-shadow); cursor: pointer; }
-  .tl-item:hover { border-color: var(--gold-dim); }
-  .tl-date { flex-shrink: 0; width: 52px; text-align: center; }
-  .tl-date .dow { font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
-  .tl-date .dnum { font-size: 19px; font-weight: 800; color: var(--gold); line-height: 1.1; }
-  .tl-date .mon { font-size: 9px; color: var(--muted); text-transform: uppercase; }
-  .tl-body { flex: 1; min-width: 0; }
-  .tl-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-bottom: 3px; }
-  .tl-row:last-child { margin-bottom: 0; }
-  .tl-badge { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
-  .tl-badge.study { background: rgba(201,162,39,0.15); color: var(--gold); }
-  .tl-badge.win { background: var(--success-bg); color: var(--success); }
-  .tl-badge.loss { background: var(--danger-bg); color: var(--danger); }
-  .tl-text { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .sheet-actions button { flex: 1; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer; border: none; }
+  .btn-save { background: var(--red); color: var(--cream); }
+  .btn-delete { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+  .sheet-status { font-size: 11.5px; color: var(--success); margin-top: 10px; min-height: 14px; text-align: center; }
 
   @media (min-width: 760px) {
-    .wrap { max-width: 900px; padding: 40px 24px 70px; }
-    header h1 { font-size: 22px; }
-    .cal-day .dnum { font-size: 14px; }
-    .summary-bar { gap: 12px; }
-    .stat-chip { padding: 16px 10px; }
-    .stat-chip .n { font-size: 21px; }
+    .wrap { padding: 44px 24px 60px; }
+    .sheet { left: 50%; right: auto; transform: translate(-50%, 105%); width: 480px; border-radius: 20px; bottom: 24px; max-height: 84vh; }
+    .sheet.show { transform: translate(-50%, 0); }
+    .streak-pill { bottom: 26px; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
-
   <header>
-    <h1>📅 Agenda</h1>
-    <span>colorbydoug</span>
+    <h1>📔 Agenda</h1>
+    <span>estudo e jogo</span>
   </header>
 
-  <div class="summary-bar" id="summaryBar"></div>
+  <div class="overview" id="overview"></div>
 
-  <div class="view-toggle">
-    <button id="viewCalBtn" class="active">🗓️ Calendário</button>
-    <button id="viewTimelineBtn">📋 Linha do tempo</button>
+  <div class="quick-add">
+    <button class="qa-study" id="btnAddStudy"><span class="qic">📖</span> Registrar estudo</button>
+    <button class="qa-session" id="btnAddSession"><span class="qic">🃏</span> Registrar sessão</button>
   </div>
 
-  <div class="card" id="calView">
-    <div class="cal-nav">
-      <button id="calPrevBtn">‹</button>
-      <div style="display:flex; align-items:center;">
-        <span class="cal-title" id="calTitle"></span>
-        <button class="cal-today" id="calTodayBtn">hoje</button>
-      </div>
-      <button id="calNextBtn">›</button>
-    </div>
-    <div class="cal-weekdays">
-      <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
-    </div>
-    <div class="cal-grid" id="calGrid"></div>
-    <div class="cal-legend">
-      <span><span class="dot" style="background:var(--success);"></span>Sessão com lucro</span>
-      <span><span class="dot" style="background:var(--danger);"></span>Sessão com prejuízo</span>
-      <span><span class="dot" style="background:var(--gold);"></span>Só estudo</span>
-    </div>
+  <div id="feed"></div>
+</div>
+
+<div class="streak-pill" id="streakPill" style="display:none;"></div>
+
+<div class="sheet-backdrop" id="sheetBackdrop"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h2 id="sheetTitle">Registro do dia</h2>
+    <button class="sheet-close" id="sheetCloseBtn">✕</button>
   </div>
 
-  <div class="card day-panel" id="dayPanel">
-    <div class="day-panel-head">
-      <h2 id="dayPanelTitle"></h2>
-      <button id="dayPanelCloseBtn">✕</button>
-    </div>
+  <div class="type-toggle">
+    <button class="t-study" id="typeStudyBtn">📖 Estudo</button>
+    <button class="t-session" id="typeSessionBtn">🃏 Sessão</button>
+  </div>
 
-    <div class="record-tabs">
-      <button id="tabStudyBtn" class="active">📚 Estudo</button>
-      <button id="tabSessionBtn">🎮 Sessão de jogo</button>
-    </div>
+  <div class="date-chips" id="dateChips"></div>
 
-    <div id="studyForm">
-      <div class="field-row">
-        <div class="field">
-          <label>Duração (minutos)</label>
-          <input type="number" id="studyMinutes" min="0" placeholder="ex: 45">
-        </div>
+  <div id="studyFields">
+    <div class="field-row">
+      <div class="field">
+        <label>Duração (min)</label>
+        <input type="number" id="studyMinutes" min="0" placeholder="ex: 45">
       </div>
-      <div class="field-row">
-        <div class="field" style="flex:1 1 100%;">
-          <label>Ferramentas usadas</label>
-          <div class="tool-tags" id="studyTools"></div>
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field" style="flex:1 1 100%;">
-          <label>O que aprendi</label>
-          <textarea id="studyLearned" placeholder="ex: eu tava jogando muito apertado no BB contra CO..."></textarea>
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field" style="flex:1 1 100%;">
-          <label>Próximo passo</label>
-          <input type="text" id="studyNext" placeholder="ex: revisar range de 3-bet do SB">
-        </div>
-      </div>
-      <div class="record-actions">
-        <button class="btn-save" id="saveStudyBtn">💾 Salvar estudo</button>
-        <button class="btn-clear" id="clearStudyBtn">Apagar</button>
-      </div>
-      <p class="record-status" id="studyStatus"></p>
     </div>
-
-    <div id="sessionForm" style="display:none;">
-      <div class="field-row">
-        <div class="field">
-          <label>Duração (minutos)</label>
-          <input type="number" id="sessMinutes" min="0" placeholder="ex: 90">
-        </div>
-        <div class="field">
-          <label>Torneios jogados</label>
-          <input type="number" id="sessCount" min="0" placeholder="ex: 3">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Buy-in total</label>
-          <input type="number" id="sessBuyin" min="0" step="0.01" placeholder="ex: 30.00">
-        </div>
-        <div class="field">
-          <label>Resultado (+/- $)</label>
-          <input type="number" id="sessResult" step="0.01" placeholder="ex: 45.50 ou -30">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Posição final (opcional)</label>
-          <input type="text" id="sessPosition" placeholder="ex: 1º, 3º e 7º">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field" style="flex:1 1 100%;">
-          <label>Próximo passo</label>
-          <input type="text" id="sessNext" placeholder="ex: revisar mãos de bolha dessa sessão">
-        </div>
-      </div>
-      <div class="record-actions">
-        <button class="btn-save" id="saveSessionBtn">💾 Salvar sessão</button>
-        <button class="btn-clear" id="clearSessionBtn">Apagar</button>
-      </div>
-      <p class="record-status" id="sessionStatus"></p>
+    <div class="field">
+      <label>Ferramentas usadas</label>
+      <div class="tool-tags" id="studyTools"></div>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label>O que você aprendeu</label>
+      <textarea id="studyLearned" placeholder="ex: entendi melhor os ranges de push do BTN"></textarea>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label>Próximo passo</label>
+      <input type="text" id="studyNext" placeholder="ex: revisar ranges de SB amanhã">
     </div>
   </div>
 
-  <div class="timeline" id="timelineView"></div>
+  <div id="sessionFields" style="display:none;">
+    <div class="field-row">
+      <div class="field">
+        <label>Duração (min)</label>
+        <input type="number" id="sessMinutes" min="0" placeholder="ex: 90">
+      </div>
+      <div class="field">
+        <label>Torneios jogados</label>
+        <input type="number" id="sessCount" min="0" placeholder="ex: 4">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Buy-in total (R$)</label>
+        <input type="number" id="sessBuyin" min="0" step="0.01" placeholder="ex: 30.00">
+      </div>
+      <div class="field">
+        <label>Resultado (+/- R$)</label>
+        <input type="number" id="sessResult" step="0.01" placeholder="ex: 45.50 ou -30">
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label>Posição final (opcional)</label>
+      <input type="text" id="sessPosition" placeholder="ex: 1º, 3º e 7º">
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label>Próximo passo</label>
+      <input type="text" id="sessNext" placeholder="ex: revisar mãos de bolha dessa sessão">
+    </div>
+  </div>
 
+  <div class="sheet-actions">
+    <button class="btn-save" id="saveBtn">💾 Salvar</button>
+    <button class="btn-delete" id="deleteBtn">Apagar</button>
+  </div>
+  <p class="sheet-status" id="sheetStatus"></p>
 </div>
 
 <script>
@@ -284,8 +258,7 @@
     { id: 'icm', label: 'ICM' },
     { id: 'analise', label: 'Análise de Mãos' }
   ];
-  var WEEKDAY_ABBR = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
-  var MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  var MONTH_ABBR = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
   var data = {};
   try {
@@ -305,119 +278,146 @@
     var sign = v > 0 ? '+' : '';
     return sign + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
+  function mondayOf(d) {
+    var x = new Date(d);
+    var day = x.getDay();
+    var diff = (day === 0 ? -6 : 1) - day;
+    x.setDate(x.getDate() + diff);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  }
 
-  var today = new Date();
-  var viewYear = today.getFullYear(), viewMonth = today.getMonth(); // 0-indexed
-  var selectedDateKey = null;
-  var currentTab = 'study'; // 'study' | 'session'
-
-  // ================= resumo do mês =================
-  function renderSummary() {
-    var monthPrefix = viewYear + '-' + pad2(viewMonth + 1);
-    var studyMinutes = 0, netResult = 0, hasAnyMoney = false;
-    var weekSessions = 0;
+  function renderOverview() {
     var now = new Date();
-    var weekAgo = new Date(now.getTime() - 7 * 86400000);
-
+    var monthPrefix = now.getFullYear() + '-' + pad2(now.getMonth() + 1);
+    var studyMinutes = 0, netResult = 0, sessions = 0;
     Object.keys(data).forEach(function (k) {
+      if (k.indexOf(monthPrefix) !== 0) return;
       var rec = data[k];
-      if (k.indexOf(monthPrefix) === 0) {
-        if (rec.study && rec.study.minutes) studyMinutes += Number(rec.study.minutes) || 0;
-        if (rec.session && rec.session.result !== undefined && rec.session.result !== '') {
-          netResult += Number(rec.session.result) || 0;
-          hasAnyMoney = true;
-        }
-      }
+      if (rec.study && rec.study.minutes) studyMinutes += Number(rec.study.minutes) || 0;
       if (rec.session) {
-        var d = new Date(k + 'T12:00:00');
-        if (d >= weekAgo && d <= now) weekSessions++;
+        sessions++;
+        netResult += Number(rec.session.result) || 0;
       }
     });
+    var hours = (studyMinutes / 60).toFixed(1);
+    var ov = document.getElementById('overview');
+    ov.innerHTML =
+      '<div class="ov-stat"><div class="v">' + hours + 'h</div><div class="l">estudo no mês</div></div>' +
+      '<div class="ov-stat"><div class="v">' + sessions + '</div><div class="l">sessões no mês</div></div>' +
+      '<div class="ov-stat"><div class="v ' + (netResult > 0 ? 'pos' : (netResult < 0 ? 'neg' : '')) + '">R$ ' + fmtMoney(netResult) + '</div><div class="l">resultado no mês</div></div>';
 
-    // sequência de dias ativos (streak), contando pra trás a partir de hoje
     var streak = 0;
     var cursor = new Date();
     while (true) {
-      var key = dateKey(cursor);
-      var rec = data[key];
-      if (rec && (rec.study || rec.session)) { streak++; cursor.setDate(cursor.getDate() - 1); }
+      var dk = dateKey(cursor);
+      if (data[dk] && (data[dk].study || data[dk].session)) { streak++; cursor.setDate(cursor.getDate() - 1); }
       else break;
     }
-
-    var hours = (studyMinutes / 60).toFixed(1);
-    var box = document.getElementById('summaryBar');
-    box.innerHTML =
-      '<div class="stat-chip"><span class="n">' + hours + 'h</span><span class="l">estudo no mês</span></div>' +
-      '<div class="stat-chip"><span class="n ' + (netResult > 0 ? 'pos' : (netResult < 0 ? 'neg' : '')) + '">' + (hasAnyMoney ? fmtMoney(netResult) : '—') + '</span><span class="l">resultado no mês</span></div>' +
-      '<div class="stat-chip"><span class="n">' + streak + '</span><span class="l">dias seguidos ativo</span></div>' +
-      '<div class="stat-chip"><span class="n">' + weekSessions + '</span><span class="l">sessões essa semana</span></div>';
+    var pill = document.getElementById('streakPill');
+    if (streak > 0) {
+      pill.style.display = 'block';
+      pill.textContent = '🔥 ' + streak + ' dia' + (streak > 1 ? 's' : '') + ' seguido' + (streak > 1 ? 's' : '') + ' de estudo/jogo';
+    } else {
+      pill.style.display = 'none';
+    }
   }
 
-  // ================= calendário =================
-  function renderCalendar() {
-    document.getElementById('calTitle').textContent = MONTH_NAMES[viewMonth] + ' de ' + viewYear;
+  function renderFeed() {
+    var feedEl = document.getElementById('feed');
+    feedEl.innerHTML = '';
 
-    var firstDay = new Date(viewYear, viewMonth, 1);
-    var startWeekday = firstDay.getDay();
-    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-
-    var grid = document.getElementById('calGrid');
-    grid.innerHTML = '';
-
-    for (var e = 0; e < startWeekday; e++) {
-      var empty = document.createElement('div');
-      empty.className = 'cal-day empty';
-      grid.appendChild(empty);
+    var keys = Object.keys(data).filter(function (k) { return data[k].study || data[k].session; }).sort().reverse();
+    if (!keys.length) {
+      feedEl.innerHTML = '<div class="empty-feed"><b>Sua agenda está vazia</b>Toque em “Registrar estudo” ou “Registrar sessão” acima pra começar a acompanhar seu progresso.</div>';
+      return;
     }
 
-    for (var day = 1; day <= daysInMonth; day++) {
-      var d = new Date(viewYear, viewMonth, day);
-      var key = dateKey(d);
-      var rec = data[key];
-      var cell = document.createElement('div');
-      cell.className = 'cal-day';
-      if (key === todayKey()) cell.classList.add('today');
-      if (key === selectedDateKey) cell.classList.add('selected');
+    var thisMonday = mondayOf(new Date()).getTime();
 
-      var marks = '';
-      if (rec) {
-        if (rec.session) {
-          var result = Number(rec.session.result) || 0;
-          if (result > 0) { cell.classList.add('has-win'); marks += '<span class="m win"></span>'; }
-          else if (result < 0) { cell.classList.add('has-loss'); marks += '<span class="m loss"></span>'; }
-          else { cell.classList.add('has-even'); marks += '<span class="m even"></span>'; }
-        } else if (rec.study) {
-          cell.classList.add('has-study-only');
-        }
-        if (rec.study) marks += '<span class="m study"></span>';
+    var groups = {};
+    keys.forEach(function (k) {
+      var d = new Date(k + 'T12:00:00');
+      var mon = mondayOf(d).getTime();
+      if (!groups[mon]) groups[mon] = [];
+      groups[mon].push({ key: k, rec: data[k] });
+    });
+
+    var groupKeys = Object.keys(groups).map(Number).sort(function (a, b) { return b - a; });
+
+    groupKeys.forEach(function (mon) {
+      var entries = groups[mon];
+      var netWeek = 0, hasMoney = false;
+      entries.forEach(function (e) {
+        if (e.rec.session && e.rec.session.result !== undefined) { netWeek += Number(e.rec.session.result) || 0; hasMoney = true; }
+      });
+
+      var label;
+      if (mon === thisMonday) label = 'Esta semana';
+      else if (mon === thisMonday - 7 * 86400000) label = 'Semana passada';
+      else {
+        var start = new Date(mon);
+        var end = new Date(mon + 6 * 86400000);
+        label = pad2(start.getDate()) + ' ' + MONTH_ABBR[start.getMonth()] + ' – ' + pad2(end.getDate()) + ' ' + MONTH_ABBR[end.getMonth()];
       }
 
-      cell.innerHTML = '<span class="dnum">' + day + '</span>' + (marks ? '<span class="dmarks">' + marks + '</span>' : '');
-      cell.addEventListener('click', function () {
-        var clickedKey = this.getAttribute('data-key');
-        openDayPanel(clickedKey);
+      var group = document.createElement('div');
+      group.className = 'week-group';
+      var headHtml = '<div class="week-head"><span class="wt">' + label + '</span>' +
+        (hasMoney ? '<span class="ws ' + (netWeek > 0 ? 'pos' : (netWeek < 0 ? 'neg' : '')) + '">R$ ' + fmtMoney(netWeek) + '</span>' : '') +
+        '</div>';
+      var listHtml = '<div class="entry-list"></div>';
+      group.innerHTML = headHtml + listHtml;
+      var listEl = group.querySelector('.entry-list');
+
+      entries.forEach(function (e) {
+        var d = new Date(e.key + 'T12:00:00');
+        var dLbl = pad2(d.getDate()) + ' ' + MONTH_ABBR[d.getMonth()];
+
+        if (e.rec.study) {
+          var s = e.rec.study;
+          var toolLbls = (s.tools || []).map(function (tid) {
+            var t = TOOLS.filter(function (x) { return x.id === tid; })[0];
+            return t ? t.label : null;
+          }).filter(Boolean);
+          var row = document.createElement('div');
+          row.className = 'entry';
+          row.innerHTML =
+            '<div class="chip" style="--chip-color: var(--gold-dim);">📖</div>' +
+            '<div class="einfo"><div class="etitle">' + (s.minutes || 0) + ' min de estudo</div>' +
+            '<div class="emeta">' + (toolLbls.length ? toolLbls.join(' · ') : (s.learned ? s.learned.slice(0, 60) : 'sem detalhes')) + '</div></div>' +
+            '<div class="eright"><div class="edate">' + dLbl + '</div></div>';
+          row.addEventListener('click', function () { openSheet(e.key, 'study'); });
+          listEl.appendChild(row);
+        }
+        if (e.rec.session) {
+          var g = e.rec.session;
+          var result = Number(g.result) || 0;
+          var cls = result > 0 ? 'pos' : (result < 0 ? 'neg' : '');
+          var chipColor = result > 0 ? 'var(--success)' : (result < 0 ? 'var(--danger)' : 'var(--gold-dim)');
+          var row2 = document.createElement('div');
+          row2.className = 'entry';
+          row2.innerHTML =
+            '<div class="chip" style="--chip-color: ' + chipColor + ';">🃏</div>' +
+            '<div class="einfo"><div class="etitle">' + (g.tournaments || 0) + ' torneio(s) jogado(s)</div>' +
+            '<div class="emeta">buy-in R$ ' + (Number(g.buyIn) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (g.position ? ' · ' + g.position : '') + '</div></div>' +
+            '<div class="eright"><div class="edate">' + dLbl + '</div><div class="eval ' + cls + '">R$ ' + fmtMoney(result) + '</div></div>';
+          row2.addEventListener('click', function () { openSheet(e.key, 'session'); });
+          listEl.appendChild(row2);
+        }
       });
-      cell.setAttribute('data-key', key);
-      grid.appendChild(cell);
-    }
+
+      feedEl.appendChild(group);
+    });
   }
 
-  document.getElementById('calPrevBtn').addEventListener('click', function () {
-    viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
-    renderCalendar(); renderSummary();
-  });
-  document.getElementById('calNextBtn').addEventListener('click', function () {
-    viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-    renderCalendar(); renderSummary();
-  });
-  document.getElementById('calTodayBtn').addEventListener('click', function () {
-    viewYear = today.getFullYear(); viewMonth = today.getMonth();
-    renderCalendar(); renderSummary();
-  });
+  var sheet = document.getElementById('sheet');
+  var backdrop = document.getElementById('sheetBackdrop');
+  var currentType = 'study';
+  var currentKey = todayKey();
 
-  // ================= painel do dia =================
-  var toolTagEls = {};
   var studyToolsBox = document.getElementById('studyTools');
+  var toolTagEls = {};
   TOOLS.forEach(function (t) {
     var tag = document.createElement('button');
     tag.type = 'button';
@@ -428,22 +428,55 @@
     toolTagEls[t.id] = tag;
   });
 
-  function openDayPanel(key) {
-    selectedDateKey = key;
-    renderCalendar();
+  function buildDateChips() {
+    var box = document.getElementById('dateChips');
+    box.innerHTML = '';
+    var today = new Date();
+    var yest = new Date(); yest.setDate(yest.getDate() - 1);
+    var opts = [
+      { label: 'Hoje', key: dateKey(today) },
+      { label: 'Ontem', key: dateKey(yest) }
+    ];
+    opts.forEach(function (o) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = o.label;
+      b.dataset.key = o.key;
+      b.className = currentKey === o.key ? 'active' : '';
+      b.addEventListener('click', function () {
+        currentKey = o.key;
+        loadIntoForm();
+        buildDateChips();
+      });
+      box.appendChild(b);
+    });
+    var inp = document.createElement('input');
+    inp.type = 'date';
+    inp.value = currentKey;
+    inp.addEventListener('change', function () {
+      if (inp.value) { currentKey = inp.value; loadIntoForm(); buildDateChips(); }
+    });
+    box.appendChild(inp);
+  }
 
-    var d = new Date(key + 'T12:00:00');
-    document.getElementById('dayPanelTitle').textContent = d.getDate() + ' de ' + MONTH_NAMES[d.getMonth()] + ' de ' + d.getFullYear();
-    document.getElementById('dayPanel').classList.add('show');
+  function setType(type) {
+    currentType = type;
+    document.getElementById('typeStudyBtn').classList.toggle('active', type === 'study');
+    document.getElementById('typeSessionBtn').classList.toggle('active', type === 'session');
+    document.getElementById('studyFields').style.display = type === 'study' ? 'block' : 'none';
+    document.getElementById('sessionFields').style.display = type === 'session' ? 'block' : 'none';
+  }
+  document.getElementById('typeStudyBtn').addEventListener('click', function () { setType('study'); });
+  document.getElementById('typeSessionBtn').addEventListener('click', function () { setType('session'); });
 
-    var rec = data[key] || {};
+  function loadIntoForm() {
+    var rec = data[currentKey] || {};
     var s = rec.study || {};
     document.getElementById('studyMinutes').value = s.minutes || '';
     document.getElementById('studyLearned').value = s.learned || '';
     document.getElementById('studyNext').value = s.nextStep || '';
     var selectedTools = s.tools || [];
     TOOLS.forEach(function (t) { toolTagEls[t.id].classList.toggle('selected', selectedTools.indexOf(t.id) !== -1); });
-    document.getElementById('studyStatus').textContent = '';
 
     var g = rec.session || {};
     document.getElementById('sessMinutes').value = g.minutes || '';
@@ -452,153 +485,80 @@
     document.getElementById('sessResult').value = g.result !== undefined ? g.result : '';
     document.getElementById('sessPosition').value = g.position || '';
     document.getElementById('sessNext').value = g.nextStep || '';
-    document.getElementById('sessionStatus').textContent = '';
-
-    switchTab('study');
-    document.getElementById('dayPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    document.getElementById('sheetStatus').textContent = '';
   }
 
-  document.getElementById('dayPanelCloseBtn').addEventListener('click', function () {
-    document.getElementById('dayPanel').classList.remove('show');
-    selectedDateKey = null;
-    renderCalendar();
-  });
-
-  function switchTab(tab) {
-    currentTab = tab;
-    document.getElementById('tabStudyBtn').classList.toggle('active', tab === 'study');
-    document.getElementById('tabSessionBtn').classList.toggle('active', tab === 'session');
-    document.getElementById('studyForm').style.display = tab === 'study' ? 'block' : 'none';
-    document.getElementById('sessionForm').style.display = tab === 'session' ? 'block' : 'none';
+  function openSheet(key, type) {
+    currentKey = key || todayKey();
+    setType(type || 'study');
+    buildDateChips();
+    loadIntoForm();
+    backdrop.classList.add('show');
+    sheet.classList.add('show');
   }
-  document.getElementById('tabStudyBtn').addEventListener('click', function () { switchTab('study'); });
-  document.getElementById('tabSessionBtn').addEventListener('click', function () { switchTab('session'); });
+  function closeSheet() {
+    backdrop.classList.remove('show');
+    sheet.classList.remove('show');
+  }
+  document.getElementById('btnAddStudy').addEventListener('click', function () { openSheet(todayKey(), 'study'); });
+  document.getElementById('btnAddSession').addEventListener('click', function () { openSheet(todayKey(), 'session'); });
+  document.getElementById('sheetCloseBtn').addEventListener('click', closeSheet);
+  backdrop.addEventListener('click', closeSheet);
 
-  document.getElementById('saveStudyBtn').addEventListener('click', function () {
-    if (!selectedDateKey) return;
-    var minutes = parseInt(document.getElementById('studyMinutes').value, 10) || 0;
-    var learned = document.getElementById('studyLearned').value.trim();
-    var nextStep = document.getElementById('studyNext').value.trim();
-    var tools = TOOLS.filter(function (t) { return toolTagEls[t.id].classList.contains('selected'); }).map(function (t) { return t.id; });
-
-    if (!minutes && !learned && !tools.length) {
-      document.getElementById('studyStatus').textContent = 'Preencha ao menos a duração ou o que você aprendeu.';
-      return;
-    }
-    if (!data[selectedDateKey]) data[selectedDateKey] = {};
-    data[selectedDateKey].study = { minutes: minutes, learned: learned, nextStep: nextStep, tools: tools };
-    persist();
-    renderCalendar(); renderSummary();
-    document.getElementById('studyStatus').textContent = 'Estudo salvo!';
-  });
-
-  document.getElementById('clearStudyBtn').addEventListener('click', function () {
-    if (!selectedDateKey || !data[selectedDateKey]) return;
-    if (!confirm('Apagar o registro de estudo desse dia?')) return;
-    delete data[selectedDateKey].study;
-    if (!data[selectedDateKey].session) delete data[selectedDateKey];
-    persist();
-    renderCalendar(); renderSummary();
-    openDayPanel(selectedDateKey);
-    document.getElementById('studyStatus').textContent = 'Apagado.';
-  });
-
-  document.getElementById('saveSessionBtn').addEventListener('click', function () {
-    if (!selectedDateKey) return;
-    var minutes = parseInt(document.getElementById('sessMinutes').value, 10) || 0;
-    var tournaments = parseInt(document.getElementById('sessCount').value, 10) || 0;
-    var buyIn = parseFloat(document.getElementById('sessBuyin').value) || 0;
-    var resultRaw = document.getElementById('sessResult').value;
-    var result = resultRaw === '' ? undefined : parseFloat(resultRaw);
-    var position = document.getElementById('sessPosition').value.trim();
-    var nextStep = document.getElementById('sessNext').value.trim();
-
-    if (!minutes && !tournaments && !buyIn && result === undefined) {
-      document.getElementById('sessionStatus').textContent = 'Preencha ao menos a duração ou o resultado da sessão.';
-      return;
-    }
-    if (!data[selectedDateKey]) data[selectedDateKey] = {};
-    data[selectedDateKey].session = {
-      minutes: minutes, tournaments: tournaments, buyIn: buyIn,
-      result: result === undefined ? 0 : result, position: position, nextStep: nextStep
-    };
-    persist();
-    renderCalendar(); renderSummary();
-    document.getElementById('sessionStatus').textContent = 'Sessão salva!';
-  });
-
-  document.getElementById('clearSessionBtn').addEventListener('click', function () {
-    if (!selectedDateKey || !data[selectedDateKey]) return;
-    if (!confirm('Apagar o registro de sessão desse dia?')) return;
-    delete data[selectedDateKey].session;
-    if (!data[selectedDateKey].study) delete data[selectedDateKey];
-    persist();
-    renderCalendar(); renderSummary();
-    openDayPanel(selectedDateKey);
-    document.getElementById('sessionStatus').textContent = 'Apagado.';
-  });
-
-  // ================= linha do tempo =================
-  function renderTimeline() {
-    var box = document.getElementById('timelineView');
-    var keys = Object.keys(data).sort().reverse();
-    if (!keys.length) {
-      box.innerHTML = '<p class="empty-day-note">Nenhum registro ainda. Clique num dia do calendário pra começar.</p>';
-      return;
-    }
-    var html = '';
-    keys.forEach(function (key) {
-      var rec = data[key];
-      if (!rec.study && !rec.session) return;
-      var d = new Date(key + 'T12:00:00');
-      html += '<div class="tl-item" data-key="' + key + '">' +
-        '<div class="tl-date"><span class="dow">' + WEEKDAY_ABBR[d.getDay()] + '</span><span class="dnum">' + d.getDate() + '</span><span class="mon">' + MONTH_NAMES[d.getMonth()].slice(0, 3) + '</span></div>' +
-        '<div class="tl-body">';
-      if (rec.study) {
-        html += '<div class="tl-row"><span class="tl-badge study">Estudo</span><span class="tl-text">' +
-          (rec.study.minutes ? rec.study.minutes + ' min' : '') +
-          (rec.study.learned ? ' · ' + escapeHtml(rec.study.learned) : '') + '</span></div>';
+  document.getElementById('saveBtn').addEventListener('click', function () {
+    if (currentType === 'study') {
+      var minutes = parseInt(document.getElementById('studyMinutes').value, 10) || 0;
+      var learned = document.getElementById('studyLearned').value.trim();
+      var nextStep = document.getElementById('studyNext').value.trim();
+      var tools = TOOLS.filter(function (t) { return toolTagEls[t.id].classList.contains('selected'); }).map(function (t) { return t.id; });
+      if (!minutes && !learned && !tools.length) {
+        document.getElementById('sheetStatus').style.color = 'var(--danger)';
+        document.getElementById('sheetStatus').textContent = 'Preencha ao menos a duração ou o que você aprendeu.';
+        return;
       }
-      if (rec.session) {
-        var r = Number(rec.session.result) || 0;
-        html += '<div class="tl-row"><span class="tl-badge ' + (r >= 0 ? 'win' : 'loss') + '">' + fmtMoney(r) + '</span><span class="tl-text">' +
-          (rec.session.tournaments ? rec.session.tournaments + ' torneio(s)' : 'Sessão') +
-          (rec.session.position ? ' · ' + escapeHtml(rec.session.position) : '') + '</span></div>';
+      if (!data[currentKey]) data[currentKey] = {};
+      data[currentKey].study = { minutes: minutes, learned: learned, nextStep: nextStep, tools: tools };
+    } else {
+      var sMinutes = parseInt(document.getElementById('sessMinutes').value, 10) || 0;
+      var tournaments = parseInt(document.getElementById('sessCount').value, 10) || 0;
+      var buyIn = parseFloat(document.getElementById('sessBuyin').value) || 0;
+      var resultRaw = document.getElementById('sessResult').value;
+      var result = resultRaw === '' ? undefined : parseFloat(resultRaw);
+      var position = document.getElementById('sessPosition').value.trim();
+      var sNextStep = document.getElementById('sessNext').value.trim();
+      if (!sMinutes && !tournaments && !buyIn && result === undefined) {
+        document.getElementById('sheetStatus').style.color = 'var(--danger)';
+        document.getElementById('sheetStatus').textContent = 'Preencha ao menos a duração ou o resultado da sessão.';
+        return;
       }
-      html += '</div></div>';
-    });
-    box.innerHTML = html;
+      if (!data[currentKey]) data[currentKey] = {};
+      data[currentKey].session = {
+        minutes: sMinutes, tournaments: tournaments, buyIn: buyIn,
+        result: result === undefined ? 0 : result, position: position, nextStep: sNextStep
+      };
+    }
+    persist();
+    document.getElementById('sheetStatus').style.color = 'var(--success)';
+    document.getElementById('sheetStatus').textContent = 'Salvo!';
+    renderOverview();
+    renderFeed();
+    setTimeout(closeSheet, 500);
+  });
 
-    Array.prototype.forEach.call(box.querySelectorAll('.tl-item'), function (el) {
-      el.addEventListener('click', function () {
-        switchView('cal');
-        var key = this.getAttribute('data-key');
-        var d = new Date(key + 'T12:00:00');
-        viewYear = d.getFullYear(); viewMonth = d.getMonth();
-        renderCalendar(); renderSummary();
-        openDayPanel(key);
-      });
-    });
-  }
+  document.getElementById('deleteBtn').addEventListener('click', function () {
+    if (!data[currentKey]) { closeSheet(); return; }
+    var label = currentType === 'study' ? 'registro de estudo' : 'registro de sessão';
+    if (!confirm('Apagar o ' + label + ' desse dia?')) return;
+    delete data[currentKey][currentType];
+    if (!data[currentKey].study && !data[currentKey].session) delete data[currentKey];
+    persist();
+    renderOverview();
+    renderFeed();
+    closeSheet();
+  });
 
-  function escapeHtml(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  // ================= alternador de visão =================
-  function switchView(view) {
-    document.getElementById('viewCalBtn').classList.toggle('active', view === 'cal');
-    document.getElementById('viewTimelineBtn').classList.toggle('active', view === 'timeline');
-    document.getElementById('calView').style.display = view === 'cal' ? 'block' : 'none';
-    document.getElementById('timelineView').classList.toggle('show', view === 'timeline');
-    if (view === 'cal') { document.getElementById('dayPanel').classList.remove('show'); }
-    if (view === 'timeline') { renderTimeline(); document.getElementById('dayPanel').classList.remove('show'); }
-  }
-  document.getElementById('viewCalBtn').addEventListener('click', function () { switchView('cal'); });
-  document.getElementById('viewTimelineBtn').addEventListener('click', function () { switchView('timeline'); });
-
-  renderSummary();
-  renderCalendar();
+  renderOverview();
+  renderFeed();
 })();
 </script>
 </body>
