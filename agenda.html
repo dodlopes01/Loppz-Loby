@@ -559,6 +559,13 @@
 
   renderOverview();
   renderFeed();
+
+  // abre a folha de registro automaticamente se vier um atalho da home (?action=session|study)
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var action = params.get('action');
+    if (action === 'session' || action === 'study') openSheet(todayKey(), action);
+  } catch (e) { /* ignora */ }
 })();
 </script>
 </body>
