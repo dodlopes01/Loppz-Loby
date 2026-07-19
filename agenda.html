@@ -41,6 +41,29 @@
   .qa-session { background: var(--red); color: var(--cream); }
   .quick-add button .qic { font-size: 15px; }
 
+  .import-panel {
+    background: var(--panel); border: 1px solid var(--gold-dim); border-radius: 12px;
+    padding: 13px 14px; margin-bottom: 22px;
+  }
+  .import-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .import-btn {
+    background: var(--gold); border: none; color: #1A1508; font-size: 12.5px; font-weight: 800;
+    padding: 10px 16px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  .import-help-btn {
+    background: none; border: none; color: var(--muted); font-size: 11.5px; text-decoration: underline;
+    cursor: pointer; padding: 4px;
+  }
+  .import-help { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .import-help.show { display: block; }
+  .import-help p { font-size: 11.5px; color: var(--muted); line-height: 1.7; margin: 0 0 6px; }
+  .import-help b { color: var(--gold); }
+  .import-help code { background: var(--felt-2); border-radius: 4px; padding: 1px 5px; font-size: 11px; color: var(--cream); }
+  .import-status { font-size: 11.5px; margin-top: 10px; line-height: 1.6; min-height: 14px; }
+  .import-status.ok { color: var(--success); }
+  .import-status.warn { color: var(--gold); }
+  .import-status.err { color: var(--danger); }
+
   .week-group { margin-bottom: 22px; }
   .week-head {
     display: flex; align-items: baseline; justify-content: space-between;
@@ -162,9 +185,23 @@
 
   <div class="overview" id="overview"></div>
 
+  <div class="import-panel">
+    <div class="import-row">
+      <button class="import-btn" id="importBtn">📥 Importar do PokerStars</button>
+      <button class="import-help-btn" id="importHelpBtn">como habilitar isso?</button>
+    </div>
+    <input type="file" id="importInput" accept=".txt" multiple style="display:none;">
+    <div class="import-help" id="importHelp">
+      <p><b>1.</b> No PokerStars: <b>Configurações → Histórico de Mãos</b> → ative <b>"Salvar resumos de torneio"</b> (Tournament Summary) e defina uma pasta.</p>
+      <p><b>2.</b> Depois de jogar, os arquivos ficam salvos como <code>TS123456789.txt</code> nessa pasta (geralmente em <code>Documentos/PokerStars/TournSummary</code>).</p>
+      <p><b>3.</b> Toque em "Importar do PokerStars" acima e selecione um ou vários desses arquivos <code>.txt</code> de uma vez — buy-in, posição e resultado entram automaticamente na sua agenda.</p>
+    </div>
+    <p class="import-status" id="importStatus"></p>
+  </div>
+
   <div class="quick-add">
     <button class="qa-study" id="btnAddStudy"><span class="qic">📖</span> Registrar estudo</button>
-    <button class="qa-session" id="btnAddSession"><span class="qic">🃏</span> Registrar sessão</button>
+    <button class="qa-session" id="btnAddSession"><span class="qic">🃏</span> Registrar sessão manual</button>
   </div>
 
   <div id="feed"></div>
@@ -286,6 +323,143 @@
     x.setHours(0, 0, 0, 0);
     return x;
   }
+
+  // ================= importação de resumos de torneio do PokerStars =================
+  var IMPORTED_KEY = 'loppzloby_agenda_imported_ids_v1';
+  var importedIds = {};
+  try {
+    var rawImp = localStorage.getItem(IMPORTED_KEY);
+    if (rawImp) importedIds = JSON.parse(rawImp);
+  } catch (e) { /* ignora */ }
+  function persistImported() {
+    try { localStorage.setItem(IMPORTED_KEY, JSON.stringify(importedIds)); }
+    catch (e) { /* ignora */ }
+  }
+
+  function round2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+
+  function sumNumbersInText(str) {
+    if (!str) return 0;
+    var clean = str.replace(/[.,](?=\d{3}\b)/g, ''); // remove separador de milhar
+    clean = clean.replace(',', '.'); // vírgula decimal -> ponto
+    var matches = clean.match(/\d+(?:\.\d+)?/g);
+    if (!matches) return 0;
+    var total = 0;
+    matches.forEach(function (m) { total += parseFloat(m) || 0; });
+    return total;
+  }
+
+  var PLACE_WORDS = { '1': '1º', '2': '2º', '3': '3º' };
+  function placeLabel(n) { return n + 'º'; }
+
+  // extrai os dados de UM arquivo de resumo de torneio (formato Tournament Summary do PokerStars)
+  function parseTournamentSummary(text) {
+    if (!text || text.indexOf('Tournament #') === -1) return null;
+
+    var idMatch = text.match(/Tournament #(\d+)/);
+    if (!idMatch) return null;
+    var id = idMatch[1];
+
+    var buyIn = 0;
+    var buyInMatch = text.match(/Buy-In:\s*(.+)/i);
+    if (buyInMatch) {
+      var buyInLine = buyInMatch[1].split('\n')[0];
+      if (!/free/i.test(buyInLine)) buyIn = sumNumbersInText(buyInLine);
+    }
+
+    var dateMatch = text.match(/Tournament started[^0-9]*(\d{4})\/(\d{2})\/(\d{2})/i);
+    if (!dateMatch) return null;
+    var dateKeyStr = dateMatch[1] + '-' + dateMatch[2] + '-' + dateMatch[3];
+
+    var placeMatch = text.match(/finished\s+(?:the tournament\s+)?in\s+(\d+)(?:st|nd|rd|th)\s+place/i);
+    var placeNum = placeMatch ? parseInt(placeMatch[1], 10) : null;
+
+    var wonMatch = text.match(/You received a total of\s*([\d.,]+)/i);
+    var winnings = wonMatch ? sumNumbersInText(wonMatch[1]) : 0;
+
+    return {
+      id: id,
+      date: dateKeyStr,
+      buyIn: round2(buyIn),
+      result: round2(winnings - buyIn),
+      position: placeNum ? placeLabel(placeNum) : ''
+    };
+  }
+
+  function readFileAsText(file) {
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.onerror = function () { resolve(null); };
+      reader.readAsText(file, 'utf-8');
+    });
+  }
+
+  function setImportStatus(msg, cls) {
+    var el = document.getElementById('importStatus');
+    el.textContent = msg;
+    el.className = 'import-status' + (cls ? ' ' + cls : '');
+  }
+
+  document.getElementById('importHelpBtn').addEventListener('click', function () {
+    document.getElementById('importHelp').classList.toggle('show');
+  });
+
+  document.getElementById('importBtn').addEventListener('click', function () {
+    document.getElementById('importInput').click();
+  });
+
+  document.getElementById('importInput').addEventListener('change', function (ev) {
+    var files = Array.prototype.slice.call(ev.target.files || []);
+    if (!files.length) return;
+    setImportStatus('Lendo ' + files.length + ' arquivo(s)...', '');
+
+    Promise.all(files.map(readFileAsText)).then(function (contents) {
+      var added = 0, duplicated = 0, unreadable = 0;
+      var touchedDays = {};
+
+      contents.forEach(function (text) {
+        var t = parseTournamentSummary(text);
+        if (!t) { unreadable++; return; }
+        if (importedIds[t.id]) { duplicated++; return; }
+
+        if (!data[t.date]) data[t.date] = {};
+        if (!data[t.date].session) {
+          data[t.date].session = { minutes: 0, tournaments: 0, buyIn: 0, result: 0, position: '', nextStep: '' };
+        }
+        var s = data[t.date].session;
+        s.tournaments = (s.tournaments || 0) + 1;
+        s.buyIn = round2((s.buyIn || 0) + t.buyIn);
+        s.result = round2((s.result || 0) + t.result);
+        if (t.position) s.position = s.position ? (s.position + ', ' + t.position) : t.position;
+
+        importedIds[t.id] = true;
+        touchedDays[t.date] = true;
+        added++;
+      });
+
+      persist();
+      persistImported();
+      renderOverview();
+      renderFeed();
+
+      var dayCount = Object.keys(touchedDays).length;
+      var parts = [];
+      if (added) parts.push(added + ' torneio(s) importado(s) em ' + dayCount + ' dia(s)');
+      if (duplicated) parts.push(duplicated + ' já importado(s) antes');
+      if (unreadable) parts.push(unreadable + ' arquivo(s) não reconhecido(s)');
+
+      if (added) {
+        setImportStatus('✅ ' + parts.join(' · ') + '.', 'ok');
+      } else if (duplicated && !unreadable) {
+        setImportStatus('Todos esses torneios já tinham sido importados antes.', 'warn');
+      } else {
+        setImportStatus('Não consegui reconhecer esse(s) arquivo(s). Confirme se são os resumos de torneio (Tournament Summary) do PokerStars.', 'err');
+      }
+    });
+
+    ev.target.value = '';
+  });
 
   function renderOverview() {
     var now = new Date();
