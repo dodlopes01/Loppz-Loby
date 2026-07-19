@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Estatísticas</title>
+<style>
+  :root {
+    --felt: #141212; --felt-2: #1C1918; --panel: #211D1C; --panel-2: #29231F;
+    --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15); --cream: #EFE7D2; --muted: #9C9490;
+    --danger: #D2564A; --danger-bg: rgba(210,86,74,0.12); --success: #4FAE6E; --success-bg: rgba(79,174,110,0.12);
+    --line: rgba(239, 231, 210, 0.12);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--felt); color: var(--cream);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; }
+  .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 22px 16px 60px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; font-weight: 700; margin: 0; color: var(--gold); letter-spacing: 0.01em; }
+  header span { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .empty-state {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 30px 20px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6;
+  }
+  .empty-state b { color: var(--gold); display: block; font-size: 15px; margin-bottom: 8px; }
+
+  .filters { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-btn {
+    flex-shrink: 0; background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+    font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 5px; cursor: pointer;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  .filter-btn.active { background: var(--gold); border-color: var(--gold); color: #1A1508; }
+
+  /* ---------------- tira de estatísticas (estilo ticker) ---------------- */
+  .stat-strip {
+    display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 16px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .stat-strip::-webkit-scrollbar { display: none; }
+  .stat-cell {
+    flex-shrink: 0; min-width: 108px; padding: 11px 14px; border-right: 1px solid var(--line);
+  }
+  .stat-cell:last-child { border-right: none; }
+  .stat-cell .sc-lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+  .stat-cell .sc-val { font-size: 16px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; color: var(--cream); }
+  .stat-cell .sc-val.pos { color: var(--success); }
+  .stat-cell .sc-val.neg { color: var(--danger); }
+
+  /* ---------------- painel de gráfico ---------------- */
+  .graph-panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 18px;
+  }
+  .graph-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 6px; }
+  .graph-head h2 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0; font-weight: 700; }
+  .graph-head .gval { font-size: 20px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .graph-head .gval.pos { color: var(--success); }
+  .graph-head .gval.neg { color: var(--danger); }
+  .graph-svg-wrap { width: 100%; overflow: hidden; margin-top: 8px; }
+  .graph-empty { text-align: center; color: var(--muted); font-size: 12px; padding: 40px 0; }
+
+  /* ---------------- tabela de sessões (ledger) ---------------- */
+  h2.section { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 22px 0 8px; font-weight: 700; }
+  .table-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 18px; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.ledger { width: 100%; border-collapse: collapse; min-width: 560px; }
+  table.ledger th, table.ledger td {
+    padding: 8px 12px; text-align: right; font-size: 11.5px; white-space: nowrap;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  table.ledger th:first-child, table.ledger td:first-child { text-align: left; font-family: inherit; }
+  table.ledger thead th {
+    background: var(--felt-2); color: var(--gold); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+    cursor: pointer; user-select: none; border-bottom: 1px solid var(--line); position: sticky; top: 0;
+  }
+  table.ledger thead th:hover { color: var(--cream); }
+  table.ledger thead th .arrow { opacity: 0.5; margin-left: 3px; }
+  table.ledger tbody tr { border-bottom: 1px solid var(--line); }
+  table.ledger tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
+  table.ledger tbody tr:hover { background: var(--panel-2); }
+  table.ledger td.pos { color: var(--success); font-weight: 700; }
+  table.ledger td.neg { color: var(--danger); font-weight: 700; }
+  table.ledger tfoot td {
+    background: var(--felt-2); font-weight: 800; border-top: 1.5px solid var(--gold-dim); color: var(--cream);
+  }
+  .table-empty { padding: 30px 16px; text-align: center; color: var(--muted); font-size: 12px; }
+
+  /* ---------------- estudo (seção secundária) ---------------- */
+  .study-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 10px; }
+  .tool-bars { display: flex; flex-direction: column; gap: 9px; }
+  .tool-bar-row { display: flex; align-items: center; gap: 10px; }
+  .tool-bar-row .tname { width: 108px; flex-shrink: 0; font-size: 11px; color: var(--cream); font-weight: 700; }
+  .tool-bar-track { flex: 1; height: 6px; background: var(--felt-2); border-radius: 3px; overflow: hidden; }
+  .tool-bar-fill { height: 100%; background: var(--gold-dim); }
+  .tool-bar-row .tval { width: 50px; flex-shrink: 0; text-align: right; font-size: 10.5px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+  .study-summary { display: flex; gap: 18px; margin-bottom: 12px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+  .study-summary b { color: var(--gold); font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+
+  @media (min-width: 760px) {
+    .wrap { padding: 36px 24px 70px; }
+    .stat-cell { min-width: 130px; padding: 13px 16px; }
+    .stat-cell .sc-val { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📊 Estatísticas</h1>
+    <span>histórico de torneios</span>
+  </header>
+
+  <div id="emptyState" class="empty-state" style="display:none;">
+    <b>Ainda não há dados suficientes</b>
+    Registre suas sessões de estudo e de jogo na aba <b style="color:var(--gold);">Agenda</b> pra ver seus números aparecerem aqui — resultado, ROI, evolução do saldo e muito mais.
+  </div>
+
+  <div id="statsBody" style="display:none;">
+    <div class="filters" id="filters"></div>
+
+    <div class="stat-strip" id="statStrip"></div>
+
+    <div class="graph-panel">
+      <div class="graph-head">
+        <h2>Evolução do resultado acumulado</h2>
+        <span class="gval" id="graphVal"></span>
+      </div>
+      <div class="graph-svg-wrap" id="graphWrap"></div>
+    </div>
+
+    <h2 class="section">Sessões de jogo</h2>
+    <div class="table-panel">
+      <div class="table-scroll">
+        <table class="ledger" id="ledgerTable">
+          <thead>
+            <tr>
+              <th data-key="date">Data <span class="arrow"></span></th>
+              <th data-key="tournaments">Torneios <span class="arrow"></span></th>
+              <th data-key="buyIn">Buy-in <span class="arrow"></span></th>
+              <th data-key="result">Resultado <span class="arrow"></span></th>
+              <th data-key="roi">ROI <span class="arrow"></span></th>
+              <th data-key="balance">Saldo acum. <span class="arrow"></span></th>
+            </tr>
+          </thead>
+          <tbody id="ledgerBody"></tbody>
+          <tfoot id="ledgerFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <h2 class="section">Estudo</h2>
+    <div class="study-panel">
+      <div class="study-summary" id="studySummary"></div>
+      <div class="tool-bars" id="toolBars"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var STORAGE_KEY = 'loppzloby_agenda_v1';
+  var TOOLS = [
+    { id: 'glossario', label: 'Glossário' },
+    { id: 'outs', label: 'Outs & Odds' },
+    { id: 'potodds', label: 'Pot Odds' },
+    { id: 'ranges', label: 'Ranges' },
+    { id: 'equity', label: 'Equity vs Range' },
+    { id: 'icm', label: 'ICM' },
+    { id: 'analise', label: 'Análise de Mãos' }
+  ];
+  var MONTH_ABBR = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+  var data = {};
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) data = JSON.parse(raw);
+  } catch (e) { /* ignora localStorage indisponível */ }
+
+  var allKeys = Object.keys(data).sort();
+  var hasData = allKeys.some(function (k) { return data[k].study || data[k].session; });
+
+  if (!hasData) {
+    document.getElementById('emptyState').style.display = 'block';
+    return;
+  }
+  document.getElementById('statsBody').style.display = 'block';
+
+  function fmt2(v) { return (v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function fmtSigned(v) { return (v > 0 ? '+' : '') + fmt2(v); }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function dLabel(k) { var d = new Date(k + 'T12:00:00'); return pad2(d.getDate()) + ' ' + MONTH_ABBR[d.getMonth()] + ' ' + d.getFullYear(); }
+
+  // ---------------- filtro de período ----------------
+  var FILTERS = [
+    { id: '30', label: '30D', days: 30 },
+    { id: '90', label: '90D', days: 90 },
+    { id: '365', label: '12M', days: 365 },
+    { id: 'all', label: 'TUDO', days: null }
+  ];
+  var currentFilter = 'all';
+  var sortState = { key: 'date', dir: 'desc' };
+
+  var filtersEl = document.getElementById('filters');
+  FILTERS.forEach(function (f) {
+    var btn = document.createElement('button');
+    btn.className = 'filter-btn' + (f.id === currentFilter ? ' active' : '');
+    btn.textContent = f.label;
+    btn.dataset.id = f.id;
+    btn.addEventListener('click', function () {
+      currentFilter = f.id;
+      Array.prototype.forEach.call(filtersEl.children, function (b) { b.classList.toggle('active', b.dataset.id === f.id); });
+      renderAll();
+    });
+    filtersEl.appendChild(btn);
+  });
+
+  function keysForFilter() {
+    if (currentFilter === 'all') return allKeys;
+    var f = FILTERS.filter(function (x) { return x.id === currentFilter; })[0];
+    var cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - f.days);
+    return allKeys.filter(function (k) { return new Date(k + 'T12:00:00') >= cutoff; });
+  }
+
+  // ---------------- render principal ----------------
+  function renderAll() {
+    var keys = keysForFilter();
+
+    var studyMinutes = 0;
+    var toolMinutes = {};
+    TOOLS.forEach(function (t) { toolMinutes[t.id] = 0; });
+
+    var rows = []; // {key, tournaments, buyIn, result, roi}
+    keys.forEach(function (k) {
+      var rec = data[k];
+      if (rec.study) {
+        studyMinutes += Number(rec.study.minutes) || 0;
+        (rec.study.tools || []).forEach(function (tid) {
+          if (toolMinutes[tid] !== undefined) toolMinutes[tid] += Number(rec.study.minutes) || 0;
+        });
+      }
+      if (rec.session) {
+        var buyIn = Number(rec.session.buyIn) || 0;
+        var result = Number(rec.session.result) || 0;
+        rows.push({
+          key: k,
+          tournaments: Number(rec.session.tournaments) || 0,
+          buyIn: buyIn,
+          result: result,
+          roi: buyIn > 0 ? (result / buyIn * 100) : null
+        });
+      }
+    });
+
+    // saldo acumulado em ordem cronológica ascendente
+    rows.sort(function (a, b) { return a.key < b.key ? -1 : 1; });
+    var running = 0;
+    rows.forEach(function (r) { running += r.result; r.balance = running; });
+
+    var totalTournaments = rows.reduce(function (s, r) { return s + r.tournaments; }, 0);
+    var totalBuyIn = rows.reduce(function (s, r) { return s + r.buyIn; }, 0);
+    var totalResult = rows.reduce(function (s, r) { return s + r.result; }, 0);
+    var itmCount = rows.filter(function (r) { return r.result > 0; }).length;
+    var roiOverall = totalBuyIn > 0 ? (totalResult / totalBuyIn * 100) : null;
+    var itmRate = rows.length > 0 ? (itmCount / rows.length * 100) : null;
+    var avgBuyIn = rows.length > 0 ? (totalBuyIn / rows.length) : 0;
+    var avgResult = rows.length > 0 ? (totalResult / rows.length) : 0;
+    var best = rows.length ? Math.max.apply(null, rows.map(function (r) { return r.result; })) : 0;
+    var worst = rows.length ? Math.min.apply(null, rows.map(function (r) { return r.result; })) : 0;
+
+    // ---- tira de estatísticas ----
+    var strip = document.getElementById('statStrip');
+    strip.innerHTML = '';
+    var cells = [
+      { l: 'Sessões', v: rows.length },
+      { l: 'Torneios', v: totalTournaments },
+      { l: 'Buy-in total', v: 'R$ ' + fmt2(totalBuyIn) },
+      { l: 'Resultado líq.', v: 'R$ ' + fmtSigned(totalResult), cls: totalResult > 0 ? 'pos' : (totalResult < 0 ? 'neg' : '') },
+      { l: 'ROI', v: roiOverall === null ? '—' : roiOverall.toFixed(1) + '%', cls: roiOverall > 0 ? 'pos' : (roiOverall < 0 ? 'neg' : '') },
+      { l: 'Sessões ITM*', v: itmRate === null ? '—' : itmRate.toFixed(0) + '%' },
+      { l: 'Buy-in médio', v: 'R$ ' + fmt2(avgBuyIn) },
+      { l: 'Result. médio', v: 'R$ ' + fmtSigned(avgResult), cls: avgResult > 0 ? 'pos' : (avgResult < 0 ? 'neg' : '') },
+      { l: 'Melhor sessão', v: 'R$ ' + fmtSigned(best), cls: best > 0 ? 'pos' : '' },
+      { l: 'Pior sessão', v: 'R$ ' + fmtSigned(worst), cls: worst < 0 ? 'neg' : '' }
+    ];
+    cells.forEach(function (c) {
+      var cell = document.createElement('div');
+      cell.className = 'stat-cell';
+      cell.innerHTML = '<div class="sc-lbl">' + c.l + '</div><div class="sc-val ' + (c.cls || '') + '">' + c.v + '</div>';
+      strip.appendChild(cell);
+    });
+
+    // ---- gráfico de evolução ----
+    var graphVal = document.getElementById('graphVal');
+    graphVal.textContent = 'R$ ' + fmtSigned(totalResult);
+    graphVal.className = 'gval ' + (totalResult > 0 ? 'pos' : (totalResult < 0 ? 'neg' : ''));
+
+    var graphWrap = document.getElementById('graphWrap');
+    graphWrap.innerHTML = '';
+    if (rows.length < 2) {
+      graphWrap.innerHTML = '<div class="graph-empty">Registre ao menos 2 sessões de jogo nesse período pra ver o gráfico.</div>';
+    } else {
+      var W = 760, H = 200, padL = 44, padR = 10, padT = 14, padB = 22;
+      var innerW = W - padL - padR, innerH = H - padT - padB;
+      var vals = rows.map(function (r) { return r.balance; });
+      var maxV = Math.max.apply(null, vals.concat([0]));
+      var minV = Math.min.apply(null, vals.concat([0]));
+      var range = (maxV - minV) || 1;
+
+      function xAt(i) { return padL + (i / (rows.length - 1)) * innerW; }
+      function yAt(v) { return padT + innerH - ((v - minV) / range) * innerH; }
+
+      var zeroY = yAt(0);
+      var linePts = rows.map(function (r, i) { return xAt(i) + ',' + yAt(r.balance); });
+      var areaPts = 'M' + xAt(0) + ',' + zeroY + ' L' + linePts.join(' L') + ' L' + xAt(rows.length - 1) + ',' + zeroY + ' Z';
+      var lineColor = totalResult >= 0 ? 'var(--success)' : 'var(--danger)';
+
+      var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:auto;display:block;" preserveAspectRatio="none">';
+      // linhas de grade horizontais
+      [0, 0.25, 0.5, 0.75, 1].forEach(function (t) {
+        var y = padT + t * innerH;
+        svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="var(--line)" stroke-width="1"/>';
+      });
+      // eixo zero
+      svg += '<line x1="' + padL + '" y1="' + zeroY + '" x2="' + (W - padR) + '" y2="' + zeroY + '" stroke="var(--gold-dim)" stroke-width="1" stroke-dasharray="3,3"/>';
+      // área preenchida
+      svg += '<path d="' + areaPts + '" fill="' + lineColor + '" opacity="0.12" stroke="none"/>';
+      // linha
+      svg += '<polyline points="' + linePts.join(' ') + '" fill="none" stroke="' + lineColor + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+      // ponto final
+      var lastX = xAt(rows.length - 1), lastY = yAt(rows[rows.length - 1].balance);
+      svg += '<circle cx="' + lastX + '" cy="' + lastY + '" r="3.5" fill="' + lineColor + '"/>';
+      // labels eixo Y (max, 0, min)
+      svg += '<text x="2" y="' + (padT + 4) + '" font-size="9" fill="var(--muted)" font-family="ui-monospace,monospace">' + Math.round(maxV) + '</text>';
+      svg += '<text x="2" y="' + (zeroY + 3) + '" font-size="9" fill="var(--muted)" font-family="ui-monospace,monospace">0</text>';
+      svg += '<text x="2" y="' + (padT + innerH + 2) + '" font-size="9" fill="var(--muted)" font-family="ui-monospace,monospace">' + Math.round(minV) + '</text>';
+      // labels eixo X (primeira e última data)
+      svg += '<text x="' + padL + '" y="' + (H - 4) + '" font-size="9" fill="var(--muted)" font-family="ui-monospace,monospace">' + dLabel(rows[0].key) + '</text>';
+      svg += '<text x="' + (W - padR) + '" y="' + (H - 4) + '" font-size="9" fill="var(--muted)" font-family="ui-monospace,monospace" text-anchor="end">' + dLabel(rows[rows.length - 1].key) + '</text>';
+      svg += '</svg>';
+      graphWrap.innerHTML = svg;
+    }
+
+    // ---- tabela de sessões ----
+    renderTable(rows, totalTournaments, totalBuyIn, totalResult);
+
+    // ---- estudo ----
+    var studyHours = (studyMinutes / 60).toFixed(1);
+    document.getElementById('studySummary').innerHTML =
+      '<span>Total estudado: <b>' + studyHours + 'h</b></span>' +
+      '<span>Sessões de estudo: <b>' + keys.filter(function (k) { return data[k].study; }).length + '</b></span>';
+
+    var toolBars = document.getElementById('toolBars');
+    toolBars.innerHTML = '';
+    var maxToolMin = Math.max.apply(null, TOOLS.map(function (t) { return toolMinutes[t.id]; })) || 1;
+    if (studyMinutes === 0) {
+      toolBars.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:6px 0;">Nenhum estudo com ferramenta marcada nesse período.</div>';
+    } else {
+      TOOLS.forEach(function (t) {
+        var mins = toolMinutes[t.id];
+        if (!mins) return;
+        var pct = Math.round(mins / maxToolMin * 100);
+        var row = document.createElement('div');
+        row.className = 'tool-bar-row';
+        row.innerHTML = '<span class="tname">' + t.label + '</span>' +
+          '<span class="tool-bar-track"><span class="tool-bar-fill" style="width:' + pct + '%;"></span></span>' +
+          '<span class="tval">' + mins + ' min</span>';
+        toolBars.appendChild(row);
+      });
+    }
+  }
+
+  function renderTable(rows, totalTournaments, totalBuyIn, totalResult) {
+    var thead = document.querySelectorAll('#ledgerTable thead th');
+    Array.prototype.forEach.call(thead, function (th) {
+      var arrow = th.querySelector('.arrow');
+      if (th.dataset.key === sortState.key) arrow.textContent = sortState.dir === 'asc' ? '▲' : '▼';
+      else arrow.textContent = '';
+      th.onclick = function () {
+        if (sortState.key === th.dataset.key) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        else { sortState.key = th.dataset.key; sortState.dir = th.dataset.key === 'date' ? 'desc' : 'desc'; }
+        renderTable(rows, totalTournaments, totalBuyIn, totalResult);
+      };
+    });
+
+    var sorted = rows.slice().sort(function (a, b) {
+      var k = sortState.key;
+      var av = k === 'date' ? a.key : (a[k] === null ? -Infinity : a[k]);
+      var bv = k === 'date' ? b.key : (b[k] === null ? -Infinity : b[k]);
+      if (av < bv) return sortState.dir === 'asc' ? -1 : 1;
+      if (av > bv) return sortState.dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    var body = document.getElementById('ledgerBody');
+    var foot = document.getElementById('ledgerFoot');
+    body.innerHTML = '';
+    foot.innerHTML = '';
+
+    if (!sorted.length) {
+      body.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma sessão de jogo registrada nesse período.</td></tr>';
+      return;
+    }
+
+    sorted.forEach(function (r) {
+      var tr = document.createElement('tr');
+      var resCls = r.result > 0 ? 'pos' : (r.result < 0 ? 'neg' : '');
+      var roiCls = r.roi === null ? '' : (r.roi > 0 ? 'pos' : (r.roi < 0 ? 'neg' : ''));
+      var balCls = r.balance > 0 ? 'pos' : (r.balance < 0 ? 'neg' : '');
+      tr.innerHTML =
+        '<td>' + dLabel(r.key) + '</td>' +
+        '<td>' + r.tournaments + '</td>' +
+        '<td>R$ ' + fmt2(r.buyIn) + '</td>' +
+        '<td class="' + resCls + '">R$ ' + fmtSigned(r.result) + '</td>' +
+        '<td class="' + roiCls + '">' + (r.roi === null ? '—' : r.roi.toFixed(1) + '%') + '</td>' +
+        '<td class="' + balCls + '">R$ ' + fmtSigned(r.balance) + '</td>';
+      body.appendChild(tr);
+    });
+
+    var roiTotal = totalBuyIn > 0 ? (totalResult / totalBuyIn * 100) : null;
+    var footTr = document.createElement('tr');
+    footTr.innerHTML =
+      '<td>Total (' + sorted.length + ')</td>' +
+      '<td>' + totalTournaments + '</td>' +
+      '<td>R$ ' + fmt2(totalBuyIn) + '</td>' +
+      '<td class="' + (totalResult > 0 ? 'pos' : (totalResult < 0 ? 'neg' : '')) + '">R$ ' + fmtSigned(totalResult) + '</td>' +
+      '<td class="' + (roiTotal > 0 ? 'pos' : (roiTotal < 0 ? 'neg' : '')) + '">' + (roiTotal === null ? '—' : roiTotal.toFixed(1) + '%') + '</td>' +
+      '<td>—</td>';
+    foot.appendChild(footTr);
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
