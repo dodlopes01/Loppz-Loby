@@ -309,6 +309,7 @@
   .preset-row.preset-new:hover { border-color: var(--gold); }
   .preset-row.preset-new .preset-name { color: var(--gold); font-weight: 700; }
   .preset-name { flex: 1; color: var(--cream); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .preset-pct { color: var(--muted); font-weight: 600; font-size: 11px; }
   .preset-del { flex: 0 0 auto; background: transparent; border: none; color: var(--muted);
     font-size: 13px; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; }
   .preset-del:hover { background: var(--danger-bg); color: var(--danger); }
@@ -362,7 +363,7 @@
       <h3 style="margin:0;">Presets</h3>
       <button class="panel-close" id="presetCloseBtn">✕</button>
     </div>
-    <p class="preset-explain">Um preset guarda todos os seus ranges (todas as posições e profundidades) de uma vez. Toque num preset da lista pra carregar.</p>
+    <p class="preset-explain">Um preset guarda o range de <b>uma mesa só</b> (a que você está vendo agora). Toque num preset da lista pra aplicar nesta mesa — as outras não são afetadas.</p>
     <div id="presetList"></div>
     <p class="io-status" id="presetStatus"></p>
   </div>
@@ -632,35 +633,46 @@
     }
   } catch (e) { /* localStorage indisponível */ }
 
-  var PRESETS_KEY = 'loppzloby_ranges_presets_v1';
-  var presets = {}; // { nome: { overrides: {...}, marks: {...} } }
+  var PRESETS_KEY = 'loppzloby_ranges_presets_v2';
+  // v2: cada preset guarda o range de UMA mesa só (mãos -> ação), não mais o workspace inteiro.
+  // Assim dá pra salvar "minha defesa vs CO" e aplicar em qualquer mesa depois, sem mexer nas outras.
+  var presets = {}; // { nome: { overrides: { HAND: 'fold'|'raise'|'allin'|'call' }, marks: { HAND: 'yellow'|... } } }
   try {
     var savedPresets = localStorage.getItem(PRESETS_KEY);
     if (savedPresets) presets = JSON.parse(savedPresets);
   } catch (e) { /* ignora */ }
 
-  var ACTIVE_PRESET_KEY = 'loppzloby_active_preset_v1';
-  var activePresetName = null;
-  try { activePresetName = localStorage.getItem(ACTIVE_PRESET_KEY) || null; } catch (e) { /* ignora */ }
+  var ACTIVE_PRESET_KEY = 'loppzloby_active_preset_by_ctx_v1';
+  var activePresetByCtx = {}; // { ctxKey: nomeDoPreset } — qual preset está "ativo" em cada mesa
+  try {
+    var savedActive = localStorage.getItem(ACTIVE_PRESET_KEY);
+    if (savedActive) activePresetByCtx = JSON.parse(savedActive);
+  } catch (e) { /* ignora */ }
+
+  function persistActivePresetByCtx() {
+    try { localStorage.setItem(ACTIVE_PRESET_KEY, JSON.stringify(activePresetByCtx)); } catch (e) { /* ignora */ }
+  }
+
+  function getActivePresetName() { return activePresetByCtx[ctxKey()] || null; }
 
   function setActivePreset(name) {
-    activePresetName = name;
-    try {
-      if (name) localStorage.setItem(ACTIVE_PRESET_KEY, name);
-      else localStorage.removeItem(ACTIVE_PRESET_KEY);
-    } catch (e) { /* ignora */ }
+    var key = ctxKey();
+    if (name) activePresetByCtx[key] = name;
+    else delete activePresetByCtx[key];
+    persistActivePresetByCtx();
     updateActivePresetBadge();
   }
 
   function updateActivePresetBadge() {
     var row = document.getElementById('activePresetRow');
     var el = document.getElementById('activePresetBadge');
-    if (!activePresetName || !presets[activePresetName]) {
+    var name = getActivePresetName();
+    if (!name || !presets[name]) {
       row.style.display = 'none';
       return;
     }
     row.style.display = 'flex';
-    el.innerHTML = '📌 Preset: <b>' + activePresetName + '</b><span class="x">✕</span>';
+    el.innerHTML = '📌 Preset nesta mesa: <b>' + name + '</b><span class="x">✕</span>';
   }
 
   var MARK_COLORS = [
@@ -1005,6 +1017,7 @@
     updateStat();
     updateLegend();
     renderPalette();
+    updateActivePresetBadge();
     // se uma mão está selecionada no result, atualiza o indicador de posições jogáveis
     var selected = Object.keys(cellsByLabel).filter(function(l) { return cellsByLabel[l].classList.contains('selected'); })[0];
     if (selected) updatePlayablePositions(selected);
@@ -1289,11 +1302,11 @@
     var box = document.getElementById('presetList');
     box.innerHTML = '';
 
-    // ---- item "+ Novo preset" (topo da lista) ----
+    // ---- item "+ Salvar esta mesa como preset" (topo da lista) ----
     if (!showingNewPresetForm) {
       var newRow = document.createElement('div');
       newRow.className = 'preset-row preset-new';
-      newRow.innerHTML = '<span class="preset-name">+ Novo preset</span>';
+      newRow.innerHTML = '<span class="preset-name">+ Salvar esta mesa como preset novo</span>';
       newRow.addEventListener('click', function() {
         showingNewPresetForm = true;
         renderPresetList();
@@ -1306,7 +1319,7 @@
       var input = document.createElement('input');
       input.type = 'text';
       input.id = 'presetName';
-      input.placeholder = 'Nome do preset (ex: Torneio, Cash 100bb...)';
+      input.placeholder = 'Nome do preset (ex: Defesa vs CO, RFI BTN 25bb...)';
       form.appendChild(input);
 
       var actionsRow = document.createElement('div');
@@ -1316,15 +1329,17 @@
         var name = input.value.trim();
         var statusEl = document.getElementById('presetStatus');
         if (!name) { statusEl.textContent = 'Digite um nome pra esse preset.'; input.focus(); return; }
+        if (presets[name] && !confirm('Já existe um preset "' + name + '". Sobrescrever com a mesa atual?')) return;
+        var key = ctxKey();
         presets[name] = {
-          overrides: JSON.parse(JSON.stringify(customOverrides)),
-          marks: JSON.parse(JSON.stringify(customMarks))
+          overrides: JSON.parse(JSON.stringify(customOverrides[key] || {})),
+          marks: JSON.parse(JSON.stringify(customMarks[key] || {}))
         };
         persistPresets();
         setActivePreset(name);
         showingNewPresetForm = false;
         renderPresetList();
-        statusEl.textContent = 'Preset "' + name + '" salvo.';
+        statusEl.textContent = 'Preset "' + name + '" salvo com o range desta mesa (' + posLabelForCtx() + ').';
       }
 
       input.addEventListener('keydown', function(e) {
@@ -1350,7 +1365,7 @@
       input.focus();
     }
 
-    // ---- lista de presets salvos ----
+    // ---- lista de presets salvos (aplicam só na mesa atual) ----
     var names = Object.keys(presets);
     if (!names.length) {
       var empty = document.createElement('p');
@@ -1359,13 +1374,15 @@
       box.appendChild(empty);
       return;
     }
+    var activeName = getActivePresetName();
     names.forEach(function(name) {
       var row = document.createElement('div');
-      row.className = 'preset-row' + (name === activePresetName ? ' active' : '');
+      row.className = 'preset-row' + (name === activeName ? ' active' : '');
 
       var nameSpan = document.createElement('span');
       nameSpan.className = 'preset-name';
-      nameSpan.textContent = (name === activePresetName ? '✓ ' : '') + name;
+      var pct = presetPct(presets[name]);
+      nameSpan.innerHTML = (name === activeName ? '✓ ' : '') + name + ' <span class="preset-pct">' + pct + '%</span>';
       row.appendChild(nameSpan);
 
       var delBtn = document.createElement('button');
@@ -1374,29 +1391,47 @@
       delBtn.title = 'Excluir preset';
       delBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        if (confirm('Excluir o preset "' + name + '"?')) {
+        if (confirm('Excluir o preset "' + name + '"? (isso não mexe no range que já está pintado em nenhuma mesa)')) {
           delete presets[name];
           persistPresets();
-          if (activePresetName === name) setActivePreset(null);
+          Object.keys(activePresetByCtx).forEach(function(k) {
+            if (activePresetByCtx[k] === name) delete activePresetByCtx[k];
+          });
+          persistActivePresetByCtx();
           renderPresetList();
+          updateActivePresetBadge();
           document.getElementById('presetStatus').textContent = 'Preset "' + name + '" excluído.';
         }
       });
       row.appendChild(delBtn);
 
       row.addEventListener('click', function() {
-        customOverrides = JSON.parse(JSON.stringify(presets[name].overrides || {}));
-        customMarks = JSON.parse(JSON.stringify(presets[name].marks || {}));
+        var key = ctxKey();
+        customOverrides[key] = JSON.parse(JSON.stringify(presets[name].overrides || {}));
+        customMarks[key] = JSON.parse(JSON.stringify(presets[name].marks || {}));
         persistOverrides();
         persistMarks();
         setActivePreset(name);
         render();
         renderPresetList();
-        document.getElementById('presetStatus').textContent = 'Preset "' + name + '" carregado.';
+        document.getElementById('presetStatus').textContent = 'Preset "' + name + '" aplicado nesta mesa (' + posLabelForCtx() + ').';
       });
 
       box.appendChild(row);
     });
+  }
+
+  function posLabelForCtx() {
+    return (currentPos === 'BB' ? 'BB vs ' + posNames[currentOpener] : posNames[currentPos]) + ' · ' + currentBB + 'bb';
+  }
+
+  function presetPct(preset) {
+    var tot = 0;
+    hands.forEach(function(h) {
+      var a = preset.overrides && preset.overrides[h.label];
+      if (a && a !== 'fold') tot += h.combos;
+    });
+    return (tot / 1326 * 100).toFixed(1);
   }
 
   // ---------- Backup manual (texto) ----------
@@ -1511,22 +1546,26 @@
   });
 
   document.getElementById('presetUpdateBtn').addEventListener('click', function() {
-    if (!activePresetName) return;
-    presets[activePresetName] = {
-      overrides: JSON.parse(JSON.stringify(customOverrides)),
-      marks: JSON.parse(JSON.stringify(customMarks))
+    var name = getActivePresetName();
+    if (!name) return;
+    var key = ctxKey();
+    presets[name] = {
+      overrides: JSON.parse(JSON.stringify(customOverrides[key] || {})),
+      marks: JSON.parse(JSON.stringify(customMarks[key] || {}))
     };
     persistPresets();
     var badge = document.getElementById('activePresetBadge');
-    badge.innerHTML = '✅ Salvo em "' + activePresetName + '"';
+    badge.innerHTML = '✅ Salvo em "' + name + '"';
     setTimeout(updateActivePresetBadge, 1400);
   });
 
   document.getElementById('presetRevertBtn').addEventListener('click', function() {
-    if (!activePresetName || !presets[activePresetName]) return;
-    if (!confirm('Descartar suas alterações e voltar pro que foi salvo em "' + activePresetName + '"?')) return;
-    customOverrides = JSON.parse(JSON.stringify(presets[activePresetName].overrides || {}));
-    customMarks = JSON.parse(JSON.stringify(presets[activePresetName].marks || {}));
+    var name = getActivePresetName();
+    if (!name || !presets[name]) return;
+    if (!confirm('Descartar suas alterações nesta mesa e voltar pro que foi salvo em "' + name + '"?')) return;
+    var key = ctxKey();
+    customOverrides[key] = JSON.parse(JSON.stringify(presets[name].overrides || {}));
+    customMarks[key] = JSON.parse(JSON.stringify(presets[name].marks || {}));
     persistOverrides();
     persistMarks();
     render();
