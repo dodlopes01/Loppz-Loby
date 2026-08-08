@@ -332,9 +332,14 @@
   @media (min-width: 980px) {
     .wrap { max-width: 1100px; padding: 40px 24px 70px; }
     header h1 { font-size: 22px; }
-    .page-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
-    .pg-mesa, .pg-controls, .pg-handpicker { grid-column: 1; }
-    .pg-grid { grid-column: 2; position: sticky; top: 24px; }
+    .page-grid {
+      display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start;
+      grid-template-areas: "mesa grid" "controls grid" "handpicker grid";
+    }
+    .pg-mesa { grid-area: mesa; }
+    .pg-controls { grid-area: controls; }
+    .pg-handpicker { grid-area: handpicker; }
+    .pg-grid { grid-area: grid; position: sticky; top: 24px; }
     .table-oval { max-width: 360px; height: 270px; }
     .seat { width: 44px; height: 44px; margin-left: -22px; margin-top: -22px; font-size: 10.5px; }
   }
