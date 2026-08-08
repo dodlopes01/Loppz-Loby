@@ -1209,14 +1209,18 @@
     });
   });
 
-  document.querySelectorAll('.stacks button').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.stacks button').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      lastCtxKey = ctxKey();
-      currentBB = parseInt(btn.dataset.bb);
-      render();
+  function selectStack(bb) {
+    if (!stacksEnabled) return;
+    document.querySelectorAll('.stacks button').forEach(function(b) {
+      b.classList.toggle('active', parseInt(b.dataset.bb) === bb);
     });
+    lastCtxKey = ctxKey();
+    currentBB = bb;
+    render();
+  }
+
+  document.querySelectorAll('.stacks button').forEach(function(btn) {
+    btn.addEventListener('click', function() { selectStack(parseInt(btn.dataset.bb)); });
   });
 
   var stackSwitch = document.getElementById('stackSwitch');
@@ -1571,6 +1575,30 @@
     persistOverrides();
     persistMarks();
     render();
+  });
+
+  // ---------- atalhos de teclado: ←/→ troca profundidade de stack, ↑/↓ troca posição na mesa ----------
+  document.addEventListener('keydown', function(e) {
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return; // não rouba a seta enquanto o usuário digita
+    if (document.getElementById('rankPicker').classList.contains('show')) return;
+
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      if (!stacksEnabled) return;
+      var i = REAL_RANGE_STACKS.indexOf(currentBB);
+      if (i === -1) return;
+      var next = e.key === 'ArrowLeft'
+        ? REAL_RANGE_STACKS[Math.max(0, i - 1)]
+        : REAL_RANGE_STACKS[Math.min(REAL_RANGE_STACKS.length - 1, i + 1)];
+      if (next !== currentBB) { e.preventDefault(); selectStack(next); }
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      var j = POSITIONS.indexOf(currentPos);
+      if (j === -1) return;
+      var nextPos = e.key === 'ArrowUp'
+        ? POSITIONS[Math.max(0, j - 1)]
+        : POSITIONS[Math.min(POSITIONS.length - 1, j + 1)];
+      if (nextPos !== currentPos) { e.preventDefault(); selectSeat(nextPos); }
+    }
   });
 
   syncModeToggle();
