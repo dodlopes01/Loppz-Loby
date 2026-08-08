@@ -9,9 +9,9 @@
     --felt: #141212; --felt-2: #1C1918; --panel: #211D1C; --panel-2: #29231F;
     --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15); --cream: #EFE7D2; --muted: #9C9490;
     --danger: #D2564A; --danger-bg: #3A211D; --success: #E8843A; --success-bg: #3A2712;
-    --allin: #8B3FA0; --allin-bg: #2B1533; --fold-cell: #1A1716; --line: rgba(239, 231, 210, 0.14);
-    --call: #4CAF6D; --call-bg: #123420; --raise: #E5484D; --raise-bg: #3A1616;
-    --added: #3FB7A8; --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    --allin: #7A2323; --allin-bg: #2E1010; --fold-cell: #1A1716; --line: rgba(239, 231, 210, 0.14);
+    --call: #4FAE64; --call-bg: #123420; --raise: #E8443E; --raise-bg: #3A1616;
+    --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -102,10 +102,9 @@
   }
   .result.show { display: block; }
   .result.raise { background: var(--raise-bg); color: var(--raise); border-color: rgba(229,72,77,0.35); }
-  .result.allin { background: var(--allin-bg); color: var(--allin); border-color: rgba(139,63,160,0.4); }
+  .result.allin { background: var(--allin-bg); color: #E8A5A5; border-color: rgba(122,35,35,0.5); }
   .result.call { background: var(--call-bg); color: var(--call); border-color: rgba(76,175,109,0.35); }
-  .result.added { background: rgba(63,183,168,0.15); color: var(--added); border-color: rgba(63,183,168,0.35); }
-  .result.fold { background: var(--danger-bg); color: var(--danger); border-color: rgba(210,86,74,0.3); }
+    .result.fold { background: var(--danger-bg); color: var(--danger); border-color: rgba(210,86,74,0.3); }
   .result .sub { display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 4px; }
 
   .playable-positions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 4px; min-height: 26px; }
@@ -113,9 +112,8 @@
   .pp-none { font-size: 12px; color: var(--muted); }
   .pp-badge { font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 999px; letter-spacing: 0.02em; }
   .pp-badge.raise { background: var(--raise-bg); color: var(--raise); border: 1px solid rgba(229,72,77,0.45); }
-  .pp-badge.allin { background: var(--allin-bg); color: var(--allin); border: 1px solid rgba(139,63,160,0.5); }
+  .pp-badge.allin { background: var(--allin-bg); color: #E8A5A5; border: 1px solid rgba(122,35,35,0.6); }
   .pp-badge.call { background: var(--call-bg); color: var(--call); border: 1px solid rgba(76,175,109,0.45); }
-  .pp-badge.added { background: rgba(63,183,168,0.15); color: var(--added); border: 1px solid rgba(63,183,168,0.4); }
 
   /* ---- table ---- */
   .table-oval {
@@ -139,9 +137,8 @@
     font-size: 5px; font-weight: 700; color: rgba(239,231,210,0.55); line-height: 1; overflow: hidden;
   }
   .seat-preview-grid .mc.raise { background: var(--raise); color: #2E0A0A; }
-  .seat-preview-grid .mc.allin { background: var(--allin); color: #F5E9FF; }
+  .seat-preview-grid .mc.allin { background: var(--allin); color: #FDEDED; }
   .seat-preview-grid .mc.call { background: var(--call); color: #0C2914; }
-  .seat-preview-grid .mc.added { background: var(--added); color: #0C2E29; }
   .seat {
     position: absolute; width: 40px; height: 40px; margin-left: -20px; margin-top: -20px;
     border-radius: 50%; background: #1A1F1C; border: 2px solid var(--line);
@@ -259,9 +256,8 @@
     color: var(--muted); font-weight: 600; user-select: none; position: relative;
   }
   .cell.raise { background: var(--raise); color: #2E0A0A; }
-  .cell.allin { background: var(--allin); color: #F5E9FF; }
+  .cell.allin { background: var(--allin); color: #FDEDED; }
   .cell.call { background: var(--call); color: #0C2914; }
-  .cell.added { background: var(--added); color: #0C2E29; }
   .cell.selected { outline: 2px solid var(--gold); outline-offset: -2px; }
 
   /* marcadores livres pintam a célula por completo, por cima da cor de ação */
@@ -742,13 +738,11 @@
 
   function getCycle() {
     // Defesa do BB tem 4 ações possíveis (fold/call/3-bet/all-in); abertura (RFI) tem 3 (fold/raise/all-in).
-    var base = currentPos === 'BB' ? ['fold', 'call', 'raise', 'allin'] : ['fold', 'raise', 'allin'];
-    return base.concat(['added']);
+    return currentPos === 'BB' ? ['fold', 'call', 'raise', 'allin'] : ['fold', 'raise', 'allin'];
   }
 
   function actionLabel(cls) {
     if (cls === 'fold') return 'FOLD';
-    if (cls === 'added') return 'ADICIONADO';
     if (cls === 'call') return 'CALL';
     if (cls === 'raise') return currentPos === 'BB' ? '3-BET' : 'RAISE';
     if (cls === 'allin') return 'ALL-IN';
@@ -756,7 +750,6 @@
 
   function colorFor(cls) {
     if (cls === 'fold') return 'var(--fold-cell)';
-    if (cls === 'added') return 'var(--added)';
     if (cls === 'call') return 'var(--call)';
     if (cls === 'allin') return 'var(--allin)';
     return 'var(--raise)'; // raise/3-bet
@@ -835,7 +828,7 @@
     var realCombos = 0;
     hands.forEach(function(h) {
       var mc = miniCellsByLabel[h.label];
-      mc.classList.remove('raise', 'allin', 'call', 'added');
+      mc.classList.remove('raise', 'allin', 'call');
       var cls = final[h.label];
       if (cls !== 'fold') { mc.classList.add(cls); realCombos += h.combos; }
     });
@@ -931,10 +924,10 @@
     dotsBox.style.display = 'flex';
     dotsBox.innerHTML = '';
 
-    var cycle = getCycle(); // ex: ['fold','raise','allin','added']
+    var cycle = getCycle(); // ex: ['fold','raise','allin']
     if (!paintColor || cycle.indexOf(paintColor) === -1) paintColor = cycle[0];
 
-    // dots de ação (fold/raise/allin/added) — clicar seleciona e já habilita pintar
+    // dots de ação (fold/raise/allin/call) — clicar seleciona e já habilita pintar
     cycle.forEach(function (cls) {
       var dot = document.createElement('button');
       dot.type = 'button';
@@ -1004,7 +997,7 @@
     var selectedCombos = 0;
     hands.forEach(function(h) {
       var cell = cellsByLabel[h.label];
-      cell.classList.remove('raise', 'allin', 'call', 'added', 'edited', 'mark-yellow', 'mark-blue', 'mark-purple', 'mark-pink', 'mark-white');
+      cell.classList.remove('raise', 'allin', 'call', 'edited', 'mark-yellow', 'mark-blue', 'mark-purple', 'mark-pink', 'mark-white');
       var cls = final[h.label];
       if (cls !== 'fold') { cell.classList.add(cls); selectedCombos += h.combos; }
       if (overrides.hasOwnProperty(h.label)) cell.classList.add('edited');
@@ -1056,7 +1049,6 @@
       html += '<span><span class="dot" style="background: var(--allin);"></span>All-in</span>';
     }
     html += '<span><span class="dot" style="background: var(--fold-cell); border: 1px solid var(--line);"></span>Fold</span>';
-    html += '<span><span class="dot" style="background: var(--added);"></span>Adicionado</span>';
     el.innerHTML = html;
   }
 
