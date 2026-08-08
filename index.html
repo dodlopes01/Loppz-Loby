@@ -3,146 +3,108 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Lopz GTO</title>
+<title>Loppz Loby</title>
 <style>
   :root {
     --felt: #141212; --felt-2: #1C1918; --panel: #211D1C; --panel-2: #29231F;
-    --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15); --cream: #EFE7D2; --muted: #9C9490;
-    --success: #4FAE6E; --danger: #D2564A;
+    --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15);
+    --cream: #EFE7D2; --muted: #9C9490;
+    --call: #4FAE64; --raise: #E8443E; --allin: #7A2323; --fold-cell: #3D6FB4;
     --line: rgba(239, 231, 210, 0.14); --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: var(--felt); color: var(--cream);
+    margin: 0; padding: 0; min-height: 100vh;
+    background: radial-gradient(ellipse at top, #1C1918 0%, #0A0908 100%);
+    color: var(--cream);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    overflow: hidden;
   }
-  .mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
-  .shell { display: flex; flex-direction: column; height: 100vh; }
+  .shell { display: flex; flex-direction: column; min-height: 100vh; }
 
   .topbar {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 14px 18px; border-bottom: 1px solid var(--line);
+    padding: 16px 18px; border-bottom: 1px solid var(--line);
     background: linear-gradient(180deg, var(--felt-2) 0%, var(--felt) 100%);
-    flex-shrink: 0;
+    flex-shrink: 0; position: sticky; top: 0; z-index: 10;
   }
-  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
   .brand-mark {
-    width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(160deg, var(--gold) 0%, var(--gold-dim) 100%);
-    display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 900; color: #1A1508;
+    width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(160deg, var(--gold) 0%, var(--gold-dim) 100%);
+    display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; color: #1A1508;
     flex-shrink: 0; box-shadow: 0 3px 8px rgba(0,0,0,0.35);
   }
   .brand-text h1 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: 0.01em; color: var(--gold); line-height: 1.15; }
   .brand-text p { margin: 1px 0 0; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
-  .tabs {
-    display: flex; gap: 6px; padding: 9px 14px;
-    background: var(--felt-2); border-bottom: 1px solid var(--line);
-    overflow-x: auto; flex-shrink: 0;
-    -webkit-overflow-scrolling: touch;
-  }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab-btn {
-    flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+  .nav-pills { display: flex; gap: 6px; }
+  .nav-pill {
     background: var(--panel); border: 1px solid var(--line); color: var(--cream);
-    font-size: 12.5px; font-weight: 700; padding: 8px 14px; border-radius: 999px; cursor: pointer;
-    white-space: nowrap; transition: background .12s, border-color .12s;
+    font-size: 12.5px; font-weight: 700; padding: 9px 16px; border-radius: 999px; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: background .12s, border-color .12s;
   }
-  .tab-btn:hover { border-color: var(--gold-dim); }
-  .tab-btn.active { background: var(--red); border-color: var(--red); color: var(--cream); }
-  .tab-btn.add { color: var(--muted); border-style: dashed; }
-  .tab-btn .ic { font-size: 13px; }
+  .nav-pill:hover { border-color: var(--gold-dim); }
+  .nav-pill.active { background: var(--red); border-color: var(--red); color: var(--cream); }
 
-  .content { flex: 1; position: relative; overflow: hidden; }
+  .content { flex: 1; position: relative; }
   .content iframe {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; background: var(--felt);
+    position: absolute; inset: 0; width: 100%; height: 100%; border: none; background: var(--felt);
   }
-  .add-panel {
-    display: none; position: absolute; inset: 0; padding: 30px 24px;
-    text-align: center; align-items: center; justify-content: center; flex-direction: column;
-  }
-  .add-panel.show { display: flex; }
-  .add-panel h2 { color: var(--gold); font-size: 17px; margin: 0 0 10px; }
-  .add-panel p { color: var(--muted); font-size: 13px; max-width: 340px; line-height: 1.6; margin: 0; }
 
   /* ---------------- HOME ---------------- */
-  .home-panel {
-    display: none; position: absolute; inset: 0; overflow-y: auto;
-    background: radial-gradient(ellipse at top, #1C1918 0%, #0A0908 100%);
-  }
+  .home-panel { position: absolute; inset: 0; overflow-y: auto; display: none; }
   .home-panel.show { display: block; }
-  .home-inner { max-width: 620px; margin: 0 auto; padding: 24px 18px 50px; }
+  .home-inner { max-width: 720px; margin: 0 auto; padding: 48px 20px 70px; }
 
-  .home-hero { margin-bottom: 18px; }
-  .home-hero h2 { margin: 0 0 6px; font-size: 21px; font-weight: 800; color: var(--gold); letter-spacing: 0.01em; }
-  .home-hero p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.6; max-width: 460px; }
-
-  /* ---- painel de evolução (elemento principal da home) ---- */
-  .evo-panel {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
-    padding: 18px; margin-bottom: 22px; box-shadow: var(--card-shadow);
+  .home-hero { text-align: center; margin-bottom: 40px; }
+  .home-hero .hero-mark {
+    width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 18px;
+    background: linear-gradient(160deg, var(--gold) 0%, var(--gold-dim) 100%);
+    display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: #1A1508;
+    box-shadow: 0 8px 24px rgba(201,162,39,0.25);
   }
-  .evo-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
-  .evo-value { font-size: 32px; font-weight: 800; margin-top: 4px; line-height: 1.1; }
-  .evo-value.pos { color: var(--success); }
-  .evo-value.neg { color: var(--danger); }
-  .evo-value.zero { color: var(--cream); }
-  .evo-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .home-hero h2 { margin: 0 0 10px; font-size: 26px; font-weight: 800; color: var(--gold); letter-spacing: 0.01em; }
+  .home-hero p { margin: 0 auto; font-size: 13.5px; color: var(--muted); line-height: 1.6; max-width: 420px; }
 
-  .evo-graph-wrap { margin: 14px 0 4px; }
-
-  .evo-stats { display: flex; gap: 8px; margin: 14px 0 16px; }
-  .evo-stat { flex: 1; background: var(--felt-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 6px; text-align: center; }
-  .evo-stat .v { font-size: 14px; font-weight: 800; color: var(--cream); }
-  .evo-stat .l { font-size: 8.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
-
-  .evo-cta { display: flex; gap: 8px; }
-  .evo-cta button {
-    flex: 1; border: none; border-radius: 10px; padding: 12px; font-size: 12.5px; font-weight: 800; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-  }
-  .evo-cta .primary { background: var(--red); color: var(--cream); }
-  .evo-cta .secondary { background: transparent; border: 1px solid var(--gold-dim); color: var(--gold); }
-
-  .evo-empty { text-align: center; padding: 14px 6px 6px; }
-  .evo-empty p { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin: 0 0 14px; }
-
-  /* ---- grade de ferramentas ---- */
-  .home-divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; }
-  .home-divider .line { flex: 1; height: 1px; background: var(--line); }
-  .home-divider span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; white-space: nowrap; }
-
-  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tool-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
   .tool-card {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 12px 13px; cursor: pointer; box-shadow: var(--card-shadow);
-    transition: border-color .12s, background .12s;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--line); border-radius: 20px;
+    padding: 26px 24px; cursor: pointer; box-shadow: var(--card-shadow);
+    transition: border-color .15s, transform .15s;
+    display: flex; align-items: center; gap: 18px;
   }
-  .tool-card:hover { border-color: var(--gold-dim); background: var(--panel-2); }
-  .tool-card .tic { font-size: 19px; display: block; margin-bottom: 6px; }
-  .tool-card .tlbl { display: block; font-size: 12px; font-weight: 800; color: var(--cream); line-height: 1.25; margin-bottom: 3px; }
-  .tool-card .tdesc { font-size: 10.5px; color: var(--muted); line-height: 1.4; display: block; }
+  .tool-card:hover { border-color: var(--gold-dim); transform: translateY(-2px); }
+  .tool-card .tic {
+    flex-shrink: 0; width: 56px; height: 56px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center; font-size: 26px;
+  }
+  .tool-card.c-ranges .tic { background: rgba(232,68,62,0.15); }
+  .tool-card.c-glossario .tic { background: rgba(79,174,100,0.15); }
+  .tool-card .tbody { flex: 1; min-width: 0; }
+  .tool-card .tlbl { display: block; font-size: 16px; font-weight: 800; color: var(--cream); line-height: 1.3; margin-bottom: 4px; }
+  .tool-card .tdesc { font-size: 12.5px; color: var(--muted); line-height: 1.5; display: block; }
+  .tool-card .tarrow { flex-shrink: 0; font-size: 20px; color: var(--gold-dim); }
+
+  .home-footer { text-align: center; margin-top: 40px; font-size: 11px; color: var(--muted); line-height: 1.7; }
 
   @media (min-width: 760px) {
     .topbar { padding: 18px 26px; }
     .brand-mark { width: 40px; height: 40px; font-size: 20px; border-radius: 11px; }
     .brand-text h1 { font-size: 20px; }
     .brand-text p { font-size: 11px; }
-    .tabs { padding: 12px 22px; gap: 8px; }
-    .tab-btn { font-size: 13.5px; padding: 10px 18px; }
+    .nav-pill { font-size: 13.5px; padding: 10px 20px; }
 
-    .home-inner { max-width: 760px; padding: 46px 24px 70px; }
-    .home-hero { margin-bottom: 26px; }
-    .home-hero h2 { font-size: 27px; }
-    .home-hero p { font-size: 14px; max-width: 560px; }
+    .home-inner { padding: 80px 24px 90px; }
+    .home-hero { margin-bottom: 52px; }
+    .home-hero h2 { font-size: 32px; }
+    .home-hero p { font-size: 14.5px; }
 
-    .evo-panel { padding: 26px; }
-    .evo-value { font-size: 42px; }
-    .evo-stats { max-width: 420px; }
-    .evo-cta { max-width: 420px; }
-
-    .tool-grid { grid-template-columns: repeat(4, 1fr); }
+    .tool-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+    .tool-card { flex-direction: column; align-items: flex-start; text-align: left; padding: 32px 28px; gap: 16px; }
+    .tool-card .tic { width: 64px; height: 64px; font-size: 30px; }
+    .tool-card .tlbl { font-size: 18px; }
+    .tool-card .tdesc { font-size: 13px; }
+    .tool-card .tarrow { display: none; }
   }
 </style>
 </head>
@@ -150,225 +112,95 @@
 <div class="shell">
 
   <div class="topbar">
-    <div class="brand">
+    <div class="brand" id="brandHome">
       <div class="brand-mark">♠</div>
       <div class="brand-text">
-        <h1>Lopz GTO</h1>
+        <h1>Loppz Loby</h1>
         <p>estudo de poker · offline</p>
       </div>
     </div>
+    <div class="nav-pills" id="navPills"></div>
   </div>
 
-  <div class="tabs" id="tabs"></div>
-
   <div class="content">
-    <iframe id="frame" title="conteúdo"></iframe>
+    <iframe id="frame" title="conteúdo" style="display:none;"></iframe>
 
-    <div class="home-panel" id="homePanel">
+    <div class="home-panel show" id="homePanel">
       <div class="home-inner">
         <div class="home-hero">
-          <h2>♠ Lopz GTO</h2>
-          <p>Registre seus torneios, acompanhe sua evolução e use as ferramentas de estudo quando precisar — tudo em um só lugar.</p>
+          <div class="hero-mark">♠</div>
+          <h2>Loppz Loby</h2>
+          <p>Ferramentas de estudo pré-flop com ranges reais de solver — offline, direto no navegador.</p>
         </div>
 
-        <div class="evo-panel" id="evoPanel"></div>
-
-        <div class="home-divider"><div class="line"></div><span>Ferramentas de estudo</span><div class="line"></div></div>
-
         <div class="tool-grid" id="toolGrid"></div>
-      </div>
-    </div>
 
-    <div class="add-panel" id="addPanel">
-      <h2>+ Nova aba</h2>
-      <p>Quer adicionar uma nova ferramenta aqui (ex: tracker de sessões, notas de mesa, calculadora de ICM)? É só pedir no chat que eu crio o arquivo e devolvo a pasta inteira já com a aba nova pronta pra usar.</p>
+        <div class="home-footer">Seus dados ficam salvos só neste navegador. Nada é enviado pra nenhum servidor.</div>
+      </div>
     </div>
   </div>
 
 </div>
 
 <script>
-  // Lista de abas do site. Para adicionar uma nova ferramenta,
-  // é só pedir no chat — não é preciso editar nada aqui manualmente.
   var TABS = [
-    { id: 'glossario', label: 'Glossário',        file: 'glossario.html', icon: '📖', desc: 'Termos e conceitos básicos explicados' },
-    { id: 'outs',      label: 'Outs & Odds',       file: 'outs.html',      icon: '🃏', desc: 'Quantas cartas te ajudam e a chance de vir' },
-    { id: 'potodds',   label: 'Pot Odds',          file: 'potodds.html',   icon: '🎯', desc: 'Vale a pena pagar? Calcule na hora' },
-    { id: 'ranges',    label: 'Ranges Pré-Flop',   file: 'ranges.html',    icon: '🗺️', desc: 'Quais mãos jogar em cada posição da mesa' },
-    { id: 'equity',    label: 'Equity vs Range',   file: 'equity.html',    icon: '⚔️', desc: 'Sua mão contra a faixa do oponente' },
-    { id: 'icm',       label: 'ICM',               file: 'icm.html',       icon: '💰', desc: 'Fichas não são dinheiro — converta pra valor real' },
-    { id: 'analise',   label: 'Análise de Mãos',   file: 'analise.html',   icon: '🔍', desc: 'Cole seu hand history e ache seus erros' },
-    { id: 'agenda',    label: 'Agenda',            file: 'agenda.html',    icon: '📔', desc: 'Registro rápido de estudo e sessões de jogo' },
-    { id: 'estatisticas', label: 'Estatísticas',   file: 'estatisticas.html', icon: '📊', desc: 'Seus números: resultado, ROI, horas e ITM' }
+    { id: 'ranges',    label: 'Ranges Pré-Flop', file: 'ranges.html',    icon: '🗺️', cls: 'c-ranges',
+      desc: 'RFI e Defesa do BB com ranges reais de solver, editáveis mesa por mesa.' },
+    { id: 'glossario', label: 'Glossário',       file: 'glossario.html', icon: '📖', cls: 'c-glossario',
+      desc: 'Termos e conceitos de poker, com seus próprios verbetes editáveis.' }
   ];
-  // ferramentas mostradas na grade da home (deixa fora Agenda/Estatísticas, que já têm destaque no painel de evolução)
-  var HOME_GRID_IDS = ['glossario', 'outs', 'potodds', 'ranges', 'equity', 'icm', 'analise'];
 
-  var tabsEl = document.getElementById('tabs');
+  var tabsEl = document.getElementById('navPills');
   var frame = document.getElementById('frame');
-  var addPanel = document.getElementById('addPanel');
   var homePanel = document.getElementById('homePanel');
   var toolGrid = document.getElementById('toolGrid');
 
-  // ---- pill "Início" (primeira aba, ativa por padrão) ----
-  var homeBtn = document.createElement('button');
-  homeBtn.className = 'tab-btn';
-  homeBtn.innerHTML = '<span class="ic">🏠</span> Início';
-  homeBtn.dataset.id = '__home__';
-  homeBtn.addEventListener('click', function() { selectTab('__home__'); });
-  tabsEl.appendChild(homeBtn);
+  var homePill = document.createElement('button');
+  homePill.className = 'nav-pill active';
+  homePill.innerHTML = '<span>🏠</span> Início';
+  homePill.dataset.id = '__home__';
+  homePill.addEventListener('click', function() { selectTab('__home__'); });
+  tabsEl.appendChild(homePill);
 
   TABS.forEach(function(tab) {
     var btn = document.createElement('button');
-    btn.className = 'tab-btn';
-    btn.innerHTML = '<span class="ic">' + tab.icon + '</span> ' + tab.label;
+    btn.className = 'nav-pill';
+    btn.innerHTML = '<span>' + tab.icon + '</span> ' + tab.label;
     btn.dataset.id = tab.id;
     btn.addEventListener('click', function() { selectTab(tab.id); });
     tabsEl.appendChild(btn);
-  });
 
-  var addBtn = document.createElement('button');
-  addBtn.className = 'tab-btn add';
-  addBtn.textContent = '+';
-  addBtn.addEventListener('click', function() { selectTab('__add__'); });
-  tabsEl.appendChild(addBtn);
-
-  // ---- grade de ferramentas de estudo (sem numeração/trilha) ----
-  TABS.filter(function(t) { return HOME_GRID_IDS.indexOf(t.id) !== -1; }).forEach(function(tab) {
     var card = document.createElement('div');
-    card.className = 'tool-card';
-    card.innerHTML = '<span class="tic">' + tab.icon + '</span>' +
-      '<span class="tlbl">' + tab.label + '</span>' +
-      '<span class="tdesc">' + tab.desc + '</span>';
+    card.className = 'tool-card ' + tab.cls;
+    card.innerHTML =
+      '<div class="tic">' + tab.icon + '</div>' +
+      '<div class="tbody">' +
+        '<span class="tlbl">' + tab.label + '</span>' +
+        '<span class="tdesc">' + tab.desc + '</span>' +
+      '</div>' +
+      '<div class="tarrow">›</div>';
     card.addEventListener('click', function() { selectTab(tab.id); });
     toolGrid.appendChild(card);
   });
 
-  // ---- painel de evolução: lê o mesmo registro usado pela Agenda/Estatísticas ----
-  function renderEvoPanel() {
-    var STORAGE_KEY = 'loppzloby_agenda_v1';
-    var data = {};
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) data = JSON.parse(raw);
-    } catch (e) { /* ignora */ }
-
-    var evoPanel = document.getElementById('evoPanel');
-    var keys = Object.keys(data).sort();
-    var sessionKeys = keys.filter(function(k) { return data[k].session; });
-
-    if (!sessionKeys.length) {
-      evoPanel.innerHTML =
-        '<div class="evo-label">Sua evolução</div>' +
-        '<div class="evo-empty">' +
-        '<p>Você ainda não registrou nenhuma sessão de torneio. Comece agora pra acompanhar seu resultado, ROI e evolução ao longo do tempo.</p>' +
-        '<div class="evo-cta">' +
-        '<button class="primary" id="evoAddSession">🃏 Registrar sessão</button>' +
-        '</div></div>';
-      document.getElementById('evoAddSession').addEventListener('click', function() { goToAgenda('session'); });
-      return;
-    }
-
-    var netResult = 0, totalBuyIn = 0;
-    var balances = [];
-    var running = 0;
-    sessionKeys.forEach(function(k) {
-      var r = Number(data[k].session.result) || 0;
-      var b = Number(data[k].session.buyIn) || 0;
-      netResult += r; totalBuyIn += b;
-      running += r;
-      balances.push(running);
-    });
-    var roi = totalBuyIn > 0 ? (netResult / totalBuyIn * 100) : null;
-
-    // streak de dias ativos (estudo ou jogo)
-    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
-    function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
-    var streak = 0, cursor = new Date();
-    while (true) {
-      var dk = dateKey(cursor);
-      if (data[dk] && (data[dk].study || data[dk].session)) { streak++; cursor.setDate(cursor.getDate() - 1); }
-      else break;
-    }
-
-    var cls = netResult > 0 ? 'pos' : (netResult < 0 ? 'neg' : 'zero');
-    var sign = netResult > 0 ? '+' : '';
-    var valStr = sign + netResult.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    var html = '<div class="evo-label">Saldo acumulado (todas as sessões)</div>' +
-      '<div class="evo-value ' + cls + '">R$ ' + valStr + '</div>' +
-      '<div class="evo-sub">' + sessionKeys.length + ' sessão(ões) registrada(s) · buy-in total R$ ' + totalBuyIn.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div>';
-
-    html += '<div class="evo-graph-wrap" id="evoGraph"></div>';
-
-    html += '<div class="evo-stats">' +
-      '<div class="evo-stat"><div class="v">' + sessionKeys.length + '</div><div class="l">sessões</div></div>' +
-      '<div class="evo-stat"><div class="v">' + (roi === null ? '—' : roi.toFixed(1) + '%') + '</div><div class="l">ROI</div></div>' +
-      '<div class="evo-stat"><div class="v">' + streak + '</div><div class="l">dias seguidos</div></div>' +
-      '</div>';
-
-    html += '<div class="evo-cta">' +
-      '<button class="primary" id="evoAddSession">🃏 Registrar sessão</button>' +
-      '<button class="secondary" id="evoSeeStats">📊 Ver estatísticas</button>' +
-      '</div>';
-
-    evoPanel.innerHTML = html;
-    document.getElementById('evoAddSession').addEventListener('click', function() { goToAgenda('session'); });
-    document.getElementById('evoSeeStats').addEventListener('click', function() { selectTab('estatisticas'); });
-
-    // mini gráfico de evolução (sparkline)
-    var graphEl = document.getElementById('evoGraph');
-    if (balances.length < 2) {
-      graphEl.innerHTML = '';
-    } else {
-      var last = balances.slice(-20);
-      var W = 560, H = 64, pad = 4;
-      var maxV = Math.max.apply(null, last.concat([0]));
-      var minV = Math.min.apply(null, last.concat([0]));
-      var range = (maxV - minV) || 1;
-      function xAt(i) { return pad + (i / (last.length - 1)) * (W - pad * 2); }
-      function yAt(v) { return pad + (H - pad * 2) - ((v - minV) / range) * (H - pad * 2); }
-      var zeroY = yAt(0);
-      var pts = last.map(function(v, i) { return xAt(i) + ',' + yAt(v); });
-      var areaPath = 'M' + xAt(0) + ',' + zeroY + ' L' + pts.join(' L') + ' L' + xAt(last.length - 1) + ',' + zeroY + ' Z';
-      var color = netResult >= 0 ? 'var(--success)' : 'var(--danger)';
-      var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;height:64px;display:block;" preserveAspectRatio="none">' +
-        '<line x1="' + pad + '" y1="' + zeroY + '" x2="' + (W - pad) + '" y2="' + zeroY + '" stroke="var(--line)" stroke-width="1" stroke-dasharray="3,3"/>' +
-        '<path d="' + areaPath + '" fill="' + color + '" opacity="0.14" stroke="none"/>' +
-        '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
-        '</svg>';
-      graphEl.innerHTML = svg;
-    }
-  }
-
-  function goToAgenda(action) {
-    Array.prototype.forEach.call(tabsEl.children, function(btn) {
-      btn.classList.toggle('active', btn.dataset.id === 'agenda');
-    });
-    homePanel.classList.remove('show');
-    addPanel.classList.remove('show');
-    frame.style.display = 'block';
-    frame.src = 'agenda.html' + (action ? ('?action=' + action) : '');
-  }
+  document.getElementById('brandHome').addEventListener('click', function() { selectTab('__home__'); });
 
   function selectTab(id) {
     Array.prototype.forEach.call(tabsEl.children, function(btn) {
-      btn.classList.toggle('active', btn.dataset.id === id || (id === '__add__' && btn === addBtn));
+      btn.classList.toggle('active', btn.dataset.id === id);
     });
 
-    frame.style.display = 'none';
-    addPanel.classList.remove('show');
+    if (id === '__home__') {
+      frame.style.display = 'none';
+      homePanel.classList.add('show');
+      return;
+    }
+
     homePanel.classList.remove('show');
-
-    if (id === '__add__') { addPanel.classList.add('show'); return; }
-    if (id === '__home__') { renderEvoPanel(); homePanel.classList.add('show'); return; }
-
     frame.style.display = 'block';
     var tab = TABS.filter(function(t) { return t.id === id; })[0];
     if (tab) frame.src = tab.file;
   }
-
-  selectTab('__home__');
 </script>
 </body>
 </html>
