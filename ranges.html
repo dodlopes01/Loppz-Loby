@@ -9,8 +9,8 @@
     --felt: #141212; --felt-2: #1C1918; --panel: #211D1C; --panel-2: #29231F;
     --gold: #C9A227; --gold-dim: #8F7620; --red: #A62D24; --red-dim: #7A211A; --red-bg: rgba(166,45,36,0.15); --cream: #EFE7D2; --muted: #9C9490;
     --danger: #D2564A; --danger-bg: #3A211D; --success: #E8843A; --success-bg: #3A2712;
-    --allin: #B33B2E; --allin-bg: #35190F; --fold-cell: #1A1716; --line: rgba(239, 231, 210, 0.14);
-    --call: #4CAF6D; --call-bg: #123420;
+    --allin: #8B3FA0; --allin-bg: #2B1533; --fold-cell: #1A1716; --line: rgba(239, 231, 210, 0.14);
+    --call: #4CAF6D; --call-bg: #123420; --raise: #E5484D; --raise-bg: #3A1616;
     --added: #3FB7A8; --card-shadow: 0 8px 28px rgba(0,0,0,0.35);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -65,7 +65,11 @@
     border: 1px solid var(--line); border-radius: 18px; padding: 18px 16px;
     margin-bottom: 18px; box-shadow: var(--card-shadow);
   }
-  .card-divider { height: 1px; background: var(--line); margin: 16px 0; border: none; }
+  .page-grid { display: flex; flex-direction: column; }
+  .pg-mesa { order: 1; }
+  .pg-controls { order: 2; }
+  .pg-grid { order: 3; }
+  .pg-handpicker { order: 4; }
 
   /* ---- hand picker (top) ---- */
   .lookup { margin-bottom: 4px; }
@@ -97,8 +101,8 @@
     border: 1px solid transparent; display: none;
   }
   .result.show { display: block; }
-  .result.raise { background: var(--success-bg); color: var(--success); border-color: rgba(232,132,58,0.3); }
-  .result.allin { background: var(--allin-bg); color: var(--allin); border-color: rgba(179,59,46,0.35); }
+  .result.raise { background: var(--raise-bg); color: var(--raise); border-color: rgba(229,72,77,0.35); }
+  .result.allin { background: var(--allin-bg); color: var(--allin); border-color: rgba(139,63,160,0.4); }
   .result.call { background: var(--call-bg); color: var(--call); border-color: rgba(76,175,109,0.35); }
   .result.added { background: rgba(63,183,168,0.15); color: var(--added); border-color: rgba(63,183,168,0.35); }
   .result.fold { background: var(--danger-bg); color: var(--danger); border-color: rgba(210,86,74,0.3); }
@@ -108,8 +112,8 @@
   .pp-label { font-size: 11px; color: var(--muted); font-weight: 600; margin-right: 2px; }
   .pp-none { font-size: 12px; color: var(--muted); }
   .pp-badge { font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 999px; letter-spacing: 0.02em; }
-  .pp-badge.raise { background: var(--success-bg); color: var(--success); border: 1px solid rgba(232,132,58,0.4); }
-  .pp-badge.allin { background: var(--allin-bg); color: var(--allin); border: 1px solid rgba(179,59,46,0.45); }
+  .pp-badge.raise { background: var(--raise-bg); color: var(--raise); border: 1px solid rgba(229,72,77,0.45); }
+  .pp-badge.allin { background: var(--allin-bg); color: var(--allin); border: 1px solid rgba(139,63,160,0.5); }
   .pp-badge.call { background: var(--call-bg); color: var(--call); border: 1px solid rgba(76,175,109,0.45); }
   .pp-badge.added { background: rgba(63,183,168,0.15); color: var(--added); border: 1px solid rgba(63,183,168,0.4); }
 
@@ -134,8 +138,8 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 5px; font-weight: 700; color: rgba(239,231,210,0.55); line-height: 1; overflow: hidden;
   }
-  .seat-preview-grid .mc.raise { background: var(--success); color: #2E1607; }
-  .seat-preview-grid .mc.allin { background: var(--allin); color: #2A0D08; }
+  .seat-preview-grid .mc.raise { background: var(--raise); color: #2E0A0A; }
+  .seat-preview-grid .mc.allin { background: var(--allin); color: #F5E9FF; }
   .seat-preview-grid .mc.call { background: var(--call); color: #0C2914; }
   .seat-preview-grid .mc.added { background: var(--added); color: #0C2E29; }
   .seat {
@@ -207,6 +211,16 @@
 
   .stat-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
   .stat { font-size: 12px; color: var(--muted); text-align: center; margin-bottom: 0; }
+  .context-banner {
+    display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: var(--cream);
+    background: var(--panel-2); border: 1px solid var(--gold-dim); border-radius: 12px;
+    padding: 10px 14px; margin-bottom: 10px; line-height: 1.3;
+  }
+  .context-banner .vs { color: var(--red); font-weight: 900; }
+  .context-banner .bbtag {
+    margin-left: auto; background: var(--felt-2); border: 1px solid var(--line); color: var(--gold);
+    font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  }
   .real-pct-badge { font-size: 11.5px; font-weight: 700; color: var(--cream); background: var(--felt-2);
     border: 1px solid var(--gold-dim); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
   .real-pct-badge b { color: var(--gold); font-size: 13px; }
@@ -244,8 +258,8 @@
     font-size: 9.5px; border-radius: 3px; cursor: pointer; background: var(--fold-cell);
     color: var(--muted); font-weight: 600; user-select: none; position: relative;
   }
-  .cell.raise { background: var(--success); color: #2E1607; }
-  .cell.allin { background: var(--allin); color: #2A0D08; }
+  .cell.raise { background: var(--raise); color: #2E0A0A; }
+  .cell.allin { background: var(--allin); color: #F5E9FF; }
   .cell.call { background: var(--call); color: #0C2914; }
   .cell.added { background: var(--added); color: #0C2E29; }
   .cell.selected { outline: 2px solid var(--gold); outline-offset: -2px; }
@@ -318,7 +332,8 @@
     .wrap { max-width: 1100px; padding: 40px 24px 70px; }
     header h1 { font-size: 22px; }
     .page-grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start; }
-    .page-grid .col-right { position: sticky; top: 24px; }
+    .pg-mesa, .pg-controls, .pg-handpicker { grid-column: 1; }
+    .pg-grid { grid-column: 2; position: sticky; top: 24px; }
     .table-oval { max-width: 360px; height: 270px; }
     .seat { width: 44px; height: 44px; margin-left: -22px; margin-top: -22px; font-size: 10.5px; }
   }
@@ -375,9 +390,8 @@
   </div>
 
   <div class="page-grid">
-  <div class="col-left">
-  <!-- MESA (topo da esquerda) -->
-  <div class="range-card">
+  <!-- MESA -->
+  <div class="range-card pg-mesa">
     <h2 class="section">Posição na mesa (9-max)</h2>
     <div class="table-oval" id="table">
       <span class="felt-label" id="feltLabel">9-max</span>
@@ -398,28 +412,8 @@
     </div>
   </div>
 
-  <!-- HAND PICKER -->
-  <div class="range-card hand-card">
-    <h2 class="section">Escolha uma mão</h2>
-    <div class="lookup">
-      <div class="lookup-row">
-        <div class="card-face empty" id="slot0">+</div>
-        <span class="x">+</span>
-        <div class="card-face empty" id="slot1">+</div>
-        <div class="seg" id="suitedToggle" style="display:none; margin:0; flex:1;">
-          <button data-suited="s" class="active">Suited</button>
-          <button data-suited="o">Offsuit</button>
-        </div>
-      </div>
-      <div class="rank-picker" id="rankPicker"></div>
-    </div>
-
-    <div class="result" id="result"></div>
-    <div class="playable-positions" id="playablePositions"></div>
-  </div>
-
   <!-- MENU / CONTROLES -->
-  <div class="range-card">
+  <div class="range-card pg-controls">
     <div class="row-header">
       <h2 class="section" style="margin:0;">Profundidade do stack</h2>
       <div class="switch on" id="stackSwitch"><span id="stackSwitchLabel">Ativado</span><span class="knob"></span></div>
@@ -451,15 +445,12 @@
     <p class="autosave-note">💾 Suas edições salvam automaticamente neste navegador.</p>
   </div>
 
-  </div>
-  <div class="col-right">
   <!-- CALCULADORA + PINTURA + GRID -->
-  <div class="range-card">
+  <div class="range-card pg-grid">
     <div class="util-row">
       <button class="info-toggle" id="bbCalcToggle">🧮 Calculadora de BBs</button>
       <button class="info-toggle" id="editBtn">🎨 Pintar range</button>
-      <button class="info-toggle" id="zeroBtn">↺ Restaurar original</button>
-      <button class="info-toggle" id="copyPrevBtn">📋 Copiar mesa anterior</button>
+      <button class="info-toggle" id="zeroBtn">🗑️ Apagar tudo</button>
       <button class="info-toggle" id="ioBtn">🔄 Backup</button>
     </div>
 
@@ -486,11 +477,31 @@
       <button class="preset-mini-btn" id="presetUpdateBtn" title="Sobrescrever o preset com as alterações atuais">💾 Salvar</button>
       <button class="preset-mini-btn" id="presetRevertBtn" title="Descartar alterações e voltar ao que foi salvo">↺ Reverter</button>
     </div>
+    <div class="context-banner" id="contextBanner"></div>
     <div class="legend" id="legend"></div>
     <div id="grid" class="grid"></div>
   </div>
 
+  <!-- HAND PICKER -->
+  <div class="range-card hand-card pg-handpicker">
+    <h2 class="section">Escolha uma mão</h2>
+    <div class="lookup">
+      <div class="lookup-row">
+        <div class="card-face empty" id="slot0">+</div>
+        <span class="x">+</span>
+        <div class="card-face empty" id="slot1">+</div>
+        <div class="seg" id="suitedToggle" style="display:none; margin:0; flex:1;">
+          <button data-suited="s" class="active">Suited</button>
+          <button data-suited="o">Offsuit</button>
+        </div>
+      </div>
+      <div class="rank-picker" id="rankPicker"></div>
+    </div>
+
+    <div class="result" id="result"></div>
+    <div class="playable-positions" id="playablePositions"></div>
   </div>
+
   </div>
 
   <footer>
@@ -738,7 +749,7 @@
     if (cls === 'added') return 'var(--added)';
     if (cls === 'call') return 'var(--call)';
     if (cls === 'allin') return 'var(--allin)';
-    return 'var(--success)'; // raise
+    return 'var(--raise)'; // raise/3-bet
   }
 
   var gridEl = document.getElementById('grid');
@@ -814,7 +825,7 @@
     var realCombos = 0;
     hands.forEach(function(h) {
       var mc = miniCellsByLabel[h.label];
-      mc.classList.remove('raise', 'allin', 'added');
+      mc.classList.remove('raise', 'allin', 'call', 'added');
       var cls = final[h.label];
       if (cls !== 'fold') { mc.classList.add(cls); realCombos += h.combos; }
     });
@@ -983,7 +994,7 @@
     var selectedCombos = 0;
     hands.forEach(function(h) {
       var cell = cellsByLabel[h.label];
-      cell.classList.remove('raise', 'allin', 'added', 'edited', 'mark-yellow', 'mark-blue', 'mark-purple', 'mark-pink', 'mark-white');
+      cell.classList.remove('raise', 'allin', 'call', 'added', 'edited', 'mark-yellow', 'mark-blue', 'mark-purple', 'mark-pink', 'mark-white');
       var cls = final[h.label];
       if (cls !== 'fold') { cell.classList.add(cls); selectedCombos += h.combos; }
       if (overrides.hasOwnProperty(h.label)) cell.classList.add('edited');
@@ -1006,6 +1017,20 @@
     } else {
       el.innerHTML = posNames[currentPos] + ' · ' + currentBB + 'bb — monte seu range de abertura nessa mesa';
     }
+    updateContextBanner();
+  }
+
+  function updateContextBanner() {
+    var el = document.getElementById('contextBanner');
+    var html;
+    if (currentPos === 'BB') {
+      html = '🛡️ Defendendo o <span class="vs">BIG BLIND</span> contra abertura do <span class="vs">' +
+        posNames[currentOpener] + '</span>';
+    } else {
+      html = '📤 Abrindo (RFI) do <span class="vs">' + posNames[currentPos] + '</span>';
+    }
+    html += '<span class="bbtag">' + currentBB + 'bb</span>';
+    el.innerHTML = html;
   }
 
   function updateLegend() {
@@ -1013,10 +1038,10 @@
     var html = '';
     if (currentPos === 'BB') {
       html += '<span><span class="dot" style="background: var(--call);"></span>Call</span>';
-      html += '<span><span class="dot" style="background: var(--success);"></span>3-bet</span>';
+      html += '<span><span class="dot" style="background: var(--raise);"></span>3-bet</span>';
       html += '<span><span class="dot" style="background: var(--allin);"></span>All-in</span>';
     } else {
-      html += '<span><span class="dot" style="background: var(--success);"></span>Raise</span>';
+      html += '<span><span class="dot" style="background: var(--raise);"></span>Raise</span>';
       html += '<span><span class="dot" style="background: var(--allin);"></span>All-in</span>';
     }
     html += '<span><span class="dot" style="background: var(--fold-cell); border: 1px solid var(--line);"></span>Fold</span>';
@@ -1216,26 +1241,10 @@
 
   document.getElementById('zeroBtn').addEventListener('click', function() {
     var key = ctxKey();
-    var msg = hasRealBaseFor(currentPos, currentBB, currentOpener)
-      ? 'Descartar suas edições nesta mesa e voltar pro range real (solver) original?'
-      : 'Descartar suas edições e zerar esta mesa (ela não tem range real de base, então tudo vira fold)?';
-    if (!confirm(msg)) return;
-    delete customOverrides[key];
+    if (!confirm('Apagar tudo nesta mesa (' + key + ')? Todas as 169 mãos viram fold, mesmo que essa mesa tenha um range real de solver por baixo. Não dá pra desfazer.')) return;
+    if (!customOverrides[key]) customOverrides[key] = {};
+    hands.forEach(function(h) { customOverrides[key][h.label] = 'fold'; });
     delete customMarks[key];
-    persistOverrides();
-    persistMarks();
-    render();
-  });
-
-  document.getElementById('copyPrevBtn').addEventListener('click', function() {
-    var key = ctxKey();
-    if (lastCtxKey === key) {
-      alert('Ainda não existe uma "mesa anterior" diferente desta pra copiar. Troque de posição, profundidade ou opener primeiro.');
-      return;
-    }
-    if (!confirm('Copiar o range da mesa anterior (' + lastCtxKey + ') pra esta mesa (' + key + ')? Isso substitui as edições que você já fez aqui.')) return;
-    customOverrides[key] = JSON.parse(JSON.stringify(customOverrides[lastCtxKey] || {}));
-    customMarks[key] = JSON.parse(JSON.stringify(customMarks[lastCtxKey] || {}));
     persistOverrides();
     persistMarks();
     render();
