@@ -353,9 +353,7 @@
     <button data-mode="bb">🛡️ Defesa do BB</button>
   </div>
 
-  <button class="info-toggle" id="infoToggle">ℹ️ Fonte dos dados</button>
   <button class="info-toggle" id="presetBtn">📁 Presets</button>
-  <div class="source-note" id="sourceNote" style="display:none;"><b>Como funciona:</b> UTG, HJ, CO e BTN vêm com o range real de solver do material "Jogando no Big Blind Pré-Flop" — tanto o RFI (abertura) quanto a Defesa do BB contra cada uma dessas posições, nos stacks 100/50/25/15bb. UTG+1, MP1, MP2 e SB começam em branco (sem base real ainda) pra você montar do seu jeito. Em qualquer mesa, toque em "🎨 Pintar range" pra editar por cima da base — suas edições ficam marcadas com um contorno dourado e salvam sozinhas nesse navegador. Use "↺ Restaurar original" pra descartar suas edições e voltar pro range real.</div>
 
   <!-- PRESETS (mais enxuto) -->
   <div class="io-panel" id="presetPanel">
@@ -513,11 +511,6 @@
 
 <script>
 (function() {
-  document.getElementById('infoToggle').addEventListener('click', function() {
-    var n = document.getElementById('sourceNote');
-    n.style.display = (n.style.display === 'none') ? 'block' : 'none';
-  });
-
   var RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
   var RANK_VAL = { A:14, K:13, Q:12, J:11, T:10, '9':9, '8':8, '7':7, '6':6, '5':5, '4':4, '3':3, '2':2 };
   var CHEN_PTS = { A:10, K:8, Q:7, J:6, T:5, '9':4.5, '8':4, '7':3.5, '6':3, '5':2.5, '4':2, '3':1.5, '2':1 };
